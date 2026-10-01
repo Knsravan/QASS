@@ -15,7 +15,7 @@ Eleven guided modules take you from the difference between a bit and a qubit, th
 - **Real quantum math.** Gate matrices, Bell states, measurement probabilities and state vectors are computed from the actual linear algebra and shown on screen.
 - **A circuit diagram** for every module, one click away in the sidebar.
 - **Synthesized soundscapes.** Every module has its own audio, generated live with the Web Audio API (no sound files), with a single mute control.
-- **Liquid Glass interface.** Floating controls use a real refraction material (details below), with spring-driven motion and reduced-motion / reduced-transparency support.
+- **Liquid Glass interface.** The sidebar, top bar and buttons are real glass lenses that bend and reflect the scene behind them (details below), with spring-driven motion and reduced-motion / reduced-transparency support.
 
 ![Module hub with the sidebar open](docs/screenshots/02-hub.jpg)
 
@@ -87,15 +87,17 @@ The simulator is designed for desktop and tablet screens. On narrow windows (und
 | `src/*Module.jsx`, `src/BlochSphere.jsx`, `src/QuantumGates.jsx`, ... | One file per module's 3D scene and overlay |
 | `src/quantumMath.js` | State-vector, gate and measurement math |
 | `src/use*Audio.js`, `src/sharedAudio.js` | Per-module sound design on one shared `AudioContext` |
-| `src/LiquidGlass.js`, `src/GlassNavBar.jsx` | The Liquid Glass material and the floating tab bar |
+| `src/LiquidGlass.js`, `src/glassLens.js`, `src/GlassNavBar.jsx` | The Liquid Glass material, its lens filter and the floating tab bar |
 | `src/liquid-glass/` | The Liquid Glass skill's material, used by the sidebar and the top bar |
 | `scripts/generate_audio.js` | Optional: regenerates the narration clips (see below) |
 
 ### The Liquid Glass material
 
-Floating controls (buttons, tooltips, cards) are rendered as Liquid Glass. `LiquidGlass.js` evaluates a rounded-rectangle signed-distance-field lens for each element on the CPU and feeds it to an SVG displacement filter inside `backdrop-filter`, so the content behind a surface bends at its edges. Each surface also gets a lit rim, saturation boost and tint. Refraction needs a Chromium-based browser; other browsers keep the blur, tint and rim without the bending.
+The sidebar (and its toggle), the top bar (the Beginner / Advanced tabs and the mute button) and the buttons are real liquid glass lenses. `src/glassLens.js` builds an SVG filter for each surface's size that runs inside `backdrop-filter`: the scene behind the glass is frosted in the middle and bent at the rim like the curved edge of a glass slab, and a fixed light from the top-left catches the rim as a reflection. Chrome does not load images inside `backdrop-filter`, so the filter makes its own displacement map from a blurred rectangle (the glass "height") with offsets and arithmetic composites. On large surfaces, only four thin rim strips run the costly steps.
 
-The sidebar and the top bar (the Beginner / Advanced tabs and the mute button) use the material from the Liquid Glass skill in `src/liquid-glass/`: a light tint with blur and saturation, an inner top highlight, a 1px rim lit from the top-left and a soft highlight at the top-left. The top bar also bends what's behind it in Chromium, and the mute button leans toward the mouse. Its custom properties are prefixed `--lgs-` so they never collide with `LiquidGlass.js`'s `--lg-` ones.
+`LiquidGlass.js` applies the lens to a `::before` layer of each surface. On the element itself, its drop shadow would shift Chrome's filter coordinates. Lenses are built in idle time for each surface's size and are rebuilt after a resize settles; until then the surface shows plain frost. A frame-rate guard switches every lens back to plain frost for the rest of the session if the machine can't keep up. Disabled (faded) buttons always use plain frost. Cards, tooltips and badges keep the frosted material with a lit rim. Refraction needs a Chromium-based browser; Safari and Firefox get the frosted glass without the bending.
+
+The tint, rim and highlight come from the Liquid Glass skill in `src/liquid-glass/`, whose custom properties are prefixed `--lgs-` so they never collide with `LiquidGlass.js`'s `--lg-` ones. The mute button leans toward the mouse.
 
 The tab bar's selection indicator is a hand-written spring (damping 0.72, stiffness 320) that stretches while it travels, can be dragged, and can be interrupted mid-flight.
 

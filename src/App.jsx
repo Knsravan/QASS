@@ -293,10 +293,11 @@ const LEARNING_MODE_TABS = [
 // ==========================================
 const LiquidGlassEffects = () => {
   useEffect(() => startLiquidGlass(document.body), []);
-  // The sidebar and the top bar use the Liquid Glass skill's material instead:
-  // the lens on the top bar (Chromium) and a magnetic mute button. The
-  // scroll-lean loop is off: the app never scrolls.
-  useEffect(() => mountLiquidGlass({ magnetic: '.lg-magnetic', glide: false }), []);
+  // The Liquid Glass skill supplies the sidebar and top bar's look and the
+  // magnetic mute button. Its own lens is off: LiquidGlass.js lenses those
+  // surfaces (the skill's image-based map doesn't load in Chrome's
+  // backdrop-filter). The scroll-lean loop is off: the app never scrolls.
+  useEffect(() => mountLiquidGlass({ magnetic: '.lg-magnetic', glide: false, lens: false }), []);
   return null;
 };
 
