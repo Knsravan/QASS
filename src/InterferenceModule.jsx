@@ -2,8 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense } fr
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Html } from '@react-three/drei';
 import * as THREE from 'three';
-import gsap from 'gsap';
-import { InlineMath, BlockMath } from 'react-katex';
+import { InlineMath } from 'react-katex';
 import { useDrag } from '@use-gesture/react';
 
 import BlochSphere from './BlochSphere';
@@ -355,10 +354,6 @@ function InterferenceScene({ theme, stage, subStage, setSubStage, interferencePh
       clearTimeout(zGateTimerRef.current);
     };
   }, [stage]);
-
-  // Quantum probabilities based on relative phase phi
-  const prob0 = Math.pow(Math.cos(interferencePhase / 2), 2);
-  const prob1 = Math.pow(Math.sin(interferencePhase / 2), 2);
 
   // Dynamic interference step mapped to BlochSphere state vector
   const interferenceStep = stage === 1 ? 0

@@ -9,6 +9,7 @@ import { MorphIcon } from 'morphicons/react';
 import { Droplets, Calculator, Zap, Timer, Triangle, Thermometer, Flame, ArrowDown } from 'lucide';
 import CameraShifter from './CameraShifter';
 import { useDecoherenceAudio } from './useDecoherenceAudio';
+import { QuantumNavButtons } from './QuantumNavButtons';
 
 // ============================================================
 // COLORS
@@ -1220,6 +1221,16 @@ export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted,
             )}
           </div>
         )}
+
+        <QuantumNavButtons
+          canPrev={currentStepIdx > 0}
+          onPrev={handleDecoPrev}
+          onNext={handleDecoNext}
+          nextLabel={currentStepIdx < DECO_STEPS.length - 1 ? 'Next' : 'Restart'}
+          isLast={currentStepIdx === DECO_STEPS.length - 1}
+          accentColor={CT}
+          containerStyle={{ position: 'absolute', bottom: '24px', right: '28px', zIndex: 300 }}
+        />
       </div>
     </div>
   );

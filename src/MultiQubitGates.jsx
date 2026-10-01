@@ -1,11 +1,10 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Text, Line, Html, InstancedMesh, Stars } from '@react-three/drei';
-import { EffectComposer, Bloom, Vignette, ChromaticAberration } from '@react-three/postprocessing';
-import { BlendFunction } from 'postprocessing';
+import { Html } from '@react-three/drei';
+import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import { BlockMath, InlineMath } from 'react-katex';
-import { QubitCore, ClassicalBit } from './BlochSphere';
+import { QubitCore } from './BlochSphere';
 import gsap from 'gsap';
 import { getInitialState, GATES_MATRICES, applyMatrix, calculateProbabilities } from './quantumMath';
 import { QuantumNavButtons } from './QuantumNavButtons';
@@ -240,21 +239,6 @@ function Shockwave({ progress }) {
       <meshBasicMaterial color="#00f2fe" transparent opacity={opacity} />
     </mesh>
   );
-}
-
-// Q-Sphere phase color mapping
-function phaseToColor(phase) {
-  let p = phase % (2 * Math.PI);
-  if (p < 0) p += 2 * Math.PI;
-  let h;
-  if (p <= Math.PI / 2) h = 240 + (p / (Math.PI / 2)) * 120; // 0 to pi/2 -> 240(Blue) to 360(Red)
-  else if (p <= Math.PI) h = ((p - Math.PI / 2) / (Math.PI / 2)) * 60; // pi/2 to pi -> 0(Red) to 60(Yellow)
-  else if (p <= 3 * Math.PI / 2) h = 60 + ((p - Math.PI) / (Math.PI / 2)) * 60; // pi to 3pi/2 -> 60(Yellow) to 120(Green)
-  else h = 120 + ((p - 3 * Math.PI / 2) / (Math.PI / 2)) * 120; // 3pi/2 to 2pi -> 120(Green) to 240(Blue)
-  
-  const color = new THREE.Color();
-  color.setHSL(h / 360, 1.0, 0.5);
-  return color;
 }
 
 const QSPHERE_RADIUS = 2.5;
