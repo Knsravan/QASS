@@ -6,7 +6,6 @@
  *   // mountLiquidGlass({ lens: false, magnetic: ".lg-pill.lg-solo" })   // options below
  *
  * What it adds on top of liquid-glass.css:
- *  - sheen:    the light on every glass pane follows the cursor (sets --lgs-mx / --lgs-my per pane)
  *  - lens:     Chromium only — builds an SVG displacement map so .lg-bar bends the page behind it (adds .lg-lens on <html>)
  *  - magnetic: buttons lean toward the cursor (mouse only)
  *  - glide:    elements with .lg-lean skew slightly with scroll speed and settle when scrolling stops (--lgs-glide on <html>)
@@ -19,7 +18,6 @@ const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 export function mountLiquidGlass(opts = {}) {
   const o = {
-    panes: ".lg-pane, .lg-bar, .lg-dots",         // surfaces whose sheen follows the cursor
     magnetic: ".lg-pill, .lg-magnetic",           // controls that lean toward the cursor
     lens: true,                                   // Chromium refraction on .lg-bar
     lensStrength: 26,                             // displacement in px at the edges
@@ -46,17 +44,6 @@ export function mountLiquidGlass(opts = {}) {
     const svg = wrap.firstElementChild; document.body.append(svg); root.classList.add("lg-lens");
     cleanups.push(() => { svg.remove(); root.classList.remove("lg-lens"); });
   }
-
-  // ---- sheen: only panes near the cursor are updated ----
-  const onMove = (e) => {
-    for (const p of document.querySelectorAll(o.panes)) {
-      const r = p.getBoundingClientRect();
-      if (e.clientY < r.top - 240 || e.clientY > r.bottom + 240) continue;
-      p.style.setProperty("--lgs-mx", `${e.clientX - r.left}px`); p.style.setProperty("--lgs-my", `${e.clientY - r.top}px`);
-    }
-  };
-  addEventListener("pointermove", onMove, { passive: true });
-  cleanups.push(() => removeEventListener("pointermove", onMove));
 
   // ---- magnetic controls (mouse only: on touch it would just jitter) ----
   const lean = (e) => { const b = e.target.closest?.(o.magnetic); if (!b || reduced() || e.pointerType !== "mouse") return;

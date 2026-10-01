@@ -294,8 +294,8 @@ const LEARNING_MODE_TABS = [
 const LiquidGlassEffects = () => {
   useEffect(() => startLiquidGlass(document.body), []);
   // The sidebar and the top bar use the Liquid Glass skill's material instead:
-  // cursor sheen on every pane, the lens on the top bar (Chromium), and a
-  // magnetic mute button. The scroll-lean loop is off: the app never scrolls.
+  // the lens on the top bar (Chromium) and a magnetic mute button. The
+  // scroll-lean loop is off: the app never scrolls.
   useEffect(() => mountLiquidGlass({ magnetic: '.lg-magnetic', glide: false }), []);
   return null;
 };
@@ -1930,7 +1930,19 @@ function App() {
                   );
                 })
               ) : (
-                <div className="sidebar-badge">Advanced Sandbox Loading...</div>
+                <div
+                  className="sidebar-badge sidebar-advanced-placeholder"
+                  title={isSidebarOpen ? undefined : 'Advanced Sandbox Loading...'}
+                >
+                  {isSidebarOpen ? 'Advanced Sandbox Loading...' : (
+                    <>
+                      {/* The collapsed sidebar is too narrow for the text: show the
+                          Advanced tab's icon, keeping the words for screen readers. */}
+                      <MorphIcon icon={Atom} spring="smooth" strokeWidth={1.8} size={22} color="currentColor" />
+                      <span className="visually-hidden">Advanced Sandbox Loading...</span>
+                    </>
+                  )}
+                </div>
               )}
             </div>
           </div>
