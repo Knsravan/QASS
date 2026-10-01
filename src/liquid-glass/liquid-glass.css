@@ -2,12 +2,13 @@
    Liquid Glass — the complete CSS layer.
    (From the liquid-glass skill. Adapted for QASS: custom properties renamed
    --lg-* -> --lgs-* because the app's own glass engine, LiquidGlass.js, already
-   owns --lg-tint/--lg-rim/--lg-shadow/--lg-sheen; accent set to QASS sky blue.)
-   Zero dependencies. Pair with liquid-glass.js for the cursor sheen, lens,
+   owns --lg-tint/--lg-rim/--lg-shadow/--lg-sheen; accent set to QASS sky blue;
+   the sheen is a fixed highlight at the top-left: nothing follows the cursor.)
+   Zero dependencies. Pair with liquid-glass.js for the lens,
    magnetic controls, scroll lean and letter-by-letter headings.
 
    Class map (use them on your own markup):
-     .lg-pane     a glass card/panel (blur + tint + bright rim + cursor sheen)
+     .lg-pane     a glass card/panel (blur + tint + bright rim + top-left sheen)
      .lg-bar      a floating glass pill bar (top toolbar); gets the lens in Chromium
      .lg-pill     a glass button/pill inside or outside a bar ([aria-pressed="true"] = on)
      .lg-btn      a small glass button for in-content controls
@@ -35,7 +36,7 @@
   --lgs-rim: rgba(255, 255, 255, .3);           /* bright edge, top-left */
   --lgs-rim-lo: rgba(255, 255, 255, .05);       /* faint edge, bottom-right */
   --lgs-hi: rgba(255, 255, 255, .28);           /* inner top highlight */
-  --lgs-sheen: rgba(255, 255, 255, .13);        /* the light that follows the cursor */
+  --lgs-sheen: rgba(255, 255, 255, .13);        /* the light catching the top-left of the glass */
   --lgs-shadow: rgba(0, 0, 0, .5);
   --lgs-blur: 18px;
   --lgs-saturate: 1.7;
@@ -63,10 +64,10 @@
   box-shadow: inset 0 1px 0 var(--lgs-hi), inset 0 -1px 1px var(--lgs-rim-lo), 0 18px 50px -24px var(--lgs-shadow);
 }
 .lg-pane { border-radius: var(--lgs-radius); }
-/* the sheen: light catching the glass where the cursor is (--lgs-mx/--lgs-my set by liquid-glass.js) */
+/* the sheen: light catching the top-left of the glass (fixed; it does not follow the cursor) */
 .lg-pane::before, .lg-bar::before, .lg-dots::before {
   content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: -1;
-  background: radial-gradient(280px circle at var(--lgs-mx, 25%) var(--lgs-my, 0%), var(--lgs-sheen), transparent 70%);
+  background: radial-gradient(280px circle at 25% 0%, var(--lgs-sheen), transparent 70%);
 }
 /* the rim: a 1px gradient border, bright at the top-left like a real edge (mask trick: border only) */
 .lg-pane::after, .lg-bar::after, .lg-dots::after, .lg-screen::after {
