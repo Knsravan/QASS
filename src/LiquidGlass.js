@@ -33,15 +33,18 @@ export const GLASS_VARIANTS = {
 
 // Elements that sit on the floating functional layer. Content inside them is
 // deliberately not listed: glass never stacks on glass.
+// The sidebar and the top bar (GlassNavBar) are not listed: they use the
+// Liquid Glass skill's material (src/liquid-glass), marked .lg-pane / .lg-bar.
 export const LIQUID_GLASS_TARGETS = [
-  ['.lg-nav-pill, .lg-nav-circle', 'regular'],
   ['.quantum-nav-btn, .action-btn, .glass-btn, .quantum-pill-btn, .ctrl-btn, .gate-action-btn, .step-nav-btn', 'regular'],
-  ['.hero-badge, .start-btn, .sidebar-toggle-btn, .section-title, .measurement-dial-btn', 'regular'],
-  ['.sidebar-panel, .idle-fact-ticker, .idle-hud-cta, .feature-card, .mobile-blocker-card', 'thick'],
+  ['.hero-badge, .start-btn, .section-title, .measurement-dial-btn', 'regular'],
+  ['.idle-fact-ticker, .idle-hud-cta, .feature-card, .mobile-blocker-card', 'thick'],
   ['.glass-tooltip, .glass-card, .glass-panel, .glass-panel-thick, .compact-hud-card', 'thick'],
 ];
 
 const ALL_TARGETS = LIQUID_GLASS_TARGETS.map(([selector]) => selector).join(', ');
+// Glass surfaces from either material: anything inside one is never glass itself.
+const GLASS_PARENTS = `${ALL_TARGETS}, .lg-pane, .lg-bar`;
 
 const PRESSABLE = 'button, [role="button"], .feature-card, .idle-fact-ticker';
 
@@ -420,7 +423,7 @@ export function startLiquidGlass(root = document.body) {
     for (const [selector, variant] of LIQUID_GLASS_TARGETS) {
       if (!node.matches(selector)) continue;
       handled.add(node);
-      if (node.parentElement?.closest(ALL_TARGETS)) {
+      if (node.parentElement?.closest(GLASS_PARENTS)) {
         // Glass never stacks on glass: nested surfaces become plain sheets.
         node._lgClasses = ['lg-inset'];
         if (!node.classList.contains('lg-inset')) node.classList.add('lg-inset');

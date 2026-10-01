@@ -53,8 +53,8 @@ Eleven guided modules take you from the difference between a bit and a qubit, th
 You need a recent [Node.js](https://nodejs.org/) LTS and a desktop browser. Chrome or Edge gives the full glass effect (see below).
 
 ```bash
-git clone https://github.com/Knsravan/QVerse.git
-cd QVerse
+git clone https://github.com/Knsravan/QASS.git
+cd QASS
 npm install
 npm start
 ```
@@ -88,11 +88,14 @@ The simulator is designed for desktop and tablet screens. On narrow windows (und
 | `src/quantumMath.js` | State-vector, gate and measurement math |
 | `src/use*Audio.js`, `src/sharedAudio.js` | Per-module sound design on one shared `AudioContext` |
 | `src/LiquidGlass.js`, `src/GlassNavBar.jsx` | The Liquid Glass material and the floating tab bar |
+| `src/liquid-glass/` | The Liquid Glass skill's material, used by the sidebar and the top bar |
 | `scripts/generate_audio.js` | Optional: regenerates the narration clips (see below) |
 
 ### The Liquid Glass material
 
-Floating controls (the tab bar, buttons, sidebar, tooltips) are rendered as Liquid Glass. `LiquidGlass.js` evaluates a rounded-rectangle signed-distance-field lens for each element on the CPU and feeds it to an SVG displacement filter inside `backdrop-filter`, so the content behind a surface bends at its edges. Each surface also gets a lit rim, saturation boost and tint. Refraction needs a Chromium-based browser; other browsers keep the blur, tint and rim without the bending.
+Floating controls (buttons, tooltips, cards) are rendered as Liquid Glass. `LiquidGlass.js` evaluates a rounded-rectangle signed-distance-field lens for each element on the CPU and feeds it to an SVG displacement filter inside `backdrop-filter`, so the content behind a surface bends at its edges. Each surface also gets a lit rim, saturation boost and tint. Refraction needs a Chromium-based browser; other browsers keep the blur, tint and rim without the bending.
+
+The sidebar and the top bar (the Beginner / Advanced tabs and the mute button) use the material from the Liquid Glass skill in `src/liquid-glass/`: a light tint with blur and saturation, an inner top highlight, a 1px rim lit from the top-left and a sheen that follows the cursor. The top bar also bends what's behind it in Chromium, and the mute button leans toward the mouse. Its custom properties are prefixed `--lgs-` so they never collide with `LiquidGlass.js`'s `--lg-` ones.
 
 The tab bar's selection indicator is a hand-written spring (damping 0.72, stiffness 320) that stretches while it travels, can be dragged, and can be interrupted mid-flight.
 

@@ -12,6 +12,7 @@ import CameraShifter from './CameraShifter';
 import GlassNavBar from './GlassNavBar';
 import ModuleErrorBoundary from './ModuleErrorBoundary';
 import { startLiquidGlass } from './LiquidGlass';
+import { mountLiquidGlass } from './liquid-glass/liquid-glass';
 import { useDiracAudio } from './useDiracAudio';
 import { useGatesAudio } from './useGatesAudio';
 import { useIdleAudio } from './useIdleAudio';
@@ -29,6 +30,7 @@ import {
   Compass,
   ArrowRight
 } from './QuantumMorphIcons';
+import './liquid-glass/liquid-glass.css';
 import './App.css';
 
 // Self-contained modules are split into their own chunks so the landing page
@@ -291,6 +293,10 @@ const LEARNING_MODE_TABS = [
 // ==========================================
 const LiquidGlassEffects = () => {
   useEffect(() => startLiquidGlass(document.body), []);
+  // The sidebar and the top bar use the Liquid Glass skill's material instead:
+  // cursor sheen on every pane, the lens on the top bar (Chromium), and a
+  // magnetic mute button. The scroll-lean loop is off: the app never scrolls.
+  useEffect(() => mountLiquidGlass({ magnetic: '.lg-magnetic', glide: false }), []);
   return null;
 };
 
@@ -1869,7 +1875,7 @@ function App() {
       <main className="main-content">
         {/* ── Sidebar Column ── */}
         <div className="sidebar-wrapper">
-          <div className={`sidebar-panel ${isSidebarOpen ? '' : 'collapsed'}`}>
+          <div className={`sidebar-panel lg-pane ${isSidebarOpen ? '' : 'collapsed'}`}>
             <div className="sidebar-branding">
               <img src="/logo.jpg" alt="Logo" />
               <div className="sidebar-branding-text">
@@ -1930,7 +1936,7 @@ function App() {
           </div>
 
           <button
-            className="sidebar-toggle-btn"
+            className="sidebar-toggle-btn lg-pane"
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             title={isSidebarOpen ? "Hide Sidebar" : "Show Sidebar"}
             aria-label={isSidebarOpen ? "Hide sidebar" : "Show sidebar"}

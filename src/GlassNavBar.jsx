@@ -185,7 +185,7 @@ export default function GlassNavBar({ tabs, selectedIndex, onSelect, standalone,
 
   return (
     <nav className="lg-nav" aria-label={ariaLabel}>
-      <div className="lg-nav-pill">
+      <div className="lg-nav-pill lg-bar">
         <div className="lg-nav-indicator" ref={indicatorRef} aria-hidden="true" />
         <div
           className="lg-nav-row"
@@ -220,7 +220,7 @@ export default function GlassNavBar({ tabs, selectedIndex, onSelect, standalone,
       {standalone && (
         <button
           type="button"
-          className={`lg-nav-circle${standalone.active ? ' is-active' : ''}`}
+          className={`lg-nav-circle lg-bar lg-magnetic${standalone.active ? ' is-active' : ''}`}
           onClick={standalone.onClick}
           aria-label={standalone.label}
           title={standalone.label}
