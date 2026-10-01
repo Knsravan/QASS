@@ -1,9 +1,9 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Sphere, Stars, Html, PresentationControls, Line, Torus } from '@react-three/drei';
+import { OrbitControls, Html, PresentationControls } from '@react-three/drei';
 import { useSpring, a } from '@react-spring/three';
 import * as THREE from 'three';
-import { EffectComposer, Bloom, Vignette, ChromaticAberration } from '@react-three/postprocessing';
+import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
 import { BlockMath, InlineMath } from 'react-katex';
 import { useQuantumAudio } from './useQuantumAudio';
@@ -192,8 +192,6 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla,
   const ghostVec2Ref = useRef();
   const ghostVec1MatRef = useRef();
   const ghostVec2MatRef = useRef();
-  const stepChangedTimeRef = useRef(0);
-  const prevStepForCinema = useRef(-1);
 
 
   const [hoveredState, setHoveredState] = useState(null);

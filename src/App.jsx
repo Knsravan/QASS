@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Stars, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
-import { EffectComposer, Bloom, Vignette, ChromaticAberration } from '@react-three/postprocessing';
+import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
 import BlochSphere from './BlochSphere';
 import { DiracScene, DiracOverlay } from './DiracNotation';
@@ -14,12 +14,6 @@ import { startLiquidGlass } from './LiquidGlass';
 import { useDiracAudio } from './useDiracAudio';
 import { useGatesAudio } from './useGatesAudio';
 import { useIdleAudio } from './useIdleAudio';
-import InterferenceModule from './InterferenceModule';
-import EntanglementModule from './EntanglementModule';
-import ExponentialModule from './ExponentialModule';
-import NoCloningModule from './NoCloning';
-import DecoherenceModule from './Decoherence';
-import QuantumErrorCorrectionModule from './QuantumErrorCorrection';
 import 'katex/dist/katex.min.css';
 import { BlockMath, InlineMath } from 'react-katex';
 import {
@@ -29,14 +23,39 @@ import {
   MorphCircuitToggleIcon,
   MorphIcon,
   Atom,
-  Sparkles,
   Variable,
   Zap,
   Compass,
-  ArrowRight,
-  RotateCcw
+  ArrowRight
 } from './QuantumMorphIcons';
 import './App.css';
+
+// Self-contained modules are split into their own chunks so the landing page
+// and hub don't pay for every module's scene up front. The loaders are also
+// used to prefetch the chunks once the hub is idle, so opening one is instant.
+const MODULE_LOADERS = {
+  interference: () => import('./InterferenceModule'),
+  entanglement: () => import('./EntanglementModule'),
+  exponential: () => import('./ExponentialModule'),
+  nocloning: () => import('./NoCloning'),
+  decoherence: () => import('./Decoherence'),
+  errorCorrection: () => import('./QuantumErrorCorrection'),
+};
+const InterferenceModule = lazy(MODULE_LOADERS.interference);
+const EntanglementModule = lazy(MODULE_LOADERS.entanglement);
+const ExponentialModule = lazy(MODULE_LOADERS.exponential);
+const NoCloningModule = lazy(MODULE_LOADERS.nocloning);
+const DecoherenceModule = lazy(MODULE_LOADERS.decoherence);
+const QuantumErrorCorrectionModule = lazy(MODULE_LOADERS.errorCorrection);
+
+// Storage can be unavailable (privacy modes, blocked site data); the app must
+// still load, it just won't remember that the intro was seen.
+const readStorage = (key) => {
+  try { return localStorage.getItem(key); } catch { return null; }
+};
+const writeStorage = (key, value) => {
+  try { localStorage.setItem(key, value); } catch { /* not persisted */ }
+};
 
 // ==========================================
 // 11-MODULE CURRICULUM DATA STRUCTURE
@@ -1087,9 +1106,10 @@ const CircuitVisualizer = ({ moduleId, gateId, multiGatesStep = 0, qubitCount = 
       return <SuperpositionLiquidCircuit tooltipData={tooltipData} />;
     case 'gates':
       return <GlassCircuit key={gateId} gateId={gateId} progress={1} />;
-    case 'multi-qubit-gates':
+    case 'multi-qubit-gates': {
       const stepData = MULTI_GATES_STEPS[multiGatesStep];
       return <GlassMultiCircuit key={stepData.id} gateId={stepData.id} tooltipData={tooltipData} />;
+    }
     case 'interference':
       return <InterferenceLiquidCircuit tooltipData={tooltipData} />;
     case 'entanglement':
@@ -1244,8 +1264,7 @@ const GatesModuleView = ({ step, applied, theme, isSidebarOpen, uiBoundsStyle, o
 // ==========================================
 function App() {
   const [hasStarted, setHasStarted] = useState(() => {
-    const isInitialized = localStorage.getItem('quantumUI_initialized');
-    return isInitialized === 'true';
+    return readStorage('quantumUI_initialized') === 'true';
   });
 
   const [theme] = useState('dark');
@@ -1291,6 +1310,18 @@ function App() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Warm the module chunks once the hub is showing and the browser is idle.
+  useEffect(() => {
+    if (!hasStarted || isMobile) return;
+    const prefetch = () => Object.values(MODULE_LOADERS).forEach((load) => load().catch(() => {}));
+    if ('requestIdleCallback' in window) {
+      const id = window.requestIdleCallback(prefetch, { timeout: 4000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const id = setTimeout(prefetch, 2000);
+    return () => clearTimeout(id);
+  }, [hasStarted, isMobile]);
 
   // Background audio engine for ALL active modules
   const { initAudio: initGatesAudio, toggleMute: toggleGatesMute, stopAll: stopGatesAudio } = gatesAudio;
@@ -1356,7 +1387,7 @@ function App() {
   const [showCircuit, setShowCircuit] = useState(false);
 
   const handleInitialize = () => {
-    localStorage.setItem('quantumUI_initialized', 'true');
+    writeStorage('quantumUI_initialized', 'true');
     setHasStarted(true);
   };
 
@@ -1421,7 +1452,6 @@ function App() {
   }, [diracStep]);
 
   const triggerNoise = () => { setIsDecohering(true); setNoiseTimer(4); };
-  const activeModule = curriculumData.find(m => m.id === activeModuleId);
 
   // ==========================================
   // MOBILE DEVICE BLOCKER
@@ -1880,6 +1910,7 @@ function App() {
             )}
           </div>
 
+          <Suspense fallback={null}>
           {activeModuleId === 'gates' ? (
             <GatesModuleView
               step={gatesStep}
@@ -2033,6 +2064,7 @@ function App() {
               />
             </Canvas>
           )}
+          </Suspense>
 
           {!activeModuleId && (
             <div style={uiBoundsStyle}>

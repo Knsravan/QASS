@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Text, Line, Html, Stars } from '@react-three/drei';
+import { Line, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { BlockMath } from 'react-katex';
 import { ClassicalBit, QubitCore } from './BlochSphere';
 import gsap from 'gsap';
-import { EffectComposer, Bloom, Vignette, ChromaticAberration } from '@react-three/postprocessing';
+import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
 import { InlineMath } from 'react-katex';
 import { QuantumNavButtons } from './QuantumNavButtons';
@@ -525,9 +525,7 @@ export function GatesScene({ step, applied, theme, setProgress }) {
 
 // --- 2D HTML OVERLAY ---
 export function GatesOverlay({ step, applied, onToggleApply, onNext, onPrev, theme, isMuted, onToggleMute, progress }) {
-  const isLight = theme === 'light';
   const stepData = GATES_STEPS[step];
-  const { hasClassicalEquivalent } = stepData;
 
   return (
     <>
