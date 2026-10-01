@@ -2337,8 +2337,11 @@ h6,
   box-shadow: 0 10px 30px rgba(0, 242, 254, 0.6), 0 0 60px rgba(0, 242, 254, 0.3);
 }
 
+/* No `forwards`: a filter or transform left on the container after the
+   entrance would make it a backdrop root, and every glass surface inside
+   would frost (and bend) an empty backdrop instead of the scene behind. */
 .app-container {
-  animation: fadeInApp 1s ease-in forwards;
+  animation: fadeInApp 1s ease-in;
 }
 
 @keyframes fadeInSlow {
@@ -4609,7 +4612,7 @@ h6,
    ============================================================================= */
 .sidebar-panel.lg-pane,
 .sidebar-toggle-btn.lg-pane {
-  background: var(--lgs-tint);
+  background: var(--lgs-surface);
   -webkit-backdrop-filter: blur(var(--lgs-blur)) saturate(var(--lgs-saturate));
   backdrop-filter: blur(var(--lgs-blur)) saturate(var(--lgs-saturate));
   border: 0;
@@ -4805,4 +4808,51 @@ button.fact-jump-link {
   clip: rect(0 0 0 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* =============================================================================
+   LENS LAYER (LiquidGlass.js + glassLens.js)
+   A lensed surface draws its glass on ::before: the backdrop bent at the rim
+   (Chromium) or plain frost elsewhere, from --lg-backdrop. The element itself
+   must not filter its backdrop, and ::before carries no outer shadow, which
+   would shift Chrome's filter coordinates. The element's own tint is painted
+   before ::before, so it is already part of the backdrop the lens bends;
+   repainting it on ::before would double it and turn the glass milky.
+   ============================================================================= */
+.lg-lensed {
+  isolation: isolate;
+}
+
+.lg-lensed--rel {
+  position: relative;
+}
+
+.lg-lensed::before {
+  content: "";
+  position: absolute;
+  inset: calc(-1 * var(--lg-bw, 0px));
+  border-radius: inherit;
+  z-index: -1;
+  pointer-events: none;
+  -webkit-backdrop-filter: var(--lg-backdrop, none);
+  backdrop-filter: var(--lg-backdrop, none);
+}
+
+/* A faded (disabled) control has opacity below 1, which would cut ::before
+   off from the page behind it: it keeps plain frost on the element instead. */
+.lg-lensed:disabled {
+  -webkit-backdrop-filter: var(--lg-backdrop-base) !important;
+  backdrop-filter: var(--lg-backdrop-base) !important;
+}
+
+.lg-lensed:disabled::before {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* 3D labels (drei <Html>) are mounted next to their canvas with z-indices up
+   to 16777271, which put them above the top bar and the sidebar. Isolating
+   the canvas's parent keeps every label inside its own scene. */
+div:has(> canvas) {
+  isolation: isolate;
 }

@@ -1,25 +1,27 @@
 /*
  * Liquid Glass material for the web.
  *
- * The optics are a port of Kyant0/backdrop (Apache-2.0) as configured by
- * BitChord's LiquidGlass.kt: saturation ×1.5 → blur → an edge lens driven by a
- * rounded-rect signed distance field, a 0.5px rim lit at 45°, a soft drop
- * shadow and a translucent surface tint.
+ * Surfaces on the floating layer get frosted glass: blur, saturation, a
+ * translucent tint and a lit rim (a port of Kyant0/backdrop as configured by
+ * BitChord's LiquidGlass.kt). The top bar, the sidebar and the buttons also
+ * get a real lens (src/glassLens.js): the backdrop bends at the rim, the middle
+ * stays frosted and a fixed top-left light catches the curved edge.
  *
- * AGSL runtime shaders have no web equivalent, so the two shaders are turned
- * into assets per element shape:
- *   - the lens is evaluated on the CPU into a displacement map consumed by an
- *     SVG feDisplacementMap inside `backdrop-filter` (Chromium renders SVG
- *     backdrop filters; other engines keep the blur, vibrancy and rim, just
- *     without refraction). Maps are baked in idle time so they never compete
- *     with a scene's first frames;
- *   - the highlight is emitted as a vector SVG rim, so it costs no raster work.
+ * How the lens is attached matters, and was measured in Chrome:
+ *   - the lens map is generated inside the filter (Chrome loads no images
+ *     inside backdrop-filter), and
+ *   - it runs on the element's ::before, never on the element: Chrome measures
+ *     a backdrop filter's coordinates from the outer edge of the element's
+ *     box-shadow, which would shift the lens off the element. ::before carries
+ *     no shadow, and `background: inherit` repaints the element's tint and rim
+ *     above the bent backdrop.
+ * Refraction is Chromium-only; other engines keep the blur, tint and rim.
+ * If frames drop below FPS_FLOOR while lenses are on, they fall back to plain
+ * frosted glass for the rest of the session.
  */
 
-const LENS_HEIGHT = 24;   // LENS_HEIGHT (0.5) × LENS_MAX_DP (48)
-const LENS_AMOUNT = 24;   // LENS_AMOUNT (0.5) × LENS_MAX_DP (48)
-const DISPERSION = 0.07;  // spread between the red and blue passes of the lens
-const MAP_SCALE = 0.25;   // the displacement field is smooth and bilinearly upscaled
+import { buildLensFilter } from './glassLens';
+
 const RIM_WIDTH = 0.5;    // Highlight.width
 const RIM_ALPHA = 0.5;    // HighlightStyle.Default color alpha
 
@@ -31,111 +33,29 @@ export const GLASS_VARIANTS = {
   thick: { blur: 18, saturation: 1.5 },
 };
 
-// Elements that sit on the floating functional layer. Content inside them is
-// deliberately not listed: glass never stacks on glass.
-// The sidebar and the top bar (GlassNavBar) are not listed: they use the
-// Liquid Glass skill's material (src/liquid-glass), marked .lg-pane / .lg-bar.
+// Elements on the floating functional layer. `lens`: bend the backdrop at the
+// rim. `skin`: the engine paints the tint and lit rim; the Liquid Glass skill's
+// surfaces (.lg-bar, .lg-pane) bring their own and take only the lens.
+// Content inside a glass surface is never glass itself.
 export const LIQUID_GLASS_TARGETS = [
-  ['.quantum-nav-btn, .action-btn, .glass-btn, .quantum-pill-btn, .ctrl-btn, .gate-action-btn, .step-nav-btn', 'regular'],
-  ['.hero-badge, .start-btn, .section-title, .measurement-dial-btn', 'regular'],
-  ['.idle-fact-ticker, .idle-hud-cta, .feature-card, .mobile-blocker-card', 'thick'],
-  ['.glass-tooltip, .glass-card, .glass-panel, .glass-panel-thick, .compact-hud-card', 'thick'],
+  { selector: '.lg-bar', variant: 'regular', lens: true, skin: false },   // top bar capsule, mute button
+  { selector: '.lg-pane', variant: 'thick', lens: true, skin: false },    // sidebar and its tab
+  { selector: '.quantum-nav-btn, .action-btn, .glass-btn, .quantum-pill-btn, .ctrl-btn, .gate-action-btn, .step-nav-btn, .measurement-dial-btn, .start-btn', variant: 'regular', lens: true, skin: true },
+  { selector: '.idle-hud-cta', variant: 'thick', lens: true, skin: true },
+  { selector: '.hero-badge, .section-title', variant: 'regular', lens: false, skin: true },
+  { selector: '.idle-fact-ticker, .feature-card, .mobile-blocker-card', variant: 'thick', lens: false, skin: true },
+  { selector: '.glass-tooltip, .glass-card, .glass-panel, .glass-panel-thick, .compact-hud-card', variant: 'thick', lens: false, skin: true },
 ];
 
-const ALL_TARGETS = LIQUID_GLASS_TARGETS.map(([selector]) => selector).join(', ');
-// Glass surfaces from either material: anything inside one is never glass itself.
-const GLASS_PARENTS = `${ALL_TARGETS}, .lg-pane, .lg-bar`;
+const ALL_TARGETS = LIQUID_GLASS_TARGETS.map((t) => t.selector).join(', ');
 
 const PRESSABLE = 'button, [role="button"], .feature-card, .idle-fact-ticker';
 
-// ─── Shader math (straight from backdrop's RoundedRectSDF) ──────────────────
-
-function sdRoundedRect(px, py, hx, hy, r) {
-  const cx = Math.abs(px) - (hx - r);
-  const cy = Math.abs(py) - (hy - r);
-  const outside = Math.hypot(Math.max(cx, 0), Math.max(cy, 0)) - r;
-  const inside = Math.min(Math.max(cx, cy), 0);
-  return outside + inside;
-}
-
-function gradSdRoundedRect(px, py, hx, hy, r) {
-  const cx = Math.abs(px) - (hx - r);
-  const cy = Math.abs(py) - (hy - r);
-  const sx = px < 0 ? -1 : 1;
-  const sy = py < 0 ? -1 : 1;
-  if (cx >= 0 || cy >= 0) {
-    const mx = Math.max(cx, 0);
-    const my = Math.max(cy, 0);
-    const len = Math.hypot(mx, my) || 1;
-    return [sx * (mx / len), sy * (my / len)];
-  }
-  const gx = cy <= cx ? 1 : 0;
-  return [sx * gx, sy * (1 - gx)];
-}
-
-const circleMap = (x) => 1 - Math.sqrt(Math.max(0, 1 - x * x));
-
-// ─── Lens: RoundedRectRefractionShader baked to a displacement map ──────────
-
-// Only the rim band and the rounded corners can differ from the neutral value,
-// so interior rows are visited at their two edge strips alone.
-function forEachEdgePixel(cols, rows, toX, toY, hx, hy, radius, reach, visit) {
-  const cornerRows = radius + reach;
-  const pxPerCol = (hx * 2) / cols;
-  const strip = Math.min(Math.ceil(cols / 2), Math.ceil(reach / pxPerCol) + 1);
-  for (let j = 0; j < rows; j++) {
-    const py = toY(j);
-    if (hy - Math.abs(py) <= cornerRows) {
-      for (let i = 0; i < cols; i++) visit(i, j, toX(i), py);
-    } else {
-      for (let i = 0; i < strip; i++) visit(i, j, toX(i), py);
-      for (let i = Math.max(strip, cols - strip); i < cols; i++) visit(i, j, toX(i), py);
-    }
-  }
-}
-
-// Inside the rim band the backdrop is sampled from further in, by an amount
-// that follows a circular (convex lens) profile, along the SDF normal blended
-// with a pull toward the centre (depthEffect). feDisplacementMap reads
-// P + scale·(C − 0.5), so offsets are stored around 0.5.
-function bakeLensMap(w, h, radius) {
-  const mw = Math.max(2, Math.round(w * MAP_SCALE));
-  const mh = Math.max(2, Math.round(h * MAP_SCALE));
-  const canvas = document.createElement('canvas');
-  canvas.width = mw;
-  canvas.height = mh;
-  // CPU-backed: encoding a GPU canvas forces a slow readback.
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  const img = ctx.createImageData(mw, mh);
-  const data = img.data;
-  new Uint32Array(data.buffer).fill(0xff808080); // neutral: no displacement
-  const hx = w / 2;
-  const hy = h / 2;
-  const band = Math.min(LENS_HEIGHT, Math.min(hx, hy));
-  const gradRadius = Math.min(radius * 1.5, Math.min(hx, hy));
-  const range = LENS_AMOUNT * 2;
-
-  const toX = (i) => ((i + 0.5) / mw) * w - hx;
-  const toY = (j) => ((j + 0.5) / mh) * h - hy;
-  forEachEdgePixel(mw, mh, toX, toY, hx, hy, radius, band + 4, (i, j, px, py) => {
-    const sd = Math.min(sdRoundedRect(px, py, hx, hy, radius), 0);
-    if (-sd >= band) return;
-    const d = circleMap(1 - -sd / band) * LENS_AMOUNT;
-    const [gx, gy] = gradSdRoundedRect(px, py, hx, hy, gradRadius);
-    const cl = Math.hypot(px, py) || 1;
-    let nx = gx + px / cl;
-    let ny = gy + py / cl;
-    const nl = Math.hypot(nx, ny) || 1;
-    nx /= nl;
-    ny /= nl;
-    // refractionAmount is passed negative in Lens.kt: sample inward.
-    const k = (j * mw + i) * 4;
-    data[k] = Math.round((0.5 - (d * nx) / range) * 255);
-    data[k + 1] = Math.round((0.5 - (d * ny) / range) * 255);
-  });
-  ctx.putImageData(img, 0, 0);
-  return canvas.toDataURL();
-}
+const FPS_FLOOR = 40;        // below this, lenses are too costly for this machine
+const FPS_WINDOW = 2000;     // ms per frame-rate sample
+const FPS_STRIKES = 3;       // consecutive slow samples before falling back
+const FPS_WARMUP = 5000;     // ignore start-up (shader compiles, first bakes)
+const LENS_OFF_KEY = 'quantumUI_lensOff';
 
 // ─── Rim: DefaultHighlightShader as vector strokes ──────────────────────────
 
@@ -190,6 +110,7 @@ function rimSvg(w, h, radius) {
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 }
 
+
 // ─── Filter registry ────────────────────────────────────────────────────────
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -212,12 +133,6 @@ function ensureDefs() {
   return defs;
 }
 
-function svgNode(tag, attrs) {
-  const node = document.createElementNS(SVG_NS, tag);
-  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
-  return node;
-}
-
 function remember(cache, key, value, onEvict) {
   cache.set(key, value);
   while (cache.size > MAX_CACHE) {
@@ -228,44 +143,12 @@ function remember(cache, key, value, onEvict) {
   return value;
 }
 
-// Three displaced passes at slightly different strengths, one per channel,
-// recombined: the lens' chromatic aberration.
-function lensFilterId(w, h, radius) {
-  const key = `${w}x${h}r${radius}`;
+function lensFilterId(w, h, frost) {
+  const key = `${w}x${h}f${frost}`;
   const hit = filterCache.get(key);
   if (hit) return hit;
   const id = `lg-lens-${++filterCount}`;
-  const scale = LENS_AMOUNT * 2;
-  const filter = svgNode('filter', {
-    id,
-    x: '0', y: '0', width: String(w), height: String(h),
-    filterUnits: 'userSpaceOnUse',
-    primitiveUnits: 'userSpaceOnUse',
-    'color-interpolation-filters': 'sRGB',
-  });
-  filter.appendChild(svgNode('feImage', {
-    href: bakeLensMap(w, h, radius),
-    x: '0', y: '0', width: String(w), height: String(h),
-    preserveAspectRatio: 'none',
-    result: 'map',
-  }));
-  const channels = [
-    ['r', 1 + DISPERSION, '1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0'],
-    ['g', 1, '0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0'],
-    ['b', 1 - DISPERSION, '0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0'],
-  ];
-  for (const [name, factor, matrix] of channels) {
-    filter.appendChild(svgNode('feDisplacementMap', {
-      in: 'SourceGraphic', in2: 'map',
-      scale: String(scale * factor),
-      xChannelSelector: 'R', yChannelSelector: 'G',
-      result: `d${name}`,
-    }));
-    filter.appendChild(svgNode('feColorMatrix', { in: `d${name}`, type: 'matrix', values: matrix, result: name }));
-  }
-  filter.appendChild(svgNode('feBlend', { in: 'r', in2: 'g', mode: 'screen', result: 'rg' }));
-  filter.appendChild(svgNode('feBlend', { in: 'rg', in2: 'b', mode: 'screen' }));
-  ensureDefs().appendChild(filter);
+  ensureDefs().appendChild(buildLensFilter(w, h, frost, id));
   return remember(filterCache, key, id, (oldId) => document.getElementById(oldId)?.remove());
 }
 
@@ -274,36 +157,12 @@ function rimImage(w, h, radius) {
   return rimCache.get(key) || remember(rimCache, key, rimSvg(w, h, radius));
 }
 
-// ─── Idle-time lens baking ──────────────────────────────────────────────────
+// ─── Lens state: on, unless this machine can't keep up ──────────────────────
 
-const lensQueue = new Map(); // node → shape key it was queued for
-let lensHandle = 0;
-const idle = window.requestIdleCallback
-  ? (fn) => window.requestIdleCallback(fn, { timeout: 400 })
-  : (fn) => setTimeout(() => fn({ timeRemaining: () => 8, didTimeout: true }), 60);
-
-function drainLensQueue(deadline) {
-  lensHandle = 0;
-  let baked = 0;
-  for (const [node, key] of lensQueue) {
-    // Never more than one bake per slice when the slice is tight or overdue:
-    // a queue of new surfaces must not become one long task.
-    if (baked > 0 && deadline.timeRemaining() < 8) break;
-    lensQueue.delete(node);
-    if (!node.isConnected || node.dataset.lgShape !== key) continue;
-    const { w, h, radius, base } = node._lgPending;
-    node.style.backdropFilter = `${base} url(#${lensFilterId(w, h, radius)})`;
-    baked++;
-  }
-  if (lensQueue.size && !lensHandle) lensHandle = idle(drainLensQueue);
-}
-
-function queueLens(node, key) {
-  lensQueue.set(node, key);
-  if (!lensHandle) lensHandle = idle(drainLensQueue);
-}
-
-// ─── Applying the material ──────────────────────────────────────────────────
+let lensOn = (() => {
+  try { return sessionStorage.getItem(LENS_OFF_KEY) !== '1'; } catch { return true; }
+})();
+const lensed = new Set(); // elements currently carrying a lens layer
 
 let refractionSupported = null;
 function supportsRefraction() {
@@ -317,6 +176,73 @@ function supportsRefraction() {
 const reducedTransparency = () =>
   window.matchMedia?.('(prefers-reduced-transparency: reduce)').matches;
 
+function lensesOff() {
+  if (!lensOn) return;
+  lensOn = false;
+  try { sessionStorage.setItem(LENS_OFF_KEY, '1'); } catch { /* this page only */ }
+  lensQueue.clear();
+  for (const node of lensed) {
+    if (node._lgBase) node.style.setProperty('--lg-backdrop', node._lgBase);
+  }
+}
+
+// Frame-rate guard: rAF frames are counted per window; hidden tabs don't count.
+function watchFrameRate() {
+  let frames = 0;
+  let windowStart = 0;
+  let strikes = 0;
+  let raf = 0;
+  const startedAt = performance.now();
+  const tick = (now) => {
+    if (!lensOn) return;
+    raf = requestAnimationFrame(tick);
+    if (document.hidden || now - startedAt < FPS_WARMUP || !lensed.size) {
+      frames = 0;
+      windowStart = now;
+      return;
+    }
+    frames++;
+    if (now - windowStart < FPS_WINDOW) return;
+    const fps = (frames * 1000) / (now - windowStart);
+    strikes = fps < FPS_FLOOR ? strikes + 1 : 0;
+    frames = 0;
+    windowStart = now;
+    if (strikes >= FPS_STRIKES) lensesOff();
+  };
+  raf = requestAnimationFrame(tick);
+  return () => cancelAnimationFrame(raf);
+}
+
+// ─── Idle-time lens building ────────────────────────────────────────────────
+
+const lensQueue = new Map(); // node → shape key it was queued for
+let lensHandle = 0;
+const idle = window.requestIdleCallback
+  ? (fn) => window.requestIdleCallback(fn, { timeout: 400 })
+  : (fn) => setTimeout(() => fn({ timeRemaining: () => 8, didTimeout: true }), 60);
+
+function drainLensQueue(deadline) {
+  lensHandle = 0;
+  let built = 0;
+  for (const [node, key] of lensQueue) {
+    // Never more than one build per slice when the slice is tight or overdue.
+    if (built > 0 && deadline.timeRemaining() < 8) break;
+    lensQueue.delete(node);
+    if (!lensOn || !node.isConnected || node.dataset.lgShape !== key) continue;
+    const { w, h, blur, saturation } = node._lgPending;
+    node.style.setProperty('--lg-backdrop', `url(#${lensFilterId(w, h, blur)}) saturate(${saturation})`);
+    built++;
+  }
+  if (lensQueue.size && !lensHandle) lensHandle = idle(drainLensQueue);
+}
+
+function queueLens(node, key) {
+  lensQueue.set(node, key);
+  if (!lensHandle) lensHandle = idle(drainLensQueue);
+}
+
+// ─── Applying the material ──────────────────────────────────────────────────
+
 function cornerRadius(node, w, h) {
   const raw = getComputedStyle(node).borderTopLeftRadius;
   const value = raw.endsWith('%') ? (parseFloat(raw) / 100) * Math.min(w, h) : parseFloat(raw) || 0;
@@ -327,51 +253,76 @@ function measureGlass(node) {
   const w = Math.round(node.offsetWidth);
   const h = Math.round(node.offsetHeight);
   if (w < 4 || h < 4) return null;
-  return { w, h, radius: Math.round(cornerRadius(node, w, h)), pressable: node.matches(PRESSABLE) };
+  const cs = getComputedStyle(node);
+  return {
+    w, h,
+    radius: Math.round(cornerRadius(node, w, h)),
+    pressable: node.matches(PRESSABLE),
+    border: parseFloat(cs.borderTopWidth) || 0,
+    staticPos: cs.position === 'static',
+  };
 }
 
-export function applyLiquidGlass(node, variant = 'regular', geometry = measureGlass(node)) {
+export function applyLiquidGlass(node, target, geometry = measureGlass(node)) {
   if (!geometry) return;
-  const { w, h, radius, pressable } = geometry;
+  const { w, h, radius, pressable, border, staticPos } = geometry;
   const shapeKey = `${w}x${h}r${radius}`;
   if (node.dataset.lgShape === shapeKey) return;
+  const { blur, saturation } = GLASS_VARIANTS[target.variant] || GLASS_VARIANTS.regular;
+  const base = `blur(${blur}px) saturate(${saturation})`;
+  const lens = target.lens && !reducedTransparency();
 
-  const wanted = ['lg', `lg--${variant}`];
-  if (pressable) wanted.push('lg--press');
+  const wanted = [];
+  if (target.skin) {
+    wanted.push('lg', `lg--${target.variant}`);
+    if (pressable) wanted.push('lg--press');
+    node.style.setProperty('--lg-rim', rimImage(w, h, radius));
+  }
+  if (lens) {
+    wanted.push('lg-lensed');
+    if (staticPos) wanted.push('lg-lensed--rel');
+  }
   node._lgClasses = wanted;
   const missing = wanted.filter((c) => !node.classList.contains(c));
   if (missing.length) node.classList.add(...missing);
   node.dataset.lgShape = shapeKey;
-  node.style.setProperty('--lg-rim', rimImage(w, h, radius));
 
   if (reducedTransparency()) {
     node.style.backdropFilter = 'none';
+    node.style.webkitBackdropFilter = 'none';
     return;
   }
-  const { blur, saturation } = GLASS_VARIANTS[variant] || GLASS_VARIANTS.regular;
-  const base = `saturate(${saturation}) blur(${blur}px)`;
   node._lgBase = base;
-  node.style.webkitBackdropFilter = base;
-  // Tint, blur and rim show at once; the refraction joins when the browser is
-  // idle (or immediately if this exact shape has been baked before).
-  if (supportsRefraction() && w * h < 2_000_000) {
-    const cached = filterCache.get(shapeKey);
-    if (cached) {
-      node.style.backdropFilter = `${base} url(#${cached})`;
-    } else {
-      node.style.backdropFilter = base;
-      node._lgPending = { w, h, radius, base };
+  if (!lens) {
+    node.style.webkitBackdropFilter = base;
+    node.style.backdropFilter = base;
+    return;
+  }
+
+  // The glass is drawn by ::before (see the header); the element itself must
+  // not filter its backdrop, or ::before would only see the element.
+  node.style.backdropFilter = 'none';
+  node.style.webkitBackdropFilter = 'none';
+  node.style.setProperty('--lg-backdrop-base', base);
+  node.style.setProperty('--lg-bw', `${border}px`);
+  lensed.add(node);
+  const cached = filterCache.get(`${w}x${h}f${blur}`);
+  if (lensOn && supportsRefraction() && cached) {
+    node.style.setProperty('--lg-backdrop', `url(#${cached}) saturate(${saturation})`);
+  } else {
+    // Frosted at once; the lens joins when the browser is idle.
+    node.style.setProperty('--lg-backdrop', base);
+    if (lensOn && supportsRefraction()) {
+      node._lgPending = { w, h, blur, saturation };
       queueLens(node, shapeKey);
     }
-  } else {
-    node.style.backdropFilter = base;
   }
 }
 
 // Watches the document and keeps every floating-layer element in glass,
-// re-baking when an element's size or shape changes.
+// rebuilding when an element's size or shape changes.
 export function startLiquidGlass(root = document.body) {
-  const variantOf = new WeakMap();
+  const targetOf = new WeakMap();
   const pending = new Set();
   let frame = 0;
 
@@ -379,7 +330,7 @@ export function startLiquidGlass(root = document.body) {
     frame = 0;
     // All reads, then all writes: interleaving them forces a layout per element.
     const measured = [...pending].filter((n) => n.isConnected).map((n) => [n, measureGlass(n)]);
-    for (const [node, geometry] of measured) applyLiquidGlass(node, variantOf.get(node), geometry);
+    for (const [node, geometry] of measured) applyLiquidGlass(node, targetOf.get(node), geometry);
     pending.clear();
   };
   const schedule = (node) => {
@@ -387,24 +338,20 @@ export function startLiquidGlass(root = document.body) {
     if (!frame) frame = requestAnimationFrame(flush);
   };
 
-  // A resizing element (e.g. the sidebar's width transition) is re-baked once
-  // its size has settled, not on every frame of the animation; meanwhile the
-  // previous rim simply stretches with it.
+  // A resizing element (e.g. the sidebar's width transition) is rebuilt once
+  // its size has settled, not on every frame of the animation. Meanwhile its
+  // lens, built for the old size, no longer fits, so it shows plain frost.
   const settleTimers = new WeakMap();
   const sizedOnce = new WeakSet();
   const resizeObserver = new ResizeObserver((entries) => {
     for (const entry of entries) {
       const node = entry.target;
-      // While a surface is resizing (the sidebar's width animation) its lens,
-      // baked for the old size, no longer covers it. The surface keeps its own
-      // tint and blur without refraction until the size settles, then the lens
-      // for the new size returns. The first notification is just the initial
-      // size, not motion.
       if (sizedOnce.has(node)) {
-        if (node._lgBase && node.style.backdropFilter !== node._lgBase) {
-          node.style.backdropFilter = node._lgBase;
-          delete node.dataset.lgShape;
+        if (lensed.has(node) && node._lgBase) {
+          node.style.setProperty('--lg-backdrop', node._lgBase);
+          lensQueue.delete(node);
         }
+        delete node.dataset.lgShape;
       } else {
         sizedOnce.add(node);
       }
@@ -420,16 +367,16 @@ export function startLiquidGlass(root = document.body) {
 
   const consider = (node) => {
     if (handled.has(node)) return;
-    for (const [selector, variant] of LIQUID_GLASS_TARGETS) {
-      if (!node.matches(selector)) continue;
+    for (const target of LIQUID_GLASS_TARGETS) {
+      if (!node.matches(target.selector)) continue;
       handled.add(node);
-      if (node.parentElement?.closest(GLASS_PARENTS)) {
+      if (node.parentElement?.closest(ALL_TARGETS)) {
         // Glass never stacks on glass: nested surfaces become plain sheets.
         node._lgClasses = ['lg-inset'];
         if (!node.classList.contains('lg-inset')) node.classList.add('lg-inset');
         return;
       }
-      variantOf.set(node, variant);
+      targetOf.set(node, target);
       resizeObserver.observe(node);
       schedule(node);
       return;
@@ -446,6 +393,11 @@ export function startLiquidGlass(root = document.body) {
     for (const record of records) {
       if (record.type === 'childList') {
         record.addedNodes.forEach((n) => { if (n.nodeType === 1) adoptSubtree(n); });
+        record.removedNodes.forEach((n) => {
+          if (n.nodeType !== 1) return;
+          lensed.delete(n);
+          n.querySelectorAll?.('.lg-lensed').forEach((c) => lensed.delete(c));
+        });
       } else if (record.target.nodeType === 1) {
         const node = record.target;
         if (node._lgClasses) {
@@ -462,10 +414,12 @@ export function startLiquidGlass(root = document.body) {
     }
   });
   mutationObserver.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+  const stopWatching = watchFrameRate();
 
   return () => {
     mutationObserver.disconnect();
     resizeObserver.disconnect();
+    stopWatching();
     if (frame) cancelAnimationFrame(frame);
   };
 }
