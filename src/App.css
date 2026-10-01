@@ -1,6 +1,6 @@
 @font-face {
   font-family: 'Deltha';
-  src: url('./fonts/Deltha.otf') format('opentype');
+  src: url('./fonts/Deltha.woff2') format('woff2');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -4641,4 +4641,30 @@ h6,
 
 .sidebar-panel.lg.lg .data-card:hover {
   background: var(--lg-row-hover) !important;
+}
+/* Sidebar chips and the fact-card link are native buttons, so they work with
+   the keyboard and screen readers. Drop the browser's button defaults so they
+   look exactly like the glass controls they replaced. */
+button.glass-chip {
+  width: 100%;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  box-sizing: border-box;
+}
+
+button.fact-jump-link {
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: none;
+}
+
+.glass-chip:focus-visible,
+.idle-hud-cta:focus-visible,
+.fact-jump-link:focus-visible,
+.sidebar-toggle-btn:focus-visible {
+  outline: 2px solid rgba(56, 189, 248, 0.9);
+  outline-offset: -2px;
 }

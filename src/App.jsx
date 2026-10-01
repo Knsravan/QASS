@@ -58,24 +58,23 @@ const writeStorage = (key, value) => {
   try { localStorage.setItem(key, value); } catch { /* not persisted */ }
 };
 
-// "Try again" on a module that failed to load reloads the page; this brings
-// the user straight back to that module afterwards.
-const RESUME_MODULE_KEY = 'quantumUI_resumeModule';
-const reloadIntoModule = (moduleId) => {
-  try { sessionStorage.setItem(RESUME_MODULE_KEY, moduleId); } catch { /* lands on the hub */ }
-  window.location.reload();
-};
-const readResumeModule = () => {
+// Each module has its own URL (#entanglement, ...) so it can be shared,
+// bookmarked and reloaded, and the browser's Back button moves between
+// modules instead of leaving the site.
+const isModuleId = (id) => curriculumData.some(m => m.id === id);
+const moduleFromHash = () => {
   try {
-    const id = sessionStorage.getItem(RESUME_MODULE_KEY);
-    return curriculumData.some(m => m.id === id) ? id : null;
+    const id = decodeURIComponent(window.location.hash.slice(1));
+    return isModuleId(id) ? id : null;
   } catch {
-    return null;
+    return null; // a malformed link (e.g. a stray "%") just opens the hub
   }
 };
-const clearResumeModule = () => {
-  try { sessionStorage.removeItem(RESUME_MODULE_KEY); } catch { /* nothing to clear */ }
+const readModuleSetting = (key) => {
+  const id = readStorage(key);
+  return isModuleId(id) ? id : null;
 };
+const BASE_TITLE = 'QVerse · Interactive Quantum Computing Simulator';
 
 // ==========================================
 // 11-MODULE CURRICULUM DATA STRUCTURE
@@ -1288,10 +1287,9 @@ function App() {
   });
 
   const [theme] = useState('dark');
-  const [learningMode, setLearningMode] = useState('beginner');
-  const [activeModuleId, setActiveModuleId] = useState(readResumeModule); // idle unless resuming after a reload
-  useEffect(clearResumeModule, []);
-  const [lastClosedModuleId, setLastClosedModuleId] = useState(null);
+  const [learningMode, setLearningMode] = useState(() => readStorage('quantumUI_learningMode') === 'advanced' ? 'advanced' : 'beginner');
+  const [activeModuleId, setActiveModuleId] = useState(moduleFromHash); // the hub unless the URL names a module
+  const [lastClosedModuleId, setLastClosedModuleId] = useState(() => readModuleSetting('quantumUI_lastModule'));
 
   const [qubitCount, setQubitCount] = useState(1);
   const [attemptCopy, setAttemptCopy] = useState(false);
@@ -1316,7 +1314,7 @@ function App() {
   const gatesAudio = useGatesAudio();
 
   // ── Global Background & Ambient Audio State ──
-  const [isGlobalMuted, setIsGlobalMuted] = useState(false);
+  const [isGlobalMuted, setIsGlobalMuted] = useState(() => readStorage('quantumUI_muted') === 'true');
   const idleAudio = useIdleAudio(isGlobalMuted);
 
   const [idleFactIdx, setIdleFactIdx] = useState(0);
@@ -1331,6 +1329,48 @@ function App() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Keep the URL in step with the open module. Each change is a history
+  // entry, so Back returns to the previous module or the hub.
+  const urlSyncedRef = useRef(false);
+  useEffect(() => {
+    const hash = activeModuleId ? `#${activeModuleId}` : '';
+    const firstSync = !urlSyncedRef.current;
+    urlSyncedRef.current = true;
+    if (window.location.hash === hash) return;
+    // On load, only tidy an unknown #hash away; don't add a history entry.
+    const update = firstSync ? 'replaceState' : 'pushState';
+    window.history[update](null, '', `${window.location.pathname}${window.location.search}${hash}`);
+  }, [activeModuleId]);
+  useEffect(() => {
+    const syncFromUrl = () => {
+      const id = moduleFromHash();
+      // A hand-typed hash that names no module: show the hub and tidy the URL.
+      if (!id && window.location.hash) {
+        window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+      }
+      setActiveModuleId(id);
+    };
+    window.addEventListener('popstate', syncFromUrl);
+    window.addEventListener('hashchange', syncFromUrl);
+    return () => {
+      window.removeEventListener('popstate', syncFromUrl);
+      window.removeEventListener('hashchange', syncFromUrl);
+    };
+  }, []);
+  useEffect(() => {
+    const title = curriculumData.find(m => m.id === activeModuleId)?.title;
+    document.title = title ? `${title} · QVerse` : BASE_TITLE;
+  }, [activeModuleId]);
+
+  // Remember the visitor's choices between visits. "Continue" offers the
+  // module they were last in.
+  useEffect(() => {
+    if (activeModuleId) setLastClosedModuleId(activeModuleId);
+  }, [activeModuleId]);
+  useEffect(() => { writeStorage('quantumUI_lastModule', lastClosedModuleId || ''); }, [lastClosedModuleId]);
+  useEffect(() => { writeStorage('quantumUI_muted', String(isGlobalMuted)); }, [isGlobalMuted]);
+  useEffect(() => { writeStorage('quantumUI_learningMode', learningMode); }, [learningMode]);
 
   // Warm the module chunks once the hub is showing and the browser is idle.
   useEffect(() => {
@@ -1849,12 +1889,13 @@ function App() {
                       className={`glass-chip-group ${isActive ? 'active' : ''}`}
                       style={{ '--module-accent': accent }}
                     >
-                      <div
+                      <button
+                        type="button"
                         className="glass-chip"
-                        onClick={() => {
-                          if (isActive) setLastClosedModuleId(mod.id);
-                          setActiveModuleId(isActive ? null : mod.id);
-                        }}
+                        aria-label={mod.title}
+                        aria-pressed={isActive}
+                        title={isSidebarOpen ? undefined : mod.title}
+                        onClick={() => setActiveModuleId(isActive ? null : mod.id)}
                       >
                         <div className="chip-indicator" />
                         <div className="chip-content-wrap">
@@ -1871,7 +1912,7 @@ function App() {
                           </div>
                           {isSidebarOpen && <span className="chip-title">{mod.title}</span>}
                         </div>
-                      </div>
+                      </button>
                       <div className={`chip-content-drawer ${isActive && isSidebarOpen ? 'open' : ''}`}>
                         <div className="drawer-inner">
                           <div className="drawer-content-wrapper">
@@ -1892,6 +1933,8 @@ function App() {
             className="sidebar-toggle-btn"
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             title={isSidebarOpen ? "Hide Sidebar" : "Show Sidebar"}
+            aria-label={isSidebarOpen ? "Hide sidebar" : "Show sidebar"}
+            aria-expanded={isSidebarOpen}
           >
             <MorphSidebarTabIcon isCollapsed={!isSidebarOpen} size={16} color="#ffffff" />
           </button>
@@ -1935,7 +1978,7 @@ function App() {
             key={activeModuleId || 'hub'}
             moduleTitle={curriculumData.find(m => m.id === activeModuleId)?.title}
             boundsStyle={uiBoundsStyle}
-            onRetry={() => reloadIntoModule(activeModuleId)}
+            onRetry={() => window.location.reload()}
             onBackToHub={() => setActiveModuleId(null)}
           >
           <Suspense fallback={null}>
@@ -2113,7 +2156,14 @@ function App() {
                 <div style={{ marginTop: '24px', pointerEvents: 'auto' }}>
                   <div
                     className="idle-hud-cta glass-interactive"
+                    role="button"
+                    tabIndex={0}
                     onClick={() => setActiveModuleId(lastClosedModuleId || 'bit-vs-qubit')}
+                    onKeyDown={(e) => {
+                      if (e.target !== e.currentTarget || (e.key !== 'Enter' && e.key !== ' ')) return;
+                      e.preventDefault();
+                      setActiveModuleId(lastClosedModuleId || 'bit-vs-qubit');
+                    }}
                   >
                     <MorphIcon icon={Compass} spring="smooth" strokeWidth={1.5} size={16} color="#38bdf8" />
                     <span style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '13.5px', fontFamily: "'Space Grotesk', 'Plus Jakarta Sans', 'Inter', sans-serif" }}>
@@ -2124,6 +2174,7 @@ function App() {
                         onClick={(e) => { e.stopPropagation(); setLastClosedModuleId(null); }}
                         style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0 2px 0 6px', fontSize: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
                         title="Dismiss"
+                        aria-label="Dismiss"
                       >×</button>
                     )}
                   </div>
@@ -2136,7 +2187,9 @@ function App() {
                 <div style={{ fontSize: '14px', color: 'var(--text-primary)', lineHeight: 1.55, marginBottom: '16px', minHeight: '42px', fontWeight: 500, fontFamily: "'Space Grotesk', 'Plus Jakarta Sans', 'Inter', sans-serif" }}>
                   {IDLE_FACTS[idleFactIdx].text}
                 </div>
-                <div
+                <button
+                  type="button"
+                  className="fact-jump-link"
                   onClick={() => setActiveModuleId(IDLE_FACTS[idleFactIdx].moduleId)}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#38bdf8', cursor: 'pointer', fontWeight: 700, transition: 'all 0.2s ease', fontFamily: "'Space Grotesk', 'Plus Jakarta Sans', 'Inter', sans-serif" }}
                   onMouseEnter={(e) => e.currentTarget.style.color = '#7dd3fc'}
@@ -2144,7 +2197,7 @@ function App() {
                 >
                   <span>Jump to {curriculumData.find(m => m.id === IDLE_FACTS[idleFactIdx].moduleId)?.title.split(' ')[0]}</span>
                   <MorphIcon icon={ArrowRight} spring="smooth" strokeWidth={1} size={14} color="#38bdf8" />
-                </div>
+                </button>
               </div>
             </div>
           )}
