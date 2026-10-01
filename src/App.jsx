@@ -10,6 +10,7 @@ import { GatesScene, GatesOverlay, GATES_STEPS } from './QuantumGates';
 import { MultiGatesScene, MultiGatesOverlay, MULTI_GATES_STEPS, isResultEntangled } from './MultiQubitGates';
 import CameraShifter from './CameraShifter';
 import GlassNavBar from './GlassNavBar';
+import ModuleErrorBoundary from './ModuleErrorBoundary';
 import { startLiquidGlass } from './LiquidGlass';
 import { useDiracAudio } from './useDiracAudio';
 import { useGatesAudio } from './useGatesAudio';
@@ -55,6 +56,25 @@ const readStorage = (key) => {
 };
 const writeStorage = (key, value) => {
   try { localStorage.setItem(key, value); } catch { /* not persisted */ }
+};
+
+// "Try again" on a module that failed to load reloads the page; this brings
+// the user straight back to that module afterwards.
+const RESUME_MODULE_KEY = 'quantumUI_resumeModule';
+const reloadIntoModule = (moduleId) => {
+  try { sessionStorage.setItem(RESUME_MODULE_KEY, moduleId); } catch { /* lands on the hub */ }
+  window.location.reload();
+};
+const readResumeModule = () => {
+  try {
+    const id = sessionStorage.getItem(RESUME_MODULE_KEY);
+    return curriculumData.some(m => m.id === id) ? id : null;
+  } catch {
+    return null;
+  }
+};
+const clearResumeModule = () => {
+  try { sessionStorage.removeItem(RESUME_MODULE_KEY); } catch { /* nothing to clear */ }
 };
 
 // ==========================================
@@ -1269,7 +1289,8 @@ function App() {
 
   const [theme] = useState('dark');
   const [learningMode, setLearningMode] = useState('beginner');
-  const [activeModuleId, setActiveModuleId] = useState(null); // start idle by default
+  const [activeModuleId, setActiveModuleId] = useState(readResumeModule); // idle unless resuming after a reload
+  useEffect(clearResumeModule, []);
   const [lastClosedModuleId, setLastClosedModuleId] = useState(null);
 
   const [qubitCount, setQubitCount] = useState(1);
@@ -1910,6 +1931,13 @@ function App() {
             )}
           </div>
 
+          <ModuleErrorBoundary
+            key={activeModuleId || 'hub'}
+            moduleTitle={curriculumData.find(m => m.id === activeModuleId)?.title}
+            boundsStyle={uiBoundsStyle}
+            onRetry={() => reloadIntoModule(activeModuleId)}
+            onBackToHub={() => setActiveModuleId(null)}
+          >
           <Suspense fallback={null}>
           {activeModuleId === 'gates' ? (
             <GatesModuleView
@@ -2065,6 +2093,7 @@ function App() {
             </Canvas>
           )}
           </Suspense>
+          </ModuleErrorBoundary>
 
           {!activeModuleId && (
             <div style={uiBoundsStyle}>
