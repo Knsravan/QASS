@@ -2,7 +2,12 @@
 const fs = require('fs');
 const path = require('path');
 
-const API_KEY = 'sk_f1f09d81e75fd8a0180e601d348607a2d8f1dd021f30f08a';
+const API_KEY = process.env.ELEVENLABS_API_KEY;
+if (!API_KEY) {
+  console.error('Set ELEVENLABS_API_KEY before running this script, e.g.');
+  console.error('  ELEVENLABS_API_KEY=your_key node scripts/generate_audio.js');
+  process.exit(1);
+}
 const JESSICA_VOICE_ID = 'cgSgspJ2msm6clMCkdW9';
 const OUTPUT_DIR = path.join(__dirname, '..', 'public', 'audio', 'superposition');
 
