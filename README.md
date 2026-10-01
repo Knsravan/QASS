@@ -1,12 +1,12 @@
-# QVerse
+# QASS
 
-**Quantum Reality. Decoded.** QVerse is an interactive 3D quantum computing simulator that teaches the core ideas of quantum computing by letting you play with them, instead of reading about them.
+**Quantum Reality. Decoded.** QASS (Quantum Algorithm State Simulator) is an interactive 3D quantum computing simulator that teaches the core ideas of quantum computing by letting you play with them, instead of reading about them.
 
 Eleven guided modules take you from the difference between a bit and a qubit, through gates, interference and entanglement, up to decoherence and error correction. Every concept is a live, real-time scene: you rotate Bloch spheres, fire gates, collapse wavefunctions and watch the math update as you do it.
 
 **Live demo:** https://qass.vercel.app
 
-![QVerse landing page](docs/screenshots/01-landing.jpg)
+![QASS landing page](docs/screenshots/01-landing.jpg)
 
 ## Features
 

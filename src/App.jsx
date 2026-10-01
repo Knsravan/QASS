@@ -74,7 +74,7 @@ const readModuleSetting = (key) => {
   const id = readStorage(key);
   return isModuleId(id) ? id : null;
 };
-const BASE_TITLE = 'QVerse · Interactive Quantum Computing Simulator';
+const BASE_TITLE = 'QASS · Quantum Algorithm State Simulator';
 
 // ==========================================
 // 11-MODULE CURRICULUM DATA STRUCTURE
@@ -1360,7 +1360,7 @@ function App() {
   }, []);
   useEffect(() => {
     const title = curriculumData.find(m => m.id === activeModuleId)?.title;
-    document.title = title ? `${title} · QVerse` : BASE_TITLE;
+    document.title = title ? `${title} · QASS` : BASE_TITLE;
   }, [activeModuleId]);
 
   // Remember the visitor's choices between visits. "Continue" offers the
@@ -1522,8 +1522,8 @@ function App() {
       <div className="mobile-blocker-overlay">
         <LiquidGlassEffects />
         <div className="glass-card mobile-blocker-card">
-          <img src="/logo.jpg" alt="Quantum Simulator Logo" style={{ width: '80px', height: '80px', borderRadius: '16px', objectFit: 'cover', marginBottom: '24px', boxShadow: '0 8px 32px rgba(79, 172, 254, 0.3)' }} />
-          <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '15px', color: 'var(--text-primary)' }}>Quantum Simulator</h2>
+          <img src="/logo.jpg" alt="QASS logo" style={{ width: '80px', height: '80px', borderRadius: '16px', objectFit: 'cover', marginBottom: '24px', boxShadow: '0 8px 32px rgba(79, 172, 254, 0.3)' }} />
+          <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '15px', color: 'var(--text-primary)' }}>QASS</h2>
           <p style={{ fontSize: '16px', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '20px' }}>
             This immersive 3D quantum experience requires a larger screen to run properly.
           </p>
@@ -1553,7 +1553,7 @@ function App() {
         </div>
 
         <div className="landing-overlay">
-          <div className="hero-badge">Quantum Algorithm State Simulator</div>
+          <div className="hero-badge">QASS · Quantum Algorithm State Simulator</div>
           <h1 className="hero-title">Quantum Reality. <span>Decoded.</span></h1>
           <p className="hero-subtitle">
             Step out of the textbook. Experience the profound mechanics of quantum computing through beautiful, real-time, interactive 3D simulations.
@@ -1873,7 +1873,7 @@ function App() {
             <div className="sidebar-branding">
               <img src="/logo.jpg" alt="Logo" />
               <div className="sidebar-branding-text">
-                <span className="sidebar-branding-title">Quantum Simulator</span>
+                <span className="sidebar-branding-title">QASS</span>
                 <span className="sidebar-branding-tag">Interactive Suite</span>
               </div>
             </div>

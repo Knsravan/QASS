@@ -8,7 +8,7 @@ const cleanNextText = (text) => (text || '').replace(/[→▶►➔>✓]/g, '').
 /**
  * 🔮 QuantumNavButtons
  * Universal Glass Next & Prev Dynamic Navigation Controller
- * Designed specifically for all modules in the Quantum Simulator.
+ * Designed specifically for all modules in QASS.
  */
 export const QuantumNavButtons = memo(function QuantumNavButtons({
   onPrev,
