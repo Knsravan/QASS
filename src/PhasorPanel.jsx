@@ -1,9 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import { InlineMath } from 'react-katex';
 
 // Renders an animated SVG Phasor for a specific basis state (<InlineMath math={String.raw`|0\rangle`} /> or <InlineMath math={String.raw`|1\rangle`} />)
 const PhasorArea = ({ basis, step, phase, isLight }) => {
-  const svgRef = useRef(null);
   
   // Base circle radius
   const R = 35;

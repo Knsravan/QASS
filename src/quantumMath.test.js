@@ -1,3 +1,4 @@
+import { describe, test, expect } from 'vitest';
 import { getInitialState, GATES_MATRICES, applyMatrix, calculateProbabilities, kroneckerProduct } from './quantumMath';
 
 const probs = (state) => calculateProbabilities(state).map(p => p.prob);

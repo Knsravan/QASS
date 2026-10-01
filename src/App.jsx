@@ -1106,9 +1106,10 @@ const CircuitVisualizer = ({ moduleId, gateId, multiGatesStep = 0, qubitCount = 
       return <SuperpositionLiquidCircuit tooltipData={tooltipData} />;
     case 'gates':
       return <GlassCircuit key={gateId} gateId={gateId} progress={1} />;
-    case 'multi-qubit-gates':
+    case 'multi-qubit-gates': {
       const stepData = MULTI_GATES_STEPS[multiGatesStep];
       return <GlassMultiCircuit key={stepData.id} gateId={stepData.id} tooltipData={tooltipData} />;
+    }
     case 'interference':
       return <InterferenceLiquidCircuit tooltipData={tooltipData} />;
     case 'entanglement':

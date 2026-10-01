@@ -59,17 +59,20 @@ npm install
 npm start
 ```
 
-The app opens at <http://localhost:3000>. To create an optimized production build:
+The app opens at <http://localhost:3000>. Other scripts:
 
-```bash
-npm run build
-```
+| Command | What it does |
+|---------|--------------|
+| `npm run build` | Optimized production build in `build/` |
+| `npm run preview` | Serves the production build locally |
+| `npm test` | Runs the unit tests (Vitest) |
+| `npm run lint` | Lints the source (ESLint, fails on any warning) |
 
 The simulator is designed for desktop and tablet screens. On narrow windows (under 768 px) it shows a message asking you to use a larger screen.
 
 ## Built with
 
-- [React 19](https://react.dev/) and Create React App
+- [React 19](https://react.dev/) and [Vite](https://vite.dev/)
 - [three.js](https://threejs.org/) with [react-three-fiber](https://r3f.docs.pmnd.rs/), [drei](https://github.com/pmndrs/drei) and postprocessing (bloom, chromatic aberration)
 - [GSAP](https://gsap.com/) and [react-spring](https://www.react-spring.dev/) for animation
 - [KaTeX](https://katex.org/) for math rendering
@@ -80,7 +83,7 @@ The simulator is designed for desktop and tablet screens. On narrow windows (und
 
 | Path | What lives there |
 |------|------------------|
-| `src/App.js` | App shell: landing page, sidebar, module routing, mute and learning-mode state |
+| `src/App.jsx` | App shell: landing page, sidebar, module routing, mute and learning-mode state |
 | `src/*Module.jsx`, `src/BlochSphere.jsx`, `src/QuantumGates.jsx`, ... | One file per module's 3D scene and overlay |
 | `src/quantumMath.js` | State-vector, gate and measurement math |
 | `src/use*Audio.js`, `src/sharedAudio.js` | Per-module sound design on one shared `AudioContext` |

@@ -4,7 +4,6 @@ import { gsap } from 'gsap';
 import { WebGLRenderer } from 'three';
 import './index.css';
 import App from './App';
-import reportWebVitals from './reportWebVitals';
 
 // Animations must stay truthful to wall-clock time: after a background-tab
 // stall, jump state to where it should be rather than replaying it slowly.
@@ -16,7 +15,7 @@ gsap.ticker.lagSmoothing(0);
 // KHR_parallel_shader_compile. Every renderer assigns `this.debug` in its
 // constructor, so a prototype setter covers all canvases. Development builds
 // keep the checks so shader errors are still reported.
-if (process.env.NODE_ENV === 'production') {
+if (import.meta.env.PROD) {
   Object.defineProperty(WebGLRenderer.prototype, 'debug', {
     configurable: true,
     get() { return this._qsDebug; },
@@ -30,8 +29,3 @@ root.render(
     <App />
   </React.StrictMode>
 );
-
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
