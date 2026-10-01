@@ -53,8 +53,8 @@ Eleven guided modules take you from the difference between a bit and a qubit, th
 You need a recent [Node.js](https://nodejs.org/) LTS and a desktop browser. Chrome or Edge gives the full glass effect (see below).
 
 ```bash
-git clone https://github.com/Knsravan/QVerse.git
-cd QVerse
+git clone https://github.com/Knsravan/QASS.git
+cd QASS
 npm install
 npm start
 ```
