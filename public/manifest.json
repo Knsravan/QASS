@@ -1,6 +1,6 @@
 {
-  "short_name": "QVerse",
-  "name": "QVerse: Quantum Simulator",
+  "short_name": "QASS",
+  "name": "QASS: Quantum Algorithm State Simulator",
   "icons": [
     {
       "src": "logo192.png",

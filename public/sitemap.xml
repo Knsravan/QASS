@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The whole simulator is one page; modules are #fragments, which search
+     engines treat as the same URL, so the home page is the only entry. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://qass.vercel.app/</loc>
+    <lastmod>2026-10-01</lastmod>
+  </url>
+</urlset>

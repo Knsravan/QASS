@@ -52,7 +52,7 @@ export default class ModuleErrorBoundary extends React.Component {
           </div>
           <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.55, margin: '0 0 20px' }}>
             {loadFailure
-              ? 'Part of the simulator could not be downloaded. Check your connection, or QVerse may have just been updated.'
+              ? 'Part of the simulator could not be downloaded. Check your connection, or QASS may have just been updated.'
               : 'Something went wrong while running this module.'}
           </p>
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
