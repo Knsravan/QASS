@@ -4597,9 +4597,43 @@ h6,
     var(--lg-rim, none) 0 0 / 100% 100% no-repeat border-box,
     rgba(56, 189, 248, 0.54);
 }
-/* Sidebar module rows sit on the sidebar's glass: plain rows, with the
-   selected one carried by the black/50% indicator pill. */
-.sidebar-panel.lg.lg .glass-chip {
+/* =============================================================================
+   LIQUID GLASS SKILL: SIDEBAR + TOP BAR
+   The sidebar (.lg-pane), its toggle tab (.lg-pane) and the top bar's capsule
+   and mute circle (.lg-bar) use the skill's material from
+   src/liquid-glass/liquid-glass.css: a barely-there tint, blur + saturation,
+   an inner top highlight, a 1px rim lit from the top-left and a sheen that
+   follows the cursor. The top bar also bends what's behind it (Chromium lens).
+   These rules re-assert that recipe where the app's older, more specific
+   styles for these elements would otherwise win.
+   ============================================================================= */
+.sidebar-panel.lg-pane,
+.sidebar-toggle-btn.lg-pane {
+  background: var(--lgs-tint);
+  -webkit-backdrop-filter: blur(var(--lgs-blur)) saturate(var(--lgs-saturate));
+  backdrop-filter: blur(var(--lgs-blur)) saturate(var(--lgs-saturate));
+  border: 0;
+  box-shadow: inset 0 1px 0 var(--lgs-hi), inset 0 -1px 1px var(--lgs-rim-lo), 0 18px 50px -24px var(--lgs-shadow);
+  color: var(--lgs-ink);
+}
+
+.sidebar-panel.lg-pane {
+  border-radius: var(--lgs-radius);
+}
+
+.sidebar-toggle-btn.lg-pane {
+  border-radius: 0 12px 12px 0;
+  color: var(--lgs-muted);
+}
+
+.sidebar-toggle-btn.lg-pane:hover {
+  background: var(--lgs-tint-strong);
+  color: var(--lgs-ink);
+}
+
+/* Module rows sit on the sidebar's glass as plain rows (glass never stacks on
+   glass); the open module is a pressed pill, like the skill's .lg-pill. */
+.sidebar-panel.lg-pane .glass-chip {
   background: transparent;
   border-color: transparent;
   box-shadow: none;
@@ -4607,41 +4641,118 @@ h6,
   -webkit-backdrop-filter: none;
   border-radius: 999px;
   transform: none;
-  transition: background-color 200ms ease, color 150ms ease;
+  transition: background-color 200ms ease, color 150ms ease, box-shadow 200ms ease;
 }
 
-.sidebar-panel.lg.lg .glass-chip:hover {
-  background: var(--lg-row-hover);
+.sidebar-panel.lg-pane .glass-chip:hover {
+  background: var(--lgs-tint-strong);
   border-color: transparent;
   box-shadow: none;
   transform: none;
 }
 
-.sidebar-panel.lg.lg .glass-chip-group.active .glass-chip {
-  background: var(--lg-indicator);
+.sidebar-panel.lg-pane .glass-chip-group.active .glass-chip {
+  background: var(--lgs-tint-strong);
   border-color: transparent;
-  box-shadow: none;
+  box-shadow: inset 0 1px 0 var(--lgs-hi);
 }
 
-.sidebar-panel.lg.lg .glass-chip-group.active .chip-indicator {
+.sidebar-panel.lg-pane .glass-chip-group.active .chip-indicator {
   background: transparent;
   box-shadow: none;
 }
-/* Nested content cards are sheets on the sidebar glass, never glass themselves.
-   !important matches the module-specific card rules this has to beat. */
-.sidebar-panel.lg.lg .data-card {
-  background: var(--lg-inset-fill) !important;
-  border: 0.5px solid var(--lg-edge) !important;
-  box-shadow: none !important;
+
+/* Content cards inside the sidebar are sheets on its glass, never glass
+   themselves. !important matches the module-specific card rules this has to beat. */
+.sidebar-panel.lg-pane .data-card {
+  background: rgba(255, 255, 255, 0.035) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   border-radius: 18px;
   transform: none !important;
 }
 
-.sidebar-panel.lg.lg .data-card:hover {
-  background: var(--lg-row-hover) !important;
+.sidebar-panel.lg-pane .data-card:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
 }
+
+/* The top bar's capsule and mute circle are .lg-bar surfaces, laid out by
+   .lg-nav rather than fixed to the top of the window like a standalone bar. */
+.lg-nav .lg-bar {
+  position: relative;
+  left: auto;
+  top: auto;
+  transform: none;
+  z-index: auto;
+  max-width: none;
+}
+
+/* The sliding selection is the skill's pressed pill. */
+.lg-nav-indicator {
+  background: var(--lgs-tint-strong);
+  box-shadow: inset 0 1px 0 var(--lgs-hi);
+}
+
+.lg-nav-tab {
+  color: var(--lgs-muted);
+}
+
+.lg-nav-tab:hover {
+  color: var(--lgs-ink);
+}
+
+.lg-nav-tab.is-selected {
+  color: var(--lgs-accent);
+}
+
+.lg-nav-circle {
+  color: var(--lgs-ink);
+  cursor: pointer;
+  transition: transform .35s cubic-bezier(.2, .8, .2, 1), background-color .3s, color .3s;
+}
+
+.lg-nav-circle:hover {
+  background: var(--lgs-tint-strong);
+}
+
+.lg-nav-circle.is-active {
+  color: var(--lgs-ink);
+}
+
+/* Muted: the slashed speaker in the skill's danger colour, so the state reads at a glance */
+.lg-nav-circle:not(.is-active) {
+  color: var(--lgs-danger);
+}
+
+.lg-nav-tab:focus-visible {
+  outline: 2px solid var(--lgs-accent);
+  outline-offset: -2px;
+}
+
+.lg-nav-circle:focus-visible {
+  outline: 2px solid var(--lgs-accent);
+  outline-offset: 2px;
+}
+
+/* Reduced transparency: solid surfaces, same shapes. */
+@media (prefers-reduced-transparency: reduce) {
+  .sidebar-panel.lg-pane,
+  .sidebar-toggle-btn.lg-pane,
+  .lg-nav .lg-bar {
+    background: rgb(20, 24, 33);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-nav-circle {
+    transition: none;
+  }
+}
+
 /* Sidebar chips and the fact-card link are native buttons, so they work with
    the keyboard and screen readers. Drop the browser's button defaults so they
    look exactly like the glass controls they replaced. */
