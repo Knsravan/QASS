@@ -5,12 +5,13 @@
  *   rim, the way it moves on real glass. The
  *   light follows the device, never the cursor. iOS asks for permission, so
  *   the request rides on the first tap.
- * - Bright beams (inside the app, not the landing page): a few times a
+ * - Adaptation (inside the app, not the landing page): a few times a
  *   second each 3D scene is shrunk to a small thumbnail and read once, and
  *   every piece of glass checks its patch of that thumbnail. When a bright
  *   beam passes behind one, the glass darkens what shows through it and its
  *   text gets a dark glow, easing in and out, so white text stays readable.
- *   The glass stays dark; the text stays white.
+ *   When what is behind is mostly light, the glass turns light and its text
+ *   dark (data-lg-light), like Apple's.
  *
  *   Reading a WebGL canvas directly makes the page wait for the GPU, which
  *   is what made frames stutter. sceneProbe.js shrinks and copies each scene
@@ -25,6 +26,10 @@ import { probeScene } from './sceneProbe';
 
 const reduced = motionReduced;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+let tiltDeg = 0;
+/** The device's left-right tilt, degrees (0 on a desktop). */
+export const lightTilt = () => tiltDeg;
 
 function watchTilt() {
   if (!window.matchMedia?.('(pointer: coarse)').matches || reduced() || !('DeviceOrientationEvent' in window)) return () => {};
@@ -41,6 +46,7 @@ function watchTilt() {
   const onTilt = (e) => {
     if (e.gamma == null) return;
     target = clamp(e.gamma, -30, 30); // left-right tilt, degrees
+    tiltDeg = target;
     if (!raf) raf = requestAnimationFrame(step);
   };
   const listen = () => window.addEventListener('deviceorientation', onTilt);
@@ -69,6 +75,8 @@ const BRIGHT = 0.55;     // a backdrop pixel this bright counts as a beam
 const THUMB = 96;        // each scene is read as a thumbnail this wide
 const FULL_AT = 0.3;     // this share of bright pixels: fully dimmed
 const EASE = 0.35;       // per sample, how far the dimming moves toward its target
+const LIGHT_ON = 0.58;   // mean brightness behind glass that turns it light
+const LIGHT_OFF = 0.42;  // ...and back to dark
 
 const overlap = (a, b) => Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left))
   * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
@@ -121,19 +129,31 @@ function watchBeams() {
         const y1 = clamp(Math.ceil(((r.bottom - box.top) / box.height) * th), 0, th);
         let bright = 0;
         let total = 0;
+        let sum = 0;
         for (let y = y0; y < y1; y++) {
           const row = th - 1 - y; // GL rows run bottom to top
           for (let x = x0; x < x1; x++) {
             const i = (row * tw + x) * 4;
-            if ((0.2126 * pixels[i] + 0.7152 * pixels[i + 1] + 0.0722 * pixels[i + 2]) / 255 > BRIGHT) bright++;
+            const l = (0.2126 * pixels[i] + 0.7152 * pixels[i + 1] + 0.0722 * pixels[i + 2]) / 255;
+            if (l > BRIGHT) bright++;
+            sum += l;
             total++;
           }
         }
         share = total ? bright / total : 0;
+        // Light / dark: glass over mostly light content turns light and its
+        // text dark, like Apple's (with a gap between the two so it doesn't
+        // flicker on the line).
+        const mean = total ? sum / total : 0;
+        if (mean > LIGHT_ON) piece._glLight = true;
+        else if (mean < LIGHT_OFF) piece._glLight = false;
       }
+      if (piece._glLight) piece.setAttribute('data-lg-light', '');
+      else piece.removeAttribute('data-lg-light');
       const target = clamp(share / FULL_AT, 0, 1);
       const now = (dim.get(piece) || 0) + (target - (dim.get(piece) || 0)) * EASE;
       dim.set(piece, now);
+      piece._glDim = piece._glLight ? 0 : now; // the WebGL glass (glassGL.js)
       if (now < 0.01) {
         if (piece.hasAttribute('data-lg-dim')) {
           piece.style.removeProperty('--lg-dim');

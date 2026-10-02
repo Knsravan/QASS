@@ -5800,3 +5800,41 @@ div:has(> canvas) {
 [data-motion="reduced"] .sidebar-page {
   transition-duration: 0.01ms !important;
 }
+
+/* =============================================================================
+   WEBGL LIQUID GLASS (glassGL.js)
+   Glass sitting on a 3D scene is drawn by the scene itself (refraction, veil,
+   rim light, shadow, touch light); the element keeps only its content. Its
+   CSS glass (lens, tint, rim, shadow) steps aside while [data-gl] is set.
+   ============================================================================= */
+[data-gl],
+.lg-lensed[data-gl]::before {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+[data-gl] {
+  box-shadow: none !important;
+}
+
+[data-gl]:is(.lg, .lg-pane, .lg-bar) {
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
+:is(.lg-pane, .lg-bar, .feature-card.lg, .start-btn.lg)[data-gl]::after {
+  display: none !important;
+}
+
+/* The top bar's pieces flow together in the glass itself. */
+.lg-nav:has(.lg-bar[data-gl]) :is(.lg-nav-neck, .lg-nav-neck-rim) {
+  display: none;
+}
+
+/* Light glass (over mostly light content): dark text and icons. */
+[data-lg-light],
+[data-lg-light] :not(svg *) {
+  color: #0b0d12 !important;
+  text-shadow: none !important;
+  transition: color 0.3s ease;
+}
