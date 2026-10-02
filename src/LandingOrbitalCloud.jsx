@@ -211,7 +211,7 @@ function WaveRibbon({ radius, width, halfTwists, phase, colorA, colorB, tilt, sp
           float band = pow(max(.5 + .5 * sin(vU * 6.2831853 * 3. - uTime * 1.2), 0.), 5.);
           float threads = .35 * pow(abs(sin(vV * 9.)), 18.);
           vec3 col = mix(cA, cB, .5 + .5 * sin(vU * 6.2831853 + uTime * .25));
-          float a = (edge * (.18 + .7 * band) + threads * edge * .7) * vSide * vSide;
+          float a = (edge * (.28 + 1.05 * band) + threads * edge * 1.05) * vSide * vSide;
           gl_FragColor = vec4(mix(col, vec3(1.), band * .35) * a, a);
           // A NaN/Inf pixel would bloom into a white blob (seen where a ribbon
           // turns end-on): drop it.
