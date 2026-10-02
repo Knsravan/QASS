@@ -6,7 +6,7 @@
  *   high    sharp (up to 1.5x pixels, antialiased), full glow, the colour
  *           fringe, every liquid glass lens
  *   medium  1x pixels with edge smoothing, glow worked out at half size,
- *           the small lenses, fewer stars
+ *           a small lens on big glass, fewer stars
  *   low     0.85x pixels with edge smoothing, glow at a third of the size,
  *           frosted glass without bending, fewer stars still
  *
@@ -41,7 +41,7 @@ export const PARTS = {
   glow: { label: 'Glow', options: { full: 'Full', soft: 'Soft', off: 'Off' }, of: (k) => (!k.bloom ? 'off' : k.bloomScale >= 1 ? 'full' : 'soft') },
   fps: { label: 'Frame rate', options: { max: 'Display', 60: '60 fps', 30: '30 fps' }, of: (k) => (k.fpsCap ? String(k.fpsCap) : 'max') },
   sharp: { label: 'Sharpness', options: { sharp: 'Sharp', standard: 'Standard', light: 'Light' }, of: (k) => (k.msaa ? 'sharp' : k.dprScale >= 1 ? 'standard' : 'light') },
-  lens: { label: 'Liquid glass', options: { all: 'Full lens', small: 'Small lenses', none: 'Frosted' }, of: (k) => k.lens },
+  lens: { label: 'Liquid glass', options: { all: 'Full lens', small: 'Small lens', none: 'Frosted' }, of: (k) => k.lens },
   stars: { label: 'Stars', options: { many: 'Many', some: 'Fewer', few: 'Few' }, of: (k) => (k.stars >= 1 ? 'many' : k.stars >= 0.6 ? 'some' : 'few') },
   motion: { label: 'Motion', options: { full: 'Full', reduced: 'Reduced' }, of: (k) => k.motion },
   surface: { label: 'Glass surfaces', options: { glass: 'See-through', solid: 'Solid' }, of: (k) => k.surface },
