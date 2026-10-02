@@ -4837,6 +4837,8 @@ button.fact-jump-link {
   pointer-events: none;
   -webkit-backdrop-filter: var(--lg-backdrop, none);
   backdrop-filter: var(--lg-backdrop, none);
+  /* glassLight.js: a bright beam behind the glass darkens what shows through */
+  backdrop-filter: var(--lg-backdrop, none) brightness(var(--lg-see, 1));
   /* Some surfaces (the glass tooltip's old shimmer) styled ::before
      themselves; the lens replaces that. */
   background: none;
@@ -5019,4 +5021,13 @@ div:has(> canvas) {
     0 18px 50px -24px var(--lgs-shadow),
     10px 18px 30px -18px rgba(62, 230, 255, 0.16),
     18px 24px 38px -22px rgba(176, 108, 255, 0.14);
+}
+
+/* Bright beams (glassLight.js): when one passes behind glass inside the app,
+   the glass darkens what shows through it (--lg-see, in the lens layer
+   above) and its text gets a dark glow (--lg-dim), easing in and out. The
+   glass stays dark and the text stays white. The glow applies only while
+   dimmed, so it never replaces a surface's own text-shadow otherwise. */
+[data-lg-dim] {
+  text-shadow: 0 1px 10px rgba(0, 0, 0, calc(0.9 * var(--lg-dim, 0)));
 }
