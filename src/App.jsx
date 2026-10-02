@@ -16,6 +16,7 @@ import { startLiquidGlass } from './LiquidGlass';
 import { mountLiquidGlass } from './liquid-glass/liquid-glass';
 import { mountGlassMotion } from './glassMotion';
 import { mountGlassLight } from './glassLight';
+import { mountGlassDebug } from './glassDebug';
 import { useDiracAudio } from './useDiracAudio';
 import { useGatesAudio } from './useGatesAudio';
 import { useIdleAudio } from './useIdleAudio';
@@ -35,6 +36,7 @@ import {
 } from './QuantumMorphIcons';
 import './liquid-glass/liquid-glass.css';
 import './App.css';
+import { SCENE_GL } from './sceneGl';
 
 // Self-contained modules are split into their own chunks so the landing page
 // and hub don't pay for every module's scene up front. The loaders are also
@@ -305,6 +307,8 @@ const LiquidGlassEffects = () => {
   useEffect(() => mountGlassMotion(), []);
   // Shine that follows a phone's tilt; landing cards that turn light over bright 3D.
   useEffect(() => mountGlassLight(), []);
+  // ?glassdebug in the address shows the frame rate and lens state.
+  useEffect(() => mountGlassDebug(), []);
   return null;
 };
 
@@ -1236,7 +1240,7 @@ const GatesModuleView = ({ step, applied, theme, isSidebarOpen, uiBoundsStyle, o
       <Canvas
         dpr={[1, 1.5]}
         camera={{ position: [0, 0, 13], fov: 45 }}
-        gl={{ powerPreference: 'high-performance', alpha: true, antialias: true }}
+        gl={SCENE_GL}
         style={{ position: 'absolute', inset: 0, zIndex: 1, willChange: 'transform', transform: 'translateZ(0)' }}
       >
         <CameraShifter isSidebarOpen={isSidebarOpen} />
@@ -1837,7 +1841,7 @@ function App() {
       <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', willChange: 'transform', transform: 'translateZ(0)' }}>
         <Canvas
           dpr={[1, 1.5]}
-          gl={{ powerPreference: 'high-performance', alpha: true }}
+          gl={{ ...SCENE_GL, antialias: false }}
         >
           <CameraShifter isSidebarOpen={isSidebarOpen} />
           <ambientLight intensity={0.4} />
@@ -2006,7 +2010,7 @@ function App() {
               <Canvas
                 dpr={[1, 1.5]}
                 camera={{ position: [0, 0, 15], fov: 45 }}
-                gl={{ powerPreference: 'high-performance', alpha: true, antialias: true }}
+                gl={SCENE_GL}
                 style={{ position: 'absolute', inset: 0, zIndex: 1, willChange: 'transform', transform: 'translateZ(0)' }}
               >
                 <CameraShifter isSidebarOpen={isSidebarOpen} />
@@ -2082,7 +2086,7 @@ function App() {
               <Canvas
                 dpr={[1, 1.5]}
                 camera={{ position: [4, 3, 8], fov: 50 }}
-                gl={{ powerPreference: 'high-performance', alpha: true, antialias: true }}
+                gl={SCENE_GL}
                 style={{ position: 'absolute', inset: 0, zIndex: 1, willChange: 'transform', transform: 'translateZ(0)' }}
               >
                 <CameraShifter isSidebarOpen={isSidebarOpen} />
@@ -2113,7 +2117,7 @@ function App() {
             <Canvas
               dpr={[1, 1.5]}
               camera={{ position: [0, 0, 13], fov: 45 }}
-              gl={{ powerPreference: 'high-performance', alpha: true, antialias: true }}
+              gl={SCENE_GL}
               style={{ position: 'absolute', inset: 0, zIndex: 1, willChange: 'transform', transform: 'translateZ(0)' }}
             >
               <CameraShifter isSidebarOpen={isSidebarOpen} />

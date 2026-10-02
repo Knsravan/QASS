@@ -13,6 +13,7 @@ import { OrbitingWave } from './OrbitingWave';
 import { InterferenceShatter } from './InterferenceShatter';
 import { InterferenceSupernova } from './InterferenceSupernova';
 import { QuantumNavButtons } from './QuantumNavButtons';
+import { SCENE_GL } from './sceneGl';
 
 const COLORS = {
   primary: '#0ea5e9', // Cyan
@@ -1413,7 +1414,7 @@ export default function InterferenceModule({ theme, isSidebarOpen, isGlobalMuted
       <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }}>
         <Canvas
           dpr={[1, 1.5]}
-          gl={{ powerPreference: 'high-performance', alpha: true, antialias: true }}
+          gl={SCENE_GL}
         >
           <CameraShifter isSidebarOpen={isSidebarOpen} />
           <ambientLight intensity={0.5} />

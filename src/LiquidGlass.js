@@ -238,6 +238,24 @@ function watchFrameRate() {
   return () => cancelAnimationFrame(raf);
 }
 
+/** For the ?glassdebug readout: the lens state and how much glass bends. */
+export function glassStats() {
+  let bending = 0;
+  for (const node of lensed) {
+    if (node.isConnected && node.style.getPropertyValue('--lg-backdrop').startsWith('url(')) bending++;
+  }
+  return {
+    supported: supportsRefraction(),
+    mode: !lensOn ? 'all lenses off (too slow)' : largeOff ? 'large lenses off (slow)' : 'all lenses on',
+    lensed: [...lensed].filter((n) => n.isConnected).length,
+    bending,
+  };
+}
+
+export function resetLensFallback() {
+  try { sessionStorage.removeItem(LENS_OFF_KEY); } catch { /* nothing stored */ }
+}
+
 // ─── Idle-time lens building ────────────────────────────────────────────────
 
 const lensQueue = new Map(); // node → shape key it was queued for
@@ -367,6 +385,19 @@ function followResize(node) {
   });
 }
 
+// Glass that appears inside a module (cards, panels, the fact ticker) grows
+// in like a drop of glass instead of popping in: a spring on CSS \`scale\`, so
+// it composes with any \`transform\` the element already has. No opacity: that
+// would cut its lens off from the scene behind while it plays.
+const GROW_IN = '.glass-card, .glass-panel, .glass-panel-thick, .compact-hud-card, .idle-fact-ticker';
+const GROW_EASE = 'linear(0, 0.0537, 0.1795, 0.3358, 0.4949, 0.64, 0.7623, 0.8588, 0.9305, 0.9802, 1.0118, 1.0296, 1.0372, 1.0381, 1.0349, 1.0295, 1.0234, 1.0174, 1.0121, 1.0077, 1.0044, 1.0019, 1.0003, 0.9993, 0.9987, 0.9985, 0.9986, 0.9987, 0.9989, 0.9992, 1)';
+function growIn(node) {
+  if (!node.matches(GROW_IN) || !node.animate || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+  try {
+    node.animate([{ scale: '0.86 0.74' }, { scale: '1 1' }], { duration: 560, easing: GROW_EASE });
+  } catch { /* an older browser without the scale property: no grow */ }
+}
+
 // Watches the document and keeps every floating-layer element in glass,
 // rebuilding when an element's size or shape changes.
 export function startLiquidGlass(root = document.body) {
@@ -428,6 +459,7 @@ export function startLiquidGlass(root = document.body) {
       targetOf.set(node, target);
       resizeObserver.observe(node);
       schedule(node);
+      growIn(node);
       return;
     }
   };
