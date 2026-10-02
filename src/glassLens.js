@@ -24,6 +24,12 @@ const GREY = '0 0 0 1 0  0 0 0 1 0  0 0 0 1 0  0 0 0 0 1'; // alpha -> opaque gr
 // The rim weight 1 - h, in colour and alpha (premultiplied grey).
 const INV_WEIGHT = '0 0 0 -1 1  0 0 0 -1 1  0 0 0 -1 1  0 0 0 -1 1';
 const R_ONLY = '1 0 0 0 0  0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 1';
+// One colour channel each, alpha kept: for the colour split at the rim.
+const CHANNEL = {
+  R: '1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0',
+  G: '0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0',
+  B: '0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0',
+};
 const G_ONLY = '0 0 0 0 0.5  0 1 0 0 0  0 0 0 0 0.5  0 0 0 0 1';
 const LARGE = 140; // shorter side above this: rim-strip filter
 
@@ -41,8 +47,10 @@ const invert = () => ['R', 'G', 'B'].map((c) => node(`feFunc${c}`, { type: 'line
  * @param {number} w, h   surface size in CSS px
  * @param {number} frost  blur of the frosted middle, px
  * @param {string} id     filter id
+ * @param {number} disp   colour split: blue bends this much more than green,
+ *                        red this much less (0 = none)
  */
-export function buildLensFilter(w, h, frost, id) {
+export function buildLensFilter(w, h, frost, id, disp = 0) {
   const m = Math.min(w, h);
   const sigma = Math.max(4, Math.min(12, m * 0.2));         // how far in the glass curves
   const d = Math.max(2, Math.round(sigma * 0.6));            // slope sampling distance
@@ -84,7 +92,18 @@ export function buildLensFilter(w, h, frost, id) {
     add('feColorMatrix', { in: `${s}x`, type: 'matrix', values: R_ONLY, ...reg, result: `${s}xr` });
     add('feColorMatrix', { in: `${s}y`, type: 'matrix', values: G_ONLY, ...reg, result: `${s}yg` });
     add('feComposite', { in: `${s}xr`, in2: `${s}yg`, operator: 'arithmetic', k1: 0, k2: 1, k3: 1, k4: -0.5, ...reg, result: `${s}map` });
-    add('feDisplacementMap', { in: 'SourceGraphic', in2: `${s}map`, scale, xChannelSelector: 'R', yChannelSelector: 'G', ...reg, result: `${s}bent` });
+    if (disp > 0) {
+      // Real glass bends each colour a little differently, leaving a faint
+      // rainbow fringe at the rim: one displacement per channel, summed.
+      ['R', 'G', 'B'].forEach((c, i) => {
+        add('feDisplacementMap', { in: 'SourceGraphic', in2: `${s}map`, scale: scale * (1 + (i - 1) * disp), xChannelSelector: 'R', yChannelSelector: 'G', ...reg, result: `${s}d${c}` });
+        add('feColorMatrix', { in: `${s}d${c}`, type: 'matrix', values: CHANNEL[c], ...reg, result: `${s}c${c}` });
+      });
+      add('feComposite', { in: `${s}cR`, in2: `${s}cG`, operator: 'arithmetic', k1: 0, k2: 1, k3: 1, k4: 0, ...reg, result: `${s}rg` });
+      add('feComposite', { in: `${s}rg`, in2: `${s}cB`, operator: 'arithmetic', k1: 0, k2: 1, k3: 1, k4: 0, ...reg, result: `${s}bent` });
+    } else {
+      add('feDisplacementMap', { in: 'SourceGraphic', in2: `${s}map`, scale, xChannelSelector: 'R', yChannelSelector: 'G', ...reg, result: `${s}bent` });
+    }
 
     // Bent at the rim, fading out inward: bent * (1 - w), with the weight in
     // alpha too, laid over the frost. The frost is read only once, over the

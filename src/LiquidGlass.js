@@ -42,10 +42,10 @@ export const LIQUID_GLASS_TARGETS = [
   { selector: '.lg-pane', variant: 'thick', lens: true, skin: false },    // sidebar and its tab
   { selector: '.quantum-nav-btn, .action-btn, .glass-btn, .quantum-pill-btn, .ctrl-btn, .gate-action-btn, .step-nav-btn, .measurement-dial-btn, .start-btn', variant: 'regular', lens: true, skin: true },
   { selector: '.idle-hud-cta', variant: 'thick', lens: true, skin: true },
-  { selector: '.hero-badge, .section-title', variant: 'regular', lens: false, skin: true },
   { selector: '.feature-card', variant: 'thick', lens: true, skin: true },     // landing page cards
-  { selector: '.idle-fact-ticker, .mobile-blocker-card', variant: 'thick', lens: false, skin: true },
-  { selector: '.glass-tooltip, .glass-card, .glass-panel, .glass-panel-thick, .compact-hud-card', variant: 'thick', lens: false, skin: true },
+  { selector: '.hero-badge, .section-title', variant: 'regular', lens: true, skin: true },
+  { selector: '.idle-fact-ticker, .mobile-blocker-card', variant: 'thick', lens: true, skin: true },
+  { selector: '.glass-tooltip, .glass-card, .glass-panel, .glass-panel-thick, .compact-hud-card', variant: 'thick', lens: true, skin: true },
 ];
 
 const ALL_TARGETS = LIQUID_GLASS_TARGETS.map((t) => t.selector).join(', ');
@@ -56,7 +56,9 @@ const FPS_FLOOR = 40;        // below this, lenses are too costly for this machi
 const FPS_WINDOW = 2000;     // ms per frame-rate sample
 const FPS_STRIKES = 3;       // consecutive slow samples before falling back
 const FPS_WARMUP = 5000;     // ignore start-up (shader compiles, first bakes)
-const LENS_OFF_KEY = 'quantumUI_lensOff';
+const LENS_OFF_KEY = 'quantumUI_lensOff'; // '1': every lens off; 'large': big glass only
+const DISPERSION = 0.06;     // colour split at the rim (see glassLens.js)
+const LARGE_GLASS = 140;     // shorter side above this: the costly lenses to drop first
 
 // ─── Rim: DefaultHighlightShader as vector strokes ──────────────────────────
 
@@ -149,7 +151,7 @@ function lensFilterId(w, h, frost) {
   const hit = filterCache.get(key);
   if (hit) return hit;
   const id = `lg-lens-${++filterCount}`;
-  ensureDefs().appendChild(buildLensFilter(w, h, frost, id));
+  ensureDefs().appendChild(buildLensFilter(w, h, frost, id, DISPERSION));
   return remember(filterCache, key, id, (oldId) => document.getElementById(oldId)?.remove());
 }
 
@@ -163,6 +165,13 @@ function rimImage(w, h, radius) {
 let lensOn = (() => {
   try { return sessionStorage.getItem(LENS_OFF_KEY) !== '1'; } catch { return true; }
 })();
+// First fallback step: only the big, costly lenses (the sidebar, large cards)
+// go back to frost; buttons, the top bar and small cards keep bending.
+let largeOff = (() => {
+  try { return sessionStorage.getItem(LENS_OFF_KEY) === 'large'; } catch { return false; }
+})();
+const isLarge = (w, h) => Math.min(w, h) > LARGE_GLASS;
+const lensAllowed = (w, h) => lensOn && !(largeOff && isLarge(w, h));
 const lensed = new Set(); // elements currently carrying a lens layer
 
 let refractionSupported = null;
@@ -187,7 +196,18 @@ function lensesOff() {
   }
 }
 
+function largeLensesOff() {
+  largeOff = true;
+  try { sessionStorage.setItem(LENS_OFF_KEY, 'large'); } catch { /* this page only */ }
+  for (const node of lensed) {
+    if (!isLarge(node.offsetWidth, node.offsetHeight)) continue;
+    lensQueue.delete(node);
+    if (node._lgBase) node.style.setProperty('--lg-backdrop', node._lgBase);
+  }
+}
+
 // Frame-rate guard: rAF frames are counted per window; hidden tabs don't count.
+// Too slow once: the large lenses go; still too slow: every lens goes.
 function watchFrameRate() {
   let frames = 0;
   let windowStart = 0;
@@ -208,7 +228,11 @@ function watchFrameRate() {
     strikes = fps < FPS_FLOOR ? strikes + 1 : 0;
     frames = 0;
     windowStart = now;
-    if (strikes >= FPS_STRIKES) lensesOff();
+    if (strikes < FPS_STRIKES) return;
+    strikes = 0;
+    const anyLarge = !largeOff && [...lensed].some((n) => isLarge(n.offsetWidth, n.offsetHeight));
+    if (anyLarge) largeLensesOff();
+    else lensesOff();
   };
   raf = requestAnimationFrame(tick);
   return () => cancelAnimationFrame(raf);
@@ -229,8 +253,9 @@ function drainLensQueue(deadline) {
     // Never more than one build per slice when the slice is tight or overdue.
     if (built > 0 && deadline.timeRemaining() < 8) break;
     lensQueue.delete(node);
-    if (!lensOn || !node.isConnected || node.dataset.lgShape !== key) continue;
+    if (!node.isConnected || node.dataset.lgShape !== key) continue;
     const { w, h, blur, saturation } = node._lgPending;
+    if (!lensAllowed(w, h)) continue;
     node.style.setProperty('--lg-backdrop', `url(#${lensFilterId(w, h, blur)}) saturate(${saturation})`);
     built++;
   }
@@ -309,12 +334,12 @@ export function applyLiquidGlass(node, target, geometry = measureGlass(node)) {
   node._lgVariant = { blur, saturation };
   lensed.add(node);
   const cached = filterCache.get(`${w}x${h}f${blur}`);
-  if (lensOn && supportsRefraction() && cached) {
+  if (lensAllowed(w, h) && supportsRefraction() && cached) {
     node.style.setProperty('--lg-backdrop', `url(#${cached}) saturate(${saturation})`);
   } else {
     // Frosted at once; the lens joins when the browser is idle.
     node.style.setProperty('--lg-backdrop', base);
-    if (lensOn && supportsRefraction()) {
+    if (lensAllowed(w, h) && supportsRefraction()) {
       node._lgPending = { w, h, blur, saturation };
       queueLens(node, shapeKey);
     }
@@ -335,7 +360,8 @@ function followResize(node) {
     liveNodes.clear();
     for (const [n, w, h] of sizes) {
       const v = n._lgVariant;
-      if (!lensOn || !v || w < 4 || h < 4) continue;
+      if (!v || w < 4 || h < 4) continue;
+      if (!lensAllowed(w, h)) { if (n._lgBase) n.style.setProperty('--lg-backdrop', n._lgBase); continue; }
       n.style.setProperty('--lg-backdrop', `url(#${lensFilterId(w, h, v.blur)}) saturate(${v.saturation})`);
     }
   });
