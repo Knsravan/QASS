@@ -3,11 +3,11 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Html, PresentationControls } from '@react-three/drei';
 import { useSpring, a } from '@react-spring/three';
 import * as THREE from 'three';
-import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing';
-import { BlendFunction } from 'postprocessing';
+import { Bloom } from '@react-three/postprocessing';
 import { BlockMath, InlineMath } from 'react-katex';
 import { useQuantumAudio } from './useQuantumAudio';
 import { QuantumNavButtons } from './QuantumNavButtons';
+import { QualityComposer } from './QualityScene';
 
 // =========================================
 // 1. CLASSICAL BIT COMPONENT (Left Side)
@@ -1291,10 +1291,9 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
 
   return (
     <>
-      <EffectComposer disableNormalPass>
+      <QualityComposer disableNormalPass>
         <Bloom luminanceThreshold={0.3} mipmapBlur intensity={0.6} />
-        <ChromaticAberration blendFunction={BlendFunction.NORMAL} offset={[0, 0]} />
-      </EffectComposer>
+      </QualityComposer>
       <ambientLight intensity={isLight ? 0.8 : 0.5} />
       <pointLight ref={light1Ref} position={[8, 8, 8]} color="#00f2fe" intensity={isLight ? 12 : 8} distance={30} />
       <pointLight ref={light2Ref} position={[-8, -8, -8]} color="#f093fb" intensity={isLight ? 12 : 8} distance={30} />

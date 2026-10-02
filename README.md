@@ -95,7 +95,7 @@ The simulator is designed for desktop and tablet screens. On narrow windows (und
 
 The sidebar (and its toggle), the top bar (the Beginner / Advanced tabs and the mute button) and the buttons are real liquid glass lenses. `src/glassLens.js` builds an SVG filter for each surface's size that runs inside `backdrop-filter`: the scene behind the glass is frosted in the middle and bent at the rim like the curved edge of a glass slab, and a fixed light from the top-left catches the rim as a reflection. Chrome does not load images inside `backdrop-filter`, so the filter makes its own displacement map from a blurred rectangle (the glass "height") with offsets and arithmetic composites. On large surfaces, only four thin rim strips run the costly steps.
 
-`LiquidGlass.js` applies the lens to a `::before` layer of each surface. On the element itself, its drop shadow would shift Chrome's filter coordinates. Lenses are built in idle time for each surface's size and are rebuilt after a resize settles; until then the surface shows plain frost. A frame-rate guard switches every lens back to plain frost for the rest of the session if the machine can't keep up. Disabled (faded) buttons always use plain frost. Cards, tooltips and badges keep the frosted material with a lit rim. Refraction needs a Chromium-based browser; Safari and Firefox get the frosted glass without the bending.
+`LiquidGlass.js` applies the lens to a `::before` layer of each surface. On the element itself, its drop shadow would shift Chrome's filter coordinates. Lenses are built in idle time for each surface's size and are rebuilt after a resize settles; until then the surface shows plain frost. How many lenses bend follows the quality tier (see below). Disabled (faded) buttons always use plain frost. Cards, tooltips and badges keep the frosted material with a lit rim. Refraction needs a Chromium-based browser; Safari and Firefox get the frosted glass without the bending.
 
 The glass also moves like liquid (`src/glassMotion.js`, springs on CSS `scale` / `translate`):
 
@@ -114,7 +114,6 @@ And it reacts to light (`src/glassLight.js` and the lens itself):
 - **Bright beams:** inside the app, when a bright beam in the 3D scene passes behind any glass (buttons, cards, panels, tooltips, the top bar, the sidebar), the glass darkens what shows through it and its text gets a dark glow, so white text stays readable. The glass stays dark.
 - **Tilt:** on phones and tablets, tilting the device moves the rim light and the sheen (iOS asks for permission on the first tap).
 - **Morphing:** tooltips and the glass cards and panels inside modules grow in like a drop of glass, and the sidebar opens and closes on a liquid spring.
-- **Slow computers:** the frame-rate guard first drops only the big lenses (the sidebar, large cards); the small glass keeps bending unless it is still too slow.
 
 Every glass surface in the app is lensed now, tooltips, info cards and labels included.
 
@@ -126,7 +125,20 @@ The controls are glass too:
 - **Reduce transparency:** with that system setting on, every piece of glass turns solid dark with the same shape and rim instead of see-through.
 - **Selection:** selected text gets a soft cyan highlight.
 
-To check the glass on a real machine, open the app with `?glassdebug` in the address (for example `https://qass.vercel.app/?glassdebug`). A small readout shows the frame rate, whether the browser can bend, the slow-computer fallback state and how many glass surfaces are bending, with a button to reset the fallback.
+### Smooth on every machine
+
+`src/quality.js` keeps the app smooth on any device. It picks one of four quality tiers when the app opens (from the CPU cores, memory, the GPU's name, a software renderer or a high-resolution touch screen), then watches the real frame times: if frames keep running slower than about 45 fps or stutter, it steps down a tier within a few seconds; after a long stretch of easy frames it tries one tier up, but never back into a tier that has failed twice. Loading a new module is ignored, so one-off shader compiles don't count.
+
+| Tier | 3D sharpness | Bloom | Glass |
+|---|---|---|---|
+| high | up to 1.5x pixels, antialiased | yes, with the colour fringe | every lens bends |
+| medium | 1x | yes | small lenses bend |
+| low | 0.75x | no | frosted, no bending |
+| minimal | 0.5x | no | solid, no blur |
+
+Every scene uses `QualityCanvas` and `QualityComposer` (`src/QualityScene.jsx`), which apply the tier; star counts scale with it, and the star field behind the modules draws only 10–60 times a second. The bright-beam check reads each scene through `src/sceneProbe.js`: the GPU shrinks the frame and copies it asynchronously, so the page never waits for the GPU (reading the canvas directly used to block most of every frame).
+
+`?quality=high` (or `medium`, `low`, `minimal`) in the address pins a tier for testing. Open the app with `?glassdebug` (for example `https://qass.vercel.app/?glassdebug`) to see the frame rate, the tier and why it was chosen, whether the browser can bend, and how many glass surfaces are bending, with a button that forgets the tier and reloads.
 
 The tint, rim and highlight come from the Liquid Glass skill in `src/liquid-glass/`, whose custom properties are prefixed `--lgs-` so they never collide with `LiquidGlass.js`'s `--lg-` ones. The mute button leans toward the mouse.
 

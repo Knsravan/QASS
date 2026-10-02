@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, Suspense, useMemo } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
-import { EffectComposer, Bloom } from '@react-three/postprocessing';
+import { Bloom } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { InlineMath } from 'react-katex';
@@ -12,6 +12,7 @@ import { useDecoherenceAudio } from './useDecoherenceAudio';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { SCENE_GL } from './sceneGl';
 import GlassSlider from './GlassSlider';
+import { QualityCanvas, QualityComposer } from './QualityScene';
 
 // ============================================================
 // COLORS
@@ -530,9 +531,9 @@ function DecoherenceScene({ step, noiseLevel, activeNoise, noiseBurstId, entranc
       <BlochSphereUnit posArr={PURE_POS}  color={CT} label="Pure Qubit"  isPure={true}  noiseLevel={0}          activeNoise={null}        entranceRef={entranceRef} posKey="pure"  step={step} tempK={tempK} />
       <BlochSphereUnit posArr={NOISY_POS} color={CA} label="Noisy Qubit" isPure={false} noiseLevel={noiseLevel} activeNoise={activeNoise} noiseBurstId={noiseBurstId} entranceRef={entranceRef} posKey="noisy" step={step} tempK={tempK} />
       <NoiseParticleField noiseLevel={noiseLevel} activeNoise={activeNoise} tempK={tempK} />
-      <EffectComposer>
+      <QualityComposer>
         <Bloom intensity={0.65} luminanceThreshold={0.16} luminanceSmoothing={0.88} />
-      </EffectComposer>
+      </QualityComposer>
     </>
   );
 }
@@ -898,8 +899,7 @@ export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted,
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', background: 'transparent' }}>
       {/* 3D CANVAS WITH CAMERA SHIFTER */}
-      <Canvas
-        dpr={[1, 1.5]}
+      <QualityCanvas
         camera={{ position: [0, MODEL_Y + 0.6, 20.0], fov: 44 }}
         gl={SCENE_GL}
         style={{ position: 'absolute', inset: 0, zIndex: 1 }}
@@ -908,7 +908,7 @@ export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted,
           <CameraShifter isSidebarOpen={isSidebarOpen} />
           <DecoherenceScene step={step} noiseLevel={noiseLevel} activeNoise={activeNoise} noiseBurstId={noiseBurstId} entranceRef={entranceAnim} audio={audio} tempK={tempK} />
         </Suspense>
-      </Canvas>
+      </QualityCanvas>
 
       {/* 2D OVERLAY BOUNDED TO VIEWPORT AREA */}
       <div style={uiBoundsStyle}>

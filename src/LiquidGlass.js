@@ -16,11 +16,12 @@
  *     no shadow, and `background: inherit` repaints the element's tint and rim
  *     above the bent backdrop.
  * Refraction is Chromium-only; other engines keep the blur, tint and rim.
- * If frames drop below FPS_FLOOR while lenses are on, they fall back to plain
- * frosted glass for the rest of the session.
+ * How many lenses bend follows the quality tier (quality.js): every lens on
+ * high, the small ones on medium, none (plain frost) on low.
  */
 
 import { buildLensFilter } from './glassLens';
+import { getQuality, subscribeQuality, qualityInfo, resetQuality } from './quality';
 
 const RIM_WIDTH = 0.5;    // Highlight.width
 const RIM_ALPHA = 0.5;    // HighlightStyle.Default color alpha
@@ -62,11 +63,6 @@ const ALL_TARGETS = LIQUID_GLASS_TARGETS.map((t) => t.selector).join(', ');
 
 const PRESSABLE = 'button, [role="button"], .feature-card, .idle-fact-ticker';
 
-const FPS_FLOOR = 40;        // below this, lenses are too costly for this machine
-const FPS_WINDOW = 2000;     // ms per frame-rate sample
-const FPS_STRIKES = 3;       // consecutive slow samples before falling back
-const FPS_WARMUP = 5000;     // ignore start-up (shader compiles, first bakes)
-const LENS_OFF_KEY = 'quantumUI_lensOff'; // '1': every lens off; 'large': big glass only
 const DISPERSION = 0.06;     // colour split at the rim (see glassLens.js)
 const LARGE_GLASS = 140;     // shorter side above this: the costly lenses to drop first
 
@@ -170,16 +166,12 @@ function rimImage(w, h, radius) {
   return rimCache.get(key) || remember(rimCache, key, rimSvg(w, h, radius));
 }
 
-// ─── Lens state: on, unless this machine can't keep up ──────────────────────
+// ─── Lens state: follows the quality tier ───────────────────────────────────
 
-let lensOn = (() => {
-  try { return sessionStorage.getItem(LENS_OFF_KEY) !== '1'; } catch { return true; }
-})();
-// First fallback step: only the big, costly lenses (the sidebar, large cards)
+let lensOn = true;
+// On the medium tier only the big, costly lenses (the sidebar, large cards)
 // go back to frost; buttons, the top bar and small cards keep bending.
-let largeOff = (() => {
-  try { return sessionStorage.getItem(LENS_OFF_KEY) === 'large'; } catch { return false; }
-})();
+let largeOff = false;
 const isLarge = (w, h) => Math.min(w, h) > LARGE_GLASS;
 const lensAllowed = (w, h) => lensOn && !(largeOff && isLarge(w, h));
 const lensed = new Set(); // elements currently carrying a lens layer
@@ -196,56 +188,27 @@ function supportsRefraction() {
 const reducedTransparency = () =>
   window.matchMedia?.('(prefers-reduced-transparency: reduce)').matches;
 
-function lensesOff() {
-  if (!lensOn) return;
-  lensOn = false;
-  try { sessionStorage.setItem(LENS_OFF_KEY, '1'); } catch { /* this page only */ }
-  lensQueue.clear();
+// 'all', 'small' or 'none'. Glass that may bend again is queued for a lens
+// (built in idle time); glass that may not goes back to frost at once.
+function setLensLevel(level) {
+  const on = level !== 'none';
+  const large = level === 'small';
+  if (on === lensOn && large === largeOff) return;
+  lensOn = on;
+  largeOff = large;
   for (const node of lensed) {
-    if (node._lgBase) node.style.setProperty('--lg-backdrop', node._lgBase);
-  }
-}
-
-function largeLensesOff() {
-  largeOff = true;
-  try { sessionStorage.setItem(LENS_OFF_KEY, 'large'); } catch { /* this page only */ }
-  for (const node of lensed) {
-    if (!isLarge(node.offsetWidth, node.offsetHeight)) continue;
-    lensQueue.delete(node);
-    if (node._lgBase) node.style.setProperty('--lg-backdrop', node._lgBase);
-  }
-}
-
-// Frame-rate guard: rAF frames are counted per window; hidden tabs don't count.
-// Too slow once: the large lenses go; still too slow: every lens goes.
-function watchFrameRate() {
-  let frames = 0;
-  let windowStart = 0;
-  let strikes = 0;
-  let raf = 0;
-  const startedAt = performance.now();
-  const tick = (now) => {
-    if (!lensOn) return;
-    raf = requestAnimationFrame(tick);
-    if (document.hidden || now - startedAt < FPS_WARMUP || !lensed.size) {
-      frames = 0;
-      windowStart = now;
-      return;
+    if (!node.isConnected || !node._lgBase || !node._lgVariant) continue;
+    const w = Math.round(node.offsetWidth);
+    const h = Math.round(node.offsetHeight);
+    if (lensAllowed(w, h) && supportsRefraction()) {
+      if (node.style.getPropertyValue('--lg-backdrop').startsWith('url(')) continue;
+      node._lgPending = { w, h, ...node._lgVariant };
+      queueLens(node, node.dataset.lgShape);
+    } else {
+      lensQueue.delete(node);
+      node.style.setProperty('--lg-backdrop', node._lgBase);
     }
-    frames++;
-    if (now - windowStart < FPS_WINDOW) return;
-    const fps = (frames * 1000) / (now - windowStart);
-    strikes = fps < FPS_FLOOR ? strikes + 1 : 0;
-    frames = 0;
-    windowStart = now;
-    if (strikes < FPS_STRIKES) return;
-    strikes = 0;
-    const anyLarge = !largeOff && [...lensed].some((n) => isLarge(n.offsetWidth, n.offsetHeight));
-    if (anyLarge) largeLensesOff();
-    else lensesOff();
-  };
-  raf = requestAnimationFrame(tick);
-  return () => cancelAnimationFrame(raf);
+  }
 }
 
 /** For the ?glassdebug readout: the lens state and how much glass bends. */
@@ -254,16 +217,19 @@ export function glassStats() {
   for (const node of lensed) {
     if (node.isConnected && node.style.getPropertyValue('--lg-backdrop').startsWith('url(')) bending++;
   }
+  const q = qualityInfo();
   return {
     supported: supportsRefraction(),
-    mode: !lensOn ? 'all lenses off (too slow)' : largeOff ? 'large lenses off (slow)' : 'all lenses on',
+    tier: q.tier,
+    why: q.why,
+    mode: !lensOn ? 'lenses off' : largeOff ? 'small lenses only' : 'all lenses on',
     lensed: [...lensed].filter((n) => n.isConnected).length,
     bending,
   };
 }
 
 export function resetLensFallback() {
-  try { sessionStorage.removeItem(LENS_OFF_KEY); } catch { /* nothing stored */ }
+  resetQuality();
 }
 
 // ─── Idle-time lens building ────────────────────────────────────────────────
@@ -511,7 +477,8 @@ export function startLiquidGlass(root = document.body) {
     }
   });
   mutationObserver.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
-  const stopWatching = watchFrameRate();
+  setLensLevel(getQuality().lens);
+  const stopWatching = subscribeQuality((q) => setLensLevel(q.lens));
 
   return () => {
     mutationObserver.disconnect();

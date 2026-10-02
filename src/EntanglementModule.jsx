@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
+import { useThree } from '@react-three/fiber';
 import { OrbitControls, Html } from '@react-three/drei';
-import { EffectComposer, Bloom } from '@react-three/postprocessing';
+import { Bloom } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { InlineMath } from 'react-katex';
@@ -13,6 +13,7 @@ import CameraShifter from './CameraShifter';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { SCENE_GL } from './sceneGl';
 import GlassSlider from './GlassSlider';
+import { QualityCanvas, QualityComposer } from './QualityScene';
 
 // ==========================================
 // 4 MAXIMALLY ENTANGLED BELL STATES
@@ -1192,16 +1193,15 @@ export default function EntanglementModule({ theme, isSidebarOpen, isGlobalMuted
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
       {/* 3D Canvas */}
       <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }}>
-        <Canvas
-          dpr={[1, 1.5]}
+        <QualityCanvas
           gl={SCENE_GL}
           camera={{ position: [0, 0.2, 13.5], fov: 45 }}
         >
           <CameraShifter isSidebarOpen={isSidebarOpen} />
           <OrbitControls enablePan={false} enableZoom={true} enableRotate={true} minDistance={6} maxDistance={30} />
-          <EffectComposer disableNormalPass multisampling={0}>
+          <QualityComposer disableNormalPass multisampling={0}>
             <Bloom luminanceThreshold={0.3} mipmapBlur intensity={0.45} />
-          </EffectComposer>
+          </QualityComposer>
           <Suspense fallback={null}>
             <EntanglementScene
               stage={stage}
@@ -1217,7 +1217,7 @@ export default function EntanglementModule({ theme, isSidebarOpen, isGlobalMuted
               isSidebarOpen={isSidebarOpen}
             />
           </Suspense>
-        </Canvas>
+        </QualityCanvas>
       </div>
 
       {/* 2D HTML Overlay & HUD */}

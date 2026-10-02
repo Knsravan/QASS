@@ -5,10 +5,11 @@ import * as THREE from 'three';
 import { BlockMath } from 'react-katex';
 import { ClassicalBit, QubitCore } from './BlochSphere';
 import gsap from 'gsap';
-import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing';
+import { Bloom, ChromaticAberration } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
 import { InlineMath } from 'react-katex';
 import { QuantumNavButtons } from './QuantumNavButtons';
+import { QualityComposer } from './QualityScene';
 
 // --- DATA DEFINITION ---
 const q0 = new THREE.Quaternion().identity(); 
@@ -477,10 +478,10 @@ export function GatesScene({ step, applied, theme, setProgress }) {
 
   return (
     <>
-      <EffectComposer disableNormalPass>
+      <QualityComposer disableNormalPass>
         <Bloom luminanceThreshold={0.3} mipmapBlur intensity={0.4} />
         <ChromaticAberration blendFunction={BlendFunction.NORMAL} offset={aberrationOffset} />
-      </EffectComposer>
+      </QualityComposer>
       <group position={[0, -0.5, 0]}>
         <ClassicalPipeStage stepData={stepData} applied={applied} isLight={isLight} />
         

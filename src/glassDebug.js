@@ -1,9 +1,9 @@
 /*
  * A small on-screen readout for checking the liquid glass on a real machine.
  * Open the app with ?glassdebug in the address (e.g. https://qass.vercel.app/?glassdebug)
- * to see the frame rate, whether this browser can bend, the lens fallback
- * state, and how many glass surfaces are bending right now. "Reset" clears
- * the slow-computer fallback for this tab and reloads.
+ * to see the frame rate, the quality tier and why it was chosen, whether this
+ * browser can bend, the lens state, and how many glass surfaces are bending
+ * right now. "Reset" forgets this tab's tier and reloads.
  */
 import { glassStats, resetLensFallback } from './LiquidGlass';
 
@@ -20,7 +20,7 @@ export function mountGlassDebug() {
   const text = document.createElement('div');
   const reset = document.createElement('button');
   reset.type = 'button';
-  reset.textContent = 'Reset fallback and reload';
+  reset.textContent = 'Reset quality and reload';
   reset.style.cssText = 'margin-top:6px;font:inherit;color:#3ee6ff;background:none;border:1px solid rgba(62,230,255,.4);border-radius:6px;padding:3px 8px;cursor:pointer';
   reset.addEventListener('click', () => { resetLensFallback(); window.location.reload(); });
   box.append(text, reset);
@@ -35,8 +35,9 @@ export function mountGlassDebug() {
       const fps = Math.round((frames * 1000) / (now - since));
       const s = glassStats();
       text.innerHTML = [
-        `<b>Liquid glass</b>`,
-        `${fps} fps${fps < 40 ? ' (below the 40 fps guard)' : ''}`,
+        `<b>QASS performance</b>`,
+        `${fps} fps`,
+        `quality: ${s.tier} (${s.why.replace(/[<>&]/g, '')})`,
         `bend: ${s.supported ? 'supported' : 'not in this browser'}`,
         `lenses: ${s.mode}`,
         `bending now: ${s.bending} of ${s.lensed} glass surfaces`,
