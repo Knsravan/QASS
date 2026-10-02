@@ -11,6 +11,7 @@ import { EntanglementTether } from './EntanglementTether';
 import { useEntanglementAudio } from './useEntanglementAudio';
 import CameraShifter from './CameraShifter';
 import { QuantumNavButtons } from './QuantumNavButtons';
+import { SCENE_GL } from './sceneGl';
 
 // ==========================================
 // 4 MAXIMALLY ENTANGLED BELL STATES
@@ -1191,7 +1192,7 @@ export default function EntanglementModule({ theme, isSidebarOpen, isGlobalMuted
       <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }}>
         <Canvas
           dpr={[1, 1.5]}
-          gl={{ powerPreference: 'high-performance', alpha: true, antialias: true }}
+          gl={SCENE_GL}
           camera={{ position: [0, 0.2, 13.5], fov: 45 }}
         >
           <CameraShifter isSidebarOpen={isSidebarOpen} />

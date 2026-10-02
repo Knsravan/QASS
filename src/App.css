@@ -5037,3 +5037,33 @@ div:has(> canvas) {
 .landing-overlay .feature-card p {
   transition: color 0.45s ease;
 }
+
+/* Tone (glassLight.js): glass over something bright turns lighter with dark
+   text so it stays readable. Top bar and in-module info cards. */
+.lg-nav .lg-bar.lg-bar[data-lg-tone="light"] {
+  background:
+    radial-gradient(280px circle at var(--tilt-x, 25%) 0%, rgba(255, 255, 255, 0.5), transparent 70%),
+    rgba(255, 255, 255, 0.32);
+  color: #0b1020;
+}
+
+.lg-nav-pill[data-lg-tone="light"] .lg-nav-tab {
+  color: #1e293b;
+}
+
+.lg-nav-pill[data-lg-tone="light"] .lg-nav-tab.is-selected {
+  color: #0369a1;
+}
+
+.lg-nav .lg-bar,
+.lg-nav-tab {
+  transition: background 0.45s ease, color 0.45s ease;
+}
+
+.lg.lg[data-lg-tone="light"] {
+  background:
+    var(--lg-rim, none) 0 0 / 100% 100% no-repeat border-box,
+    radial-gradient(120% 90% at 0% 0%, rgba(255, 255, 255, 0.4), transparent 60%),
+    rgba(255, 255, 255, 0.34);
+  color: #0b1020;
+}

@@ -5,11 +5,11 @@
  *   the top-left sheen across the glass, the way it moves on real glass. The
  *   light follows the device, never the cursor. iOS asks for permission, so
  *   the request rides on the first tap.
- * - Tone (landing page): about four times a second the 3D scene is sampled
- *   behind each feature card; when something bright passes behind one, the
- *   card turns lighter with dark text (data-lg-tone="light") so it stays
- *   readable, then switches back. The landing Canvas keeps its drawing buffer
- *   (preserveDrawingBuffer) so it can be read between frames.
+ * - Tone: about four times a second the 3D scene is sampled behind the
+ *   landing cards, the top bar and the modules' info cards; when something
+ *   bright passes behind one, it turns lighter with dark text
+ *   (data-lg-tone="light") so it stays readable, then switches back. The
+ *   scenes keep their drawing buffer (SCENE_GL) so they can be read.
  */
 
 const reduced = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -52,46 +52,61 @@ function watchTilt() {
   };
 }
 
-const TONE_TARGETS = '.landing-overlay .feature-card';
-// Share of the card's backdrop that is bright (luminance above BRIGHT) that
-// turns it light, and the share that turns it back; the gap stops flicker.
+// Glass whose text should stay readable over bright 3D: the landing cards,
+// the top bar, and the info cards inside modules.
+const TONE_TARGETS = '.landing-overlay .feature-card, .lg-nav-pill, .lg-nav-circle, .compact-hud-card, .glass-card';
+// Share of the backdrop that is bright (luminance above BRIGHT) that turns a
+// piece light, and the share that turns it back; the gap stops flicker.
 const BRIGHT = 0.55;
 const LIGHT_AT = 0.3;
 const DARK_AT = 0.15;
+const PROBE = 24; // each piece's backdrop is sampled at 24 x 24
+
+const overlap = (a, b) => Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left))
+  * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
 
 function watchTone() {
   const probe = document.createElement('canvas');
+  probe.width = probe.height = PROBE;
   const ctx = probe.getContext('2d', { willReadFrequently: true });
   const timer = setInterval(() => {
-    const cards = document.querySelectorAll(TONE_TARGETS);
-    const scene = document.querySelector('.landing-container canvas');
-    if (!cards.length || !scene || !scene.width || document.hidden) return;
-    const sw = 96;
-    const sh = Math.max(1, Math.round((sw * scene.height) / scene.width));
-    probe.width = sw;
-    probe.height = sh;
-    try { ctx.drawImage(scene, 0, 0, sw, sh); } catch { return; }
-    const data = ctx.getImageData(0, 0, sw, sh).data;
-    const box = scene.getBoundingClientRect();
-    for (const card of cards) {
-      const r = card.getBoundingClientRect();
-      const x0 = clamp(Math.floor(((r.left - box.left) / box.width) * sw), 0, sw - 1);
-      const x1 = clamp(Math.ceil(((r.right - box.left) / box.width) * sw), x0 + 1, sw);
-      const y0 = clamp(Math.floor(((r.top - box.top) / box.height) * sh), 0, sh - 1);
-      const y1 = clamp(Math.ceil(((r.bottom - box.top) / box.height) * sh), y0 + 1, sh);
-      let bright = 0;
-      let n = 0;
-      for (let y = y0; y < y1; y++) {
-        for (let x = x0; x < x1; x++) {
-          const i = (y * sw + x) * 4;
-          if ((0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]) / 255 > BRIGHT) bright++;
-          n++;
-        }
+    if (document.hidden) return;
+    const pieces = document.querySelectorAll(TONE_TARGETS);
+    if (!pieces.length) return;
+    // The 3D scenes on screen (skip small inline canvases).
+    const scenes = [...document.querySelectorAll('canvas')]
+      .map((c) => ({ c, box: c.getBoundingClientRect() }))
+      .filter(({ c, box }) => c.width && box.width > 200 && box.height > 200);
+    for (const piece of pieces) {
+      const r = piece.getBoundingClientRect();
+      if (!r.width || !r.height) continue;
+      let best = null;
+      let bestArea = 0;
+      // On a tie the later canvas wins: it is drawn on top.
+      for (const s of scenes) {
+        const a = overlap(r, s.box);
+        if (a > 0 && a >= bestArea) { bestArea = a; best = s; }
       }
-      const share = n ? bright / n : 0;
-      const tone = card.dataset.lgTone || 'dark';
-      if (tone === 'dark' && share > LIGHT_AT) card.dataset.lgTone = 'light';
-      else if (tone === 'light' && share < DARK_AT) card.dataset.lgTone = 'dark';
+      if (!best) continue;
+      const { c, box } = best;
+      const kx = c.width / box.width;
+      const ky = c.height / box.height;
+      const sx = Math.max(0, (r.left - box.left) * kx);
+      const sy = Math.max(0, (r.top - box.top) * ky);
+      const sw = Math.min(c.width - sx, r.width * kx);
+      const sh = Math.min(c.height - sy, r.height * ky);
+      if (sw < 1 || sh < 1) continue;
+      ctx.clearRect(0, 0, PROBE, PROBE);
+      try { ctx.drawImage(c, sx, sy, sw, sh, 0, 0, PROBE, PROBE); } catch { continue; }
+      const data = ctx.getImageData(0, 0, PROBE, PROBE).data;
+      let bright = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        if ((0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]) / 255 > BRIGHT) bright++;
+      }
+      const share = bright / (PROBE * PROBE);
+      const tone = piece.dataset.lgTone || 'dark';
+      if (tone === 'dark' && share > LIGHT_AT) piece.dataset.lgTone = 'light';
+      else if (tone === 'light' && share < DARK_AT) piece.dataset.lgTone = 'dark';
     }
   }, 250);
   return () => clearInterval(timer);

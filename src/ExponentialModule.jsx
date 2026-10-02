@@ -16,6 +16,7 @@ import { QubitCore } from './BlochSphere';
 import { useExponentialAudio } from './useExponentialAudio';
 import CameraShifter from './CameraShifter';
 import { QuantumNavButtons } from './QuantumNavButtons';
+import { SCENE_GL } from './sceneGl';
 
 // ==========================================
 // HELPER CONSTANTS & QUATERNIONS
@@ -788,7 +789,7 @@ export default function ExponentialModule({ theme = 'dark', isSidebarOpen = true
         <Canvas
           dpr={[1, 1.5]}
           camera={{ position: [0, 1.4, 14.8], fov: 45 }}
-          gl={{ powerPreference: 'high-performance', alpha: true, antialias: true }}
+          gl={SCENE_GL}
         >
           <CameraShifter isSidebarOpen={isSidebarOpen} />
           <ExponentialScene

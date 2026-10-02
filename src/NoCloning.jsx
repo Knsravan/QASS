@@ -10,6 +10,7 @@ import { ClassicalBit, QubitCore } from './BlochSphere';
 import CameraShifter from './CameraShifter';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { useNoCloningAudio } from './useNoCloningAudio';
+import { SCENE_GL } from './sceneGl';
 
 // Color Palette
 const CC = '#00f2fe'; // Cyan / Classical
@@ -651,7 +652,7 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted })
       <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
         <Canvas
           dpr={[1, 1.5]}
-          gl={{ powerPreference: 'high-performance', alpha: true, antialias: true }}
+          gl={SCENE_GL}
           camera={{ position: [0, 1.4, 31.0], fov: 45 }}
         >
           <CameraShifter isSidebarOpen={isSidebarOpen} />

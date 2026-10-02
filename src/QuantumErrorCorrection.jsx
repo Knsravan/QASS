@@ -12,6 +12,7 @@ import { QubitCore } from './BlochSphere';
 import CameraShifter from './CameraShifter';
 import { useQECAudio } from './useQECAudio';
 import { QuantumNavButtons } from './QuantumNavButtons';
+import { SCENE_GL } from './sceneGl';
 
 // ─── Color Palette ────────────────────────────────────────────────────────────
 const CI = '#6366f1';   // Indigo  — healthy data qubit
@@ -1359,7 +1360,7 @@ export default function QuantumErrorCorrectionModule({ theme, isSidebarOpen, isG
       <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
         <Canvas
           dpr={[1, 1.5]}
-          gl={{ powerPreference: 'high-performance', alpha: true, antialias: true }}
+          gl={SCENE_GL}
           camera={{ position: [0, 1.8, 34], fov: 48 }}
         >
           <CameraShifter isSidebarOpen={isSidebarOpen} />

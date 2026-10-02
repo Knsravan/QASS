@@ -10,6 +10,7 @@ import { Droplets, Calculator, Zap, Timer, Triangle, Thermometer, Flame, ArrowDo
 import CameraShifter from './CameraShifter';
 import { useDecoherenceAudio } from './useDecoherenceAudio';
 import { QuantumNavButtons } from './QuantumNavButtons';
+import { SCENE_GL } from './sceneGl';
 
 // ============================================================
 // COLORS
@@ -904,7 +905,7 @@ export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted,
       <Canvas
         dpr={[1, 1.5]}
         camera={{ position: [0, MODEL_Y + 0.6, 20.0], fov: 44 }}
-        gl={{ powerPreference: 'high-performance', alpha: true, antialias: true }}
+        gl={SCENE_GL}
         style={{ position: 'absolute', inset: 0, zIndex: 1 }}
       >
         <Suspense fallback={null}>
