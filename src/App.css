@@ -2198,7 +2198,10 @@ h6,
   align-items: center;
   justify-content: center;
   text-align: center;
-  animation: fadeInSlow 2s ease-out forwards;
+  /* No `forwards`: an animation kept on after it ends makes the overlay a
+     backdrop root, so its glass cards couldn't see (or frost) the 3D scene
+     behind them and its lines ran sharp through the cards' text. */
+  animation: fadeInSlow 2s ease-out;
   padding: 40px;
   font-family: 'Deltha', 'Inter', sans-serif;
 }
