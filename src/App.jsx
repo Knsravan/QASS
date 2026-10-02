@@ -1557,7 +1557,7 @@ function App() {
             </div>
           </div>
 
-          <button className="start-btn" onClick={handleInitialize}>
+          <button className="start-btn lg-magnetic" onClick={handleInitialize}>
             Initialize Simulator
           </button>
         </div>

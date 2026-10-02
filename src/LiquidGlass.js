@@ -43,7 +43,8 @@ export const LIQUID_GLASS_TARGETS = [
   { selector: '.quantum-nav-btn, .action-btn, .glass-btn, .quantum-pill-btn, .ctrl-btn, .gate-action-btn, .step-nav-btn, .measurement-dial-btn, .start-btn', variant: 'regular', lens: true, skin: true },
   { selector: '.idle-hud-cta', variant: 'thick', lens: true, skin: true },
   { selector: '.hero-badge, .section-title', variant: 'regular', lens: false, skin: true },
-  { selector: '.idle-fact-ticker, .feature-card, .mobile-blocker-card', variant: 'thick', lens: false, skin: true },
+  { selector: '.feature-card', variant: 'thick', lens: true, skin: true },     // landing page cards
+  { selector: '.idle-fact-ticker, .mobile-blocker-card', variant: 'thick', lens: false, skin: true },
   { selector: '.glass-tooltip, .glass-card, .glass-panel, .glass-panel-thick, .compact-hud-card', variant: 'thick', lens: false, skin: true },
 ];
 

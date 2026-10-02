@@ -4859,3 +4859,96 @@ button.fact-jump-link {
 div:has(> canvas) {
   isolation: isolate;
 }
+
+/* =============================================================================
+   LANDING: LIQUID GLASS CARDS AND BUTTON
+   The three feature cards and "Initialize Simulator" are lensed (LiquidGlass.js):
+   the scene behind them is frosted in the middle and bent at the rim. Their
+   tint is kept light so the bend shows. On top sits a crisp rim (::after):
+   bright where the fixed top-left light hits, fading round to a faint cool
+   edge at the bottom-right. Cards lift and their rim brightens on hover; the
+   button leans toward the mouse (magnetic) and both swell when pressed.
+   ============================================================================= */
+.landing-overlay .feature-card.lg {
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(255, 255, 255, 0.10), transparent 55%),
+    linear-gradient(165deg, rgba(255, 255, 255, 0.05), rgba(8, 12, 22, 0.30));
+  border: 0;
+  box-shadow: 0 24px 50px -24px rgba(0, 0, 0, 0.75);
+  color: #ffffff;
+  transition:
+    transform 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+    scale 450ms var(--lg-spring-press),
+    box-shadow 0.35s ease;
+}
+
+.landing-overlay .feature-card.lg:hover {
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(255, 255, 255, 0.14), transparent 55%),
+    linear-gradient(165deg, rgba(255, 255, 255, 0.08), rgba(8, 12, 22, 0.26));
+  border: 0;
+  transform: translateY(-8px);
+  box-shadow: 0 30px 60px -24px rgba(0, 0, 0, 0.8), 0 0 40px -10px rgba(0, 242, 254, 0.25);
+}
+
+.landing-overlay .start-btn.lg {
+  background:
+    radial-gradient(90% 120% at 30% 0%, rgba(255, 255, 255, 0.22), transparent 60%),
+    linear-gradient(180deg, rgba(90, 210, 255, 0.34), rgba(20, 120, 210, 0.30));
+  color: #ffffff;
+  text-shadow: 0 1px 8px rgba(0, 30, 60, 0.55);
+  box-shadow: 0 18px 40px -18px rgba(0, 160, 255, 0.55), 0 0 30px -8px rgba(0, 242, 254, 0.35);
+  transition:
+    transform 0.25s ease-out,
+    scale 450ms var(--lg-spring-press),
+    box-shadow 0.35s ease;
+}
+
+.landing-overlay .start-btn.lg:hover {
+  background:
+    radial-gradient(90% 120% at 30% 0%, rgba(255, 255, 255, 0.28), transparent 60%),
+    linear-gradient(180deg, rgba(90, 210, 255, 0.44), rgba(20, 120, 210, 0.38));
+  scale: 1.04;
+  box-shadow: 0 22px 48px -18px rgba(0, 160, 255, 0.7), 0 0 44px -8px rgba(0, 242, 254, 0.5);
+}
+
+.landing-overlay .start-btn.lg:active {
+  scale: 1.07;
+}
+
+/* The crisp rim, drawn above the lens. Replaces the button's old light sweep. */
+.landing-overlay .feature-card.lg::after,
+.landing-overlay .start-btn.lg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  left: 0;
+  width: auto;
+  height: auto;
+  padding: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  transform: none;
+  animation: none;
+  background: linear-gradient(135deg,
+      rgba(255, 255, 255, 0.70) 0%,
+      rgba(255, 255, 255, 0.18) 28%,
+      rgba(255, 255, 255, 0.04) 55%,
+      rgba(140, 220, 255, 0.30) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  opacity: 0.75;
+  transition: opacity 0.3s ease;
+}
+
+.landing-overlay .feature-card.lg:hover::after,
+.landing-overlay .start-btn.lg:hover::after {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-overlay .feature-card.lg:hover {
+    transform: none;
+  }
+}
