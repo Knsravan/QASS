@@ -3,8 +3,9 @@
    (From the liquid-glass skill. Adapted for QASS: custom properties renamed
    --lg-* -> --lgs-* because the app's own glass engine, LiquidGlass.js, already
    owns --lg-tint/--lg-rim/--lg-shadow/--lg-sheen; accent set to QASS sky blue;
-   the sheen is a fixed highlight at the top-left: nothing follows the cursor,
-   and it is part of the background so ::before is free for QASS's lens layer.)
+   no painted sheen: like Apple's glass, the only light is the rim's
+   reflection (and the lens's, LiquidGlass.js); nothing follows the cursor,
+   and ::before is free for QASS's lens layer.)
    Zero dependencies. Pair with liquid-glass.js for the lens,
    magnetic controls, scroll lean and letter-by-letter headings.
 
@@ -37,9 +38,8 @@
   --lgs-rim: rgba(255, 255, 255, .3);           /* bright edge, top-left */
   --lgs-rim-lo: rgba(255, 255, 255, .05);       /* faint edge, bottom-right */
   --lgs-hi: rgba(255, 255, 255, .28);           /* inner top highlight */
-  --lgs-sheen: rgba(255, 255, 255, .13);        /* the light catching the top-left of the glass */
-  /* the pane surface: tint plus that fixed top-left sheen */
-  --lgs-surface: radial-gradient(280px circle at var(--tilt-x, 25%) 0%, var(--lgs-sheen), transparent 70%), var(--lgs-tint);
+  /* the pane surface: the tint alone (the light is on the rim) */
+  --lgs-surface: var(--lgs-tint);
   --lgs-shadow: rgba(0, 0, 0, .5);
   --lgs-blur: 18px;
   --lgs-saturate: 1.7;
@@ -54,23 +54,23 @@
   --lgs-bg: #e9edf3; --lgs-ink: #111827; --lgs-muted: #4b5870; --lgs-accent: #b0620a; --lgs-accent-2: #0e7a53; --lgs-danger: #bd2b4a;
   --lgs-tint: rgba(255, 255, 255, .4); --lgs-tint-strong: rgba(255, 255, 255, .62);
   --lgs-rim: rgba(255, 255, 255, .9); --lgs-rim-lo: rgba(255, 255, 255, .3); --lgs-hi: rgba(255, 255, 255, .95);
-  --lgs-sheen: rgba(255, 255, 255, .6); --lgs-shadow: rgba(30, 45, 70, .16);
+  --lgs-shadow: rgba(30, 45, 70, .16);
   color-scheme: only light; /* "only": stops phone browsers' forced dark mode from darkening the light glass */
 }
 
-/* ---------- the pane: tint + blur + inner highlight + soft shadow ---------- */
+/* ---------- the pane: tint + blur + soft shadow (its edge light is the rim below) ---------- */
 .lg-pane, .lg-bar, .lg-dots {
   position: relative; isolation: isolate;
   background: var(--lgs-surface);
   -webkit-backdrop-filter: blur(var(--lgs-blur)) saturate(var(--lgs-saturate));
   backdrop-filter: blur(var(--lgs-blur)) saturate(var(--lgs-saturate));
-  box-shadow: inset 0 1px 0 var(--lgs-hi), inset 0 -1px 1px var(--lgs-rim-lo), 0 18px 50px -24px var(--lgs-shadow);
+  box-shadow: 0 18px 50px -24px var(--lgs-shadow);
 }
 .lg-pane { border-radius: var(--lgs-radius); }
 /* the rim: a 1px gradient border, bright at the top-left like a real edge (mask trick: border only) */
 .lg-pane::after, .lg-bar::after, .lg-dots::after, .lg-screen::after {
   content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none; z-index: 3;
-  background: linear-gradient(calc(140deg + var(--rim-shift, 0deg) + var(--tilt-shift, 0deg)), var(--lgs-rim), transparent 38%, transparent 62%, var(--lgs-rim-lo));
+  background: linear-gradient(calc(140deg + var(--tilt-shift, 0deg)), var(--lgs-rim), transparent 38%, transparent 62%, var(--lgs-rim-lo));
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor; mask-composite: exclude;
 }

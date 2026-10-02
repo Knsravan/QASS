@@ -101,7 +101,7 @@ The glass also moves like liquid (`src/glassMotion.js`, springs on CSS `scale` /
 
 - **Jelly press:** pressed glass squashes under your finger and wobbles back.
 - **Drag stretch:** dragging while pressed pulls the glass along and stretches it; on release it springs home with the drag's momentum.
-- **Reactive rim:** the light stays fixed at the top-left, but as glass moves its rim shine sloshes behind the motion and brightens with speed, and a press flashes it.
+- **Touch light:** the rim's light stays fixed at the top-left; a press briefly brightens it.
 - **Droplet merge:** in the top bar, the mute circle reaches toward the Beginner / Advanced capsule on hover and melts into it when pressed.
 - **Resizing:** the sidebar keeps its lens while it opens and closes, rebuilt for each new size.
 
@@ -110,9 +110,8 @@ All of it is off with reduced motion.
 And it reacts to light (`src/glassLight.js` and the lens itself):
 
 - **Colour split:** the lens bends red, green and blue by slightly different amounts, so the rim shows a faint rainbow fringe.
-- **Light cast below:** floating glass throws a soft cyan / violet glow down and to the right, opposite the top-left light.
 - **Bright beams:** inside the app, when a bright beam in the 3D scene passes behind any glass (buttons, cards, panels, tooltips, the top bar, the sidebar), the glass darkens what shows through it and its text gets a dark glow, so white text stays readable. The glass stays dark.
-- **Tilt:** on phones and tablets, tilting the device moves the rim light and the sheen (iOS asks for permission on the first tap).
+- **Tilt:** on phones and tablets, tilting the device moves the light along the rim (iOS asks for permission on the first tap).
 - **Morphing:** tooltips and the glass cards and panels inside modules grow in like a drop of glass, and the sidebar opens and closes on a liquid spring.
 
 Every glass surface in the app is lensed now, tooltips, info cards and labels included.
