@@ -26,6 +26,7 @@ export default function SidebarPages({ list, page, pushed, icon, onBack, onGo })
   const navRef = useRef(null);
   const listRef = useRef(null);
   const pageRef = useRef(null);
+  const scrollRef = useRef(null);
   const backRef = useRef(null);
   const wasPushed = useRef(pushed);
   const modId = page?.mod.id;
@@ -43,7 +44,7 @@ export default function SidebarPages({ list, page, pushed, icon, onBack, onGo })
   }, [pushed, modId]);
 
   // A new module's page starts at its top.
-  useEffect(() => { if (pageRef.current) pageRef.current.scrollTop = 0; }, [modId]);
+  useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = 0; }, [modId]);
 
   // Swipe back: the page follows the pointer from its left edge.
   const drag = useRef(null);
@@ -101,17 +102,21 @@ export default function SidebarPages({ list, page, pushed, icon, onBack, onGo })
             </div>
             <div className="sidebar-page-sweep" />
           </div>
-          <div className="sidebar-page-body" key={mod.id}>
-            {content}
+          {/* Only this part scrolls, so the header never needs a backing of its
+              own: the sidebar's glass shows behind it too. */}
+          <div ref={scrollRef} className="sidebar-page-scroll">
+            <div className="sidebar-page-body" key={mod.id}>
+              {content}
+            </div>
+            <nav className="sidebar-page-pager" aria-label="Other modules">
+              <button type="button" disabled={!prev} onClick={() => prev && onGo(prev.id)}>
+                <span>‹ Previous</span><b>{prev?.title}</b>
+              </button>
+              <button type="button" disabled={!next} onClick={() => next && onGo(next.id)}>
+                <span>Next ›</span><b>{next?.title}</b>
+              </button>
+            </nav>
           </div>
-          <nav className="sidebar-page-pager" aria-label="Other modules">
-            <button type="button" disabled={!prev} onClick={() => prev && onGo(prev.id)}>
-              <span>‹ Previous</span><b>{prev?.title}</b>
-            </button>
-            <button type="button" disabled={!next} onClick={() => next && onGo(next.id)}>
-              <span>Next ›</span><b>{next?.title}</b>
-            </button>
-          </nav>
         </section>
       )}
     </div>

@@ -4682,7 +4682,8 @@ h6,
 
 /* Content cards inside the sidebar are sheets on its glass, never glass
    themselves. !important matches the module-specific card rules this has to beat. */
-.sidebar-panel.lg-pane .data-card {
+.sidebar-panel.lg-pane .data-card,
+.sidebar-panel.lg-pane .circuit-diagram-card {
   background: rgba(255, 255, 255, 0.035) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
@@ -4692,7 +4693,8 @@ h6,
   transform: none !important;
 }
 
-.sidebar-panel.lg-pane .data-card:hover {
+.sidebar-panel.lg-pane .data-card:hover,
+.sidebar-panel.lg-pane .circuit-diagram-card:hover {
   background: rgba(255, 255, 255, 0.06) !important;
 }
 
@@ -5643,17 +5645,28 @@ div:has(> canvas) {
 .sidebar-page {
   position: absolute;
   inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateX(100%);
+  visibility: hidden;
+  transition: transform 0.5s var(--page-ease), visibility 0s linear 0.5s;
+}
+
+/* The page's content scrolls under a soft fade at the top instead of under
+   a backing, so the whole page stays on the sidebar's own glass. */
+.sidebar-page-scroll {
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
   padding: 0 14px 18px;
   box-sizing: border-box;
-  transform: translateX(100%);
-  visibility: hidden;
-  transition: transform 0.5s var(--page-ease), visibility 0s linear 0.5s;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
-  box-shadow: -18px 0 30px -18px rgba(0, 0, 0, 0.8);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 14px);
+  mask-image: linear-gradient(180deg, transparent 0, #000 14px);
 }
 
 .sidebar-nav.is-pushed > .sidebar-page {
@@ -5680,15 +5693,10 @@ div:has(> canvas) {
 }
 
 .sidebar-page-head {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  margin: 0 -14px 6px;
+  flex: none;
   padding: 12px 14px 10px;
   display: grid;
   gap: 10px;
-  background: linear-gradient(180deg, rgba(12, 16, 28, 0.9), rgba(12, 16, 28, 0.72));
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .sidebar-page-back {
@@ -5752,7 +5760,7 @@ div:has(> canvas) {
 }
 
 .sidebar-page-body {
-  padding-top: 8px;
+  padding-top: 10px;
 }
 
 .sidebar-page-pager {
