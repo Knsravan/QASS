@@ -4997,7 +4997,6 @@ div:has(> canvas) {
    Light cast below: glass focuses light onto what's under it, so floating
    glass throws a soft cyan / violet glow down and to the right (the light
    comes from the top-left) on top of its dark shadow.
-   Tone: a landing card over something bright turns lighter with dark text.
    ============================================================================= */
 .landing-overlay .feature-card.lg {
   box-shadow:
@@ -5020,50 +5019,4 @@ div:has(> canvas) {
     0 18px 50px -24px var(--lgs-shadow),
     10px 18px 30px -18px rgba(62, 230, 255, 0.16),
     18px 24px 38px -22px rgba(176, 108, 255, 0.14);
-}
-
-.landing-overlay .feature-card.lg[data-lg-tone="light"] {
-  background:
-    radial-gradient(120% 90% at 0% 0%, rgba(255, 255, 255, 0.4), transparent 60%),
-    rgba(255, 255, 255, 0.3);
-}
-
-.landing-overlay .feature-card.lg[data-lg-tone="light"] h4,
-.landing-overlay .feature-card.lg[data-lg-tone="light"] p {
-  color: #0b1020;
-}
-
-.landing-overlay .feature-card h4,
-.landing-overlay .feature-card p {
-  transition: color 0.45s ease;
-}
-
-/* Tone (glassLight.js): glass over something bright turns lighter with dark
-   text so it stays readable. Top bar and in-module info cards. */
-.lg-nav .lg-bar.lg-bar[data-lg-tone="light"] {
-  background:
-    radial-gradient(280px circle at var(--tilt-x, 25%) 0%, rgba(255, 255, 255, 0.5), transparent 70%),
-    rgba(255, 255, 255, 0.32);
-  color: #0b1020;
-}
-
-.lg-nav-pill[data-lg-tone="light"] .lg-nav-tab {
-  color: #1e293b;
-}
-
-.lg-nav-pill[data-lg-tone="light"] .lg-nav-tab.is-selected {
-  color: #0369a1;
-}
-
-.lg-nav .lg-bar,
-.lg-nav-tab {
-  transition: background 0.45s ease, color 0.45s ease;
-}
-
-.lg.lg[data-lg-tone="light"] {
-  background:
-    var(--lg-rim, none) 0 0 / 100% 100% no-repeat border-box,
-    radial-gradient(120% 90% at 0% 0%, rgba(255, 255, 255, 0.4), transparent 60%),
-    rgba(255, 255, 255, 0.34);
-  color: #0b1020;
 }
