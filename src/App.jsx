@@ -9,6 +9,7 @@ import { DiracScene, DiracOverlay } from './DiracNotation';
 import { GatesScene, GatesOverlay, GATES_STEPS } from './QuantumGates';
 import { MultiGatesScene, MultiGatesOverlay, MULTI_GATES_STEPS, isResultEntangled } from './MultiQubitGates';
 import CameraShifter from './CameraShifter';
+import LandingOrbitalCloud from './LandingOrbitalCloud';
 import GlassNavBar from './GlassNavBar';
 import ModuleErrorBoundary from './ModuleErrorBoundary';
 import { startLiquidGlass } from './LiquidGlass';
@@ -1157,18 +1158,12 @@ const CircuitVisualizer = ({ moduleId, gateId, multiGatesStep = 0, qubitCount = 
 // CINEMATIC LANDING BACKGROUND
 // ==========================================
 function LandingBackground() {
-  const coreRef = useRef();
-  const glassShellRef = useRef();
-  const wireframeRef = useRef();
-  const ring1Ref = useRef();
-  const ring2Ref = useRef();
-  const ring3Ref = useRef();
   const starsRef = useRef();
-  // The sphere sits at the right edge of the screen, clear of the headline,
-  // copy and cards in the middle: 38% of the visible width (at its depth)
-  // from the centre, whatever the window's shape.
+  // The orbital cloud sits at the right edge of the screen, clear of the
+  // headline, copy and cards in the middle: 38% of the visible width (at its
+  // depth) from the centre, whatever the window's shape.
   const viewportWidth = useThree((state) => state.viewport.width);
-  const sphereX = viewportWidth * 0.38;
+  const cloudX = viewportWidth * 0.38;
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
@@ -1176,12 +1171,6 @@ function LandingBackground() {
     state.camera.position.z = THREE.MathUtils.lerp(state.camera.position.z, 14 + Math.sin(t * 0.5) * 1.5, 0.05);
     state.camera.lookAt(0, 0, 0);
 
-    if (coreRef.current) { coreRef.current.rotation.y = t * 0.4; coreRef.current.rotation.x = t * 0.2; }
-    if (glassShellRef.current) { glassShellRef.current.rotation.y = t * 0.1; glassShellRef.current.rotation.z = Math.sin(t * 0.2) * 0.2; }
-    if (wireframeRef.current) { wireframeRef.current.rotation.y = -t * 0.05; wireframeRef.current.rotation.x = -t * 0.02; }
-    if (ring1Ref.current) { ring1Ref.current.rotation.x = t * 0.3; ring1Ref.current.rotation.y = Math.sin(t * 0.5) * 0.5; }
-    if (ring2Ref.current) { ring2Ref.current.rotation.y = -t * 0.2; ring2Ref.current.rotation.z = Math.cos(t * 0.4) * 0.5; }
-    if (ring3Ref.current) { ring3Ref.current.rotation.z = t * 0.15; ring3Ref.current.rotation.x = Math.sin(t * 0.3) * 0.8; }
     if (starsRef.current) { starsRef.current.rotation.y += 0.0005; starsRef.current.rotation.x += 0.0002; }
   });
 
@@ -1191,41 +1180,13 @@ function LandingBackground() {
         <Bloom luminanceThreshold={0.3} mipmapBlur intensity={0.4} />
         <ChromaticAberration blendFunction={BlendFunction.NORMAL} offset={[0, 0]} />
       </EffectComposer>
-      <ambientLight intensity={0.1} />
-      <pointLight position={[10, 10, 10]} color="#00f2fe" intensity={8} distance={50} />
-      <pointLight position={[-10, -10, -10]} color="#f093fb" intensity={8} distance={50} />
+
       <group ref={starsRef}>
         <Stars radius={100} depth={50} count={3000} factor={4} saturation={1} fade speed={1.5} />
       </group>
 
-      <group position={[sphereX, 0, 0]} scale={0.85}>
-        {/* The core's own light, inside the glass. Left outside the shell it
-            showed as a sharp glint on its clearcoat in the middle of the page. */}
-        <pointLight position={[0, 0, 0]} color="#ffffff" intensity={2} distance={10} />
-        <mesh ref={coreRef}>
-          <icosahedronGeometry args={[1.5, 0]} />
-          <meshStandardMaterial color="#ffffff" emissive="#00f2fe" emissiveIntensity={4} wireframe={false} />
-        </mesh>
-        <mesh ref={glassShellRef}>
-          <icosahedronGeometry args={[3.8, 4]} />
-          <meshPhysicalMaterial color="#020813" transparent transmission={0.95} roughness={0.05} metalness={0.5} clearcoat={1} ior={1.6} />
-        </mesh>
-        <mesh ref={wireframeRef}>
-          <icosahedronGeometry args={[4.2, 4]} />
-          <meshBasicMaterial color="#00f2fe" wireframe={true} transparent opacity={0.08} blending={THREE.AdditiveBlending} />
-        </mesh>
-        <mesh ref={ring1Ref} rotation={[Math.PI / 3, 0, 0]}>
-          <torusGeometry args={[5.5, 0.02, 16, 100]} />
-          <meshBasicMaterial color="#00f2fe" transparent opacity={0.6} blending={THREE.AdditiveBlending} />
-        </mesh>
-        <mesh ref={ring2Ref} rotation={[-Math.PI / 4, Math.PI / 4, 0]}>
-          <torusGeometry args={[6.5, 0.015, 16, 100]} />
-          <meshBasicMaterial color="#f093fb" transparent opacity={0.5} blending={THREE.AdditiveBlending} />
-        </mesh>
-        <mesh ref={ring3Ref} rotation={[0, Math.PI / 2, Math.PI / 6]}>
-          <torusGeometry args={[7.5, 0.05, 16, 100]} />
-          <meshBasicMaterial color="#4facfe" transparent opacity={0.2} blending={THREE.AdditiveBlending} />
-        </mesh>
+      <group position={[cloudX, 0, 0]} scale={0.85}>
+        <LandingOrbitalCloud />
       </group>
     </>
   );
