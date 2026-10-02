@@ -131,10 +131,12 @@ The controls are glass too:
 
 | Tier | 3D sharpness | Bloom | Glass |
 |---|---|---|---|
-| high | up to 1.5x pixels, antialiased | yes, with the colour fringe | every lens bends |
-| medium | 1x | yes | small lenses bend |
-| low | 0.75x | no | frosted, no bending |
-| minimal | 0.5x | no | solid, no blur |
+| high | up to 1.5x pixels, antialiased | full, with the colour fringe | every lens bends |
+| medium | 1x, edge smoothing (FXAA) | worked out at half size | small lenses bend |
+| low | 0.85x, edge smoothing (FXAA) | worked out at a third of the size | frosted, no bending |
+| minimal | 0.6x | none | solid, no blur |
+
+The glow (bloom) is what makes the lines and rings neon, and the scenes' colours are tuned for it, so every tier but minimal keeps it: a blurred halo looks almost the same worked out at a fraction of the screen size, at a fraction of the cost (`QualityComposer` shrinks the bloom's own passes).
 
 Every scene uses `QualityCanvas` and `QualityComposer` (`src/QualityScene.jsx`), which apply the tier; star counts scale with it, and the star field behind the modules draws only 10–60 times a second. The bright-beam check reads each scene through `src/sceneProbe.js`: the GPU shrinks the frame and copies it asynchronously, so the page never waits for the GPU (reading the canvas directly used to block most of every frame).
 
