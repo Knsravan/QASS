@@ -1,4 +1,5 @@
 import React, { useEffect, useId, useRef } from 'react';
+import { motionReduced, subscribeQuality } from './quality';
 
 /*
  * The QASS mark, "Bloch Q · Neon Orbit": the Q of QASS drawn as the app's
@@ -7,8 +8,9 @@ import React, { useEffect, useId, useRef } from 'react';
  *
  * Motion (SMIL, so it costs no JavaScript per frame): a meridian turns the
  * sphere, light dashes along the back of the equator, a spark circles the
- * equator, the state point breathes and the |0> pole blinks. Paused with
- * reduced motion, or with `animated={false}`.
+ * equator, the state point breathes and the |0> pole blinks. Paused when
+ * Motion is set to reduced (the system setting or the Display &
+ * Accessibility panel), or with `animated={false}`.
  *
  * `intro` draws the mark on once when it first appears (the landing page).
  * `title=""` hides it from screen readers where text beside it already says QASS.
@@ -22,7 +24,7 @@ const BACK = 'M22,58 A38,11 0 0 1 98,58';
 const FRONT = 'M22,58 A38,11 0 0 0 98,58';
 const SPLINE = '.45 0 .55 1;.45 0 .55 1';
 
-const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+const reducedMotion = motionReduced;
 
 export default function QassLogo({ size = 32, animated = true, intro = false, title = 'QASS', className = '', style }) {
   const id = useId().replace(/:/g, '');
@@ -33,8 +35,11 @@ export default function QassLogo({ size = 32, animated = true, intro = false, ti
   useEffect(() => {
     const svg = ref.current;
     if (!svg) return;
-    if (!animated || reducedMotion()) svg.pauseAnimations?.();
-    if (!intro || reducedMotion() || !svg.animate) return;
+    // Paused or moving as the person's Motion choice says, live.
+    const follow = () => (!animated || reducedMotion() ? svg.pauseAnimations?.() : svg.unpauseAnimations?.());
+    follow();
+    const stop = subscribeQuality(follow);
+    if (!intro || reducedMotion() || !svg.animate) return stop;
     // Draw every stroke on, one after another, then let the mark move.
     svg.querySelectorAll('[data-draw]').forEach((el, i) => {
       let len;
@@ -46,6 +51,7 @@ export default function QassLogo({ size = 32, animated = true, intro = false, ti
       );
     });
     svg.animate([{ opacity: 0, transform: 'scale(.86)' }, { opacity: 1, transform: 'none' }], { duration: 700, easing: 'cubic-bezier(.2,.8,.2,1)' });
+    return stop;
   }, [animated, intro]);
 
   return (

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { motionReduced } from './quality';
 
 /*
  * Glass slider (the iOS 26 capsule): a glass track with a glowing fill and a
@@ -20,7 +21,7 @@ const KNOB_W = 44;
 const GROW = 0.3;       // how much the capsule swells while held
 const STRETCH = 0.8;    // how far it stretches with the drag speed
 
-const reduced = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+const reduced = motionReduced;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 function spring(k, zeta) {

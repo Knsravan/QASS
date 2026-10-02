@@ -20,10 +20,10 @@
  *   scene has just drawn and needs no preserved drawing buffer.
  */
 
-import { getQuality, subscribeQuality } from './quality';
+import { getQuality, subscribeQuality, motionReduced } from './quality';
 import { probeScene } from './sceneProbe';
 
-const reduced = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+const reduced = motionReduced;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 function watchTilt() {

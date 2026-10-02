@@ -21,7 +21,7 @@
  */
 
 import { buildLensFilter } from './glassLens';
-import { getQuality, subscribeQuality, qualityInfo, resetQuality } from './quality';
+import { getQuality, subscribeQuality, qualityInfo, resetQuality, motionReduced } from './quality';
 
 const RIM_WIDTH = 0.5;    // Highlight.width
 const RIM_ALPHA = 0.5;    // HighlightStyle.Default color alpha
@@ -377,7 +377,7 @@ function followResize(node) {
 const GROW_IN = '.glass-card, .glass-panel, .glass-panel-thick, .compact-hud-card, .idle-fact-ticker';
 const GROW_EASE = 'linear(0, 0.0537, 0.1795, 0.3358, 0.4949, 0.64, 0.7623, 0.8588, 0.9305, 0.9802, 1.0118, 1.0296, 1.0372, 1.0381, 1.0349, 1.0295, 1.0234, 1.0174, 1.0121, 1.0077, 1.0044, 1.0019, 1.0003, 0.9993, 0.9987, 0.9985, 0.9986, 0.9987, 0.9989, 0.9992, 1)';
 function growIn(node) {
-  if (!node.matches(GROW_IN) || !node.animate || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+  if (!node.matches(GROW_IN) || !node.animate || motionReduced()) return;
   try {
     node.animate([{ scale: '0.86 0.74' }, { scale: '1 1' }], { duration: 560, easing: GROW_EASE });
   } catch { /* an older browser without the scale property: no grow */ }

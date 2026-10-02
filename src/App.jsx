@@ -10,6 +10,7 @@ import { MultiGatesScene, MultiGatesOverlay, MULTI_GATES_STEPS, isResultEntangle
 import CameraShifter from './CameraShifter';
 import LandingOrbitalCloud from './LandingOrbitalCloud';
 import GlassNavBar from './GlassNavBar';
+import DisplayPanel, { DisplayPanelIcon } from './DisplayPanel';
 import ModuleErrorBoundary from './ModuleErrorBoundary';
 import { startLiquidGlass } from './LiquidGlass';
 import { mountLiquidGlass } from './liquid-glass/liquid-glass';
@@ -37,7 +38,7 @@ import './liquid-glass/liquid-glass.css';
 import './App.css';
 import { SCENE_GL } from './sceneGl';
 import { QualityCanvas, QualityComposer, useCount } from './QualityScene';
-import { settleQuality, setLandingMode, deviceProfile } from './quality';
+import { setLandingMode, deviceProfile } from './quality';
 import { startBoot } from './BootLoader';
 import QassLogo from './QassLogo';
 
@@ -1351,10 +1352,6 @@ function App() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // A new scene is loading: the quality governor ignores the next few
-  // seconds of frames (chunk loads and shader compiles are one-off hitches).
-  useEffect(() => { settleQuality(); }, [activeModuleId, hasStarted]);
-
   // Keep the URL in step with the open module. Each change is a history
   // entry, so Back returns to the previous module or the hub.
   const urlSyncedRef = useRef(false);
@@ -1491,6 +1488,11 @@ function App() {
       },
     });
   };
+
+  // Display & Accessibility panel (DisplayPanel.jsx), opened from the top bar.
+  const [displayOpen, setDisplayOpen] = useState(false);
+  const displayButtonRef = useRef(null);
+  const closeDisplay = useCallback(() => setDisplayOpen(false), []);
 
   // A returning visitor who skips the landing page but has never had the
   // device test gets the loading screen and the full test first.
@@ -2019,7 +2021,15 @@ function App() {
                 onClick: handleToggleGlobalAudio,
                 icon: <MorphAudioIcon isMuted={isGlobalMuted} size={22} color="currentColor" />,
               }}
+              extra={{
+                label: 'Display & accessibility',
+                active: displayOpen,
+                ref: displayButtonRef,
+                onClick: () => setDisplayOpen((o) => !o),
+                icon: <DisplayPanelIcon />,
+              }}
             />
+            <DisplayPanel open={displayOpen} anchor={displayButtonRef.current} onClose={closeDisplay} />
 
             {activeModuleId && activeModuleId !== 'superposition' && activeModuleId !== 'dirac-notation' && activeModuleId !== 'multi-qubit-gates' && activeModuleId !== 'interference' && activeModuleId !== 'entanglement' && activeModuleId !== 'exponential' && activeModuleId !== 'nocloning' && activeModuleId !== 'decoherence' && activeModuleId !== 'error-correction' && (
               <div style={{ position: 'absolute', top: '80px', left: '50%', width: '0px', display: 'flex', justifyContent: 'center', zIndex: 10, pointerEvents: 'none' }}>
