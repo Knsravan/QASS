@@ -93,7 +93,19 @@ The simulator is designed for desktop and tablet screens. On narrow windows (und
 
 ### The Liquid Glass material
 
-The sidebar (and its toggle), the top bar (the Beginner / Advanced tabs and the mute button) and the buttons are real liquid glass lenses. `src/glassLens.js` builds an SVG filter for each surface's size that runs inside `backdrop-filter`: the scene behind the glass is frosted in the middle and bent at the rim like the curved edge of a glass slab, and a fixed light from the top-left catches the rim as a reflection. Chrome does not load images inside `backdrop-filter`, so the filter makes its own displacement map from a blurred rectangle (the glass "height") with offsets and arithmetic composites. On large surfaces, only four thin rim strips run the costly steps.
+Glass that sits on a 3D scene (the sidebar, the top bar, the buttons, the cards, the landing page's cards) is Apple's Liquid Glass drawn in WebGL by the scene itself (`src/glassGL.js`, `GlassLayer` in `src/QualityScene.jsx`). After a scene and its glow have drawn, it copies the frame into a texture and draws, over the same frame, the glass of every glass element on it:
+
+- **Refraction:** the rim is a rounded bevel that bends what is behind it hardest right at the edge, with a slight colour split; the middle stays clear.
+- **Clear frost** and a thin veil.
+- **Specular light** on the rim, from the top-left and again on the far edge, swaying slowly (still with reduced motion; tilt moves it on phones).
+- **Shadow:** soft, a little below the glass.
+- **Touch light:** pressing lights the glass up from the finger.
+- **Adaptation:** a bright scene behind dims what shows through; over mostly light content the glass turns light and its text dark.
+- **Morphing:** pieces closer than a few pixels flow together like drops (the mute circle reaching for the tabs).
+
+Everything stays on the GPU in the scene's own context; the DOM element keeps only its text and icons (`[data-gl]`). This works in every browser with WebGL. Glass over no scene, the Frosted glass setting, Solid surfaces and reduced transparency use the CSS glass below.
+
+The CSS glass: the sidebar (and its toggle), the top bar (the Beginner / Advanced tabs and the mute button) and the buttons are liquid glass lenses there too. `src/glassLens.js` builds an SVG filter for each surface's size that runs inside `backdrop-filter`: the scene behind the glass is frosted in the middle and bent at the rim like the curved edge of a glass slab, and a fixed light from the top-left catches the rim as a reflection. Chrome does not load images inside `backdrop-filter`, so the filter makes its own displacement map from a blurred rectangle (the glass "height") with offsets and arithmetic composites. On large surfaces, only four thin rim strips run the costly steps.
 
 `LiquidGlass.js` applies the lens to a `::before` layer of each surface. On the element itself, its drop shadow would shift Chrome's filter coordinates. Lenses are built in idle time for each surface's size and are rebuilt after a resize settles; until then the surface shows plain frost. How the glass bends follows the quality tier (see below). Disabled (faded) buttons always use plain frost. Cards, tooltips and badges keep the frosted material with a lit rim. Refraction needs a Chromium-based browser; Safari and Firefox get the frosted glass without the bending.
 

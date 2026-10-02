@@ -1,7 +1,9 @@
-import React, { Children, cloneElement, useEffect, useSyncExternalStore } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
+import React, { Children, cloneElement, useEffect, useMemo, useSyncExternalStore } from 'react';
+import * as THREE from 'three';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { EffectComposer, Bloom, ChromaticAberration, FXAA } from '@react-three/postprocessing';
 import { getQuality, subscribeQuality } from './quality';
+import { GLASS_FRAGMENT, GLASS_VERTEX, MAX_GLASS, fillGlassUniforms, glassEnabled, glassFrame, registerGlassCanvas } from './glassGL';
 
 /*
  * The scenes' side of the quality levels (quality.js).
@@ -14,6 +16,8 @@ import { getQuality, subscribeQuality } from './quality';
  *   tier's size, adds edge smoothing (FXAA) where there's no multisampling,
  *   leaves the colour fringe to the high level and drops out when glow is off.
  * - useQuality(): the current tier's settings, re-rendering on a change.
+ * - GlassLayer (in every QualityCanvas): draws the liquid glass of the
+ *   glass elements sitting on this scene, over the finished frame (glassGL.js).
  */
 
 export function useQuality() {
@@ -45,6 +49,67 @@ function Ticker({ fps }) {
   return null;
 }
 
+// Draws the glass over this canvas's finished frame. Runs after the scene
+// (and the glow composer, which renders at priority 1). A priority above 0
+// stops the canvas drawing itself, so when nothing else renders, this does.
+function GlassLayer() {
+  const gl = useThree((s) => s.gl);
+  const parts = useMemo(() => {
+    const vec4s = () => Array.from({ length: MAX_GLASS }, () => new THREE.Vector4());
+    const uniforms = {
+      uFrame: { value: null }, uSize: { value: new THREE.Vector2() }, uScale: { value: 1 }, uMorph: { value: 0 },
+      uDisperse: { value: 0 }, uLight: { value: new THREE.Vector2(-0.7, 0.7) }, uN: { value: 0 },
+      uBox: { value: vec4s() }, uRad: { value: vec4s() }, uA: { value: vec4s() }, uB: { value: vec4s() }, uC: { value: vec4s() },
+    };
+    const material = new THREE.ShaderMaterial({
+      uniforms, vertexShader: GLASS_VERTEX, fragmentShader: GLASS_FRAGMENT,
+      depthTest: false, depthWrite: false, blending: THREE.NoBlending, toneMapped: false,
+    });
+    const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
+    quad.frustumCulled = false;
+    const scene = new THREE.Scene();
+    scene.add(quad);
+    return { uniforms, material, scene, camera: new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1), texture: null };
+  }, []);
+
+  useEffect(() => {
+    const stop = registerGlassCanvas(gl.domElement);
+    return () => {
+      stop();
+      parts.material.dispose();
+      parts.scene.children[0].geometry.dispose();
+      parts.texture?.dispose();
+    };
+  }, [gl, parts]);
+
+  useFrame((state) => {
+    // Nothing else draws this canvas: draw the scene first.
+    if (state.internal.priority <= 1) gl.render(state.scene, state.camera);
+    const frame = glassFrame();
+    const pieces = frame?.byCanvas.get(gl.domElement);
+    if (!pieces?.length) return;
+    const w = gl.domElement.width;
+    const h = gl.domElement.height;
+    if (!parts.texture || parts.texture.image.width !== w || parts.texture.image.height !== h) {
+      parts.texture?.dispose();
+      parts.texture = new THREE.FramebufferTexture(w, h);
+      parts.texture.minFilter = THREE.LinearFilter;
+      parts.texture.magFilter = THREE.LinearFilter;
+    }
+    const u = parts.uniforms;
+    fillGlassUniforms(u, pieces, gl.domElement.getBoundingClientRect(), w, h, frame.lens);
+    u.uLight.value.set(frame.light[0], -frame.light[1]); // the shader's y runs up
+    gl.setRenderTarget(null);
+    gl.copyFramebufferToTexture(parts.texture);
+    u.uFrame.value = parts.texture;
+    const autoClear = gl.autoClear;
+    gl.autoClear = false;
+    gl.render(parts.scene, parts.camera);
+    gl.autoClear = autoClear;
+  }, 2);
+  return null;
+}
+
 export function QualityCanvas({ background = false, children, ...props }) {
   const q = useQuality();
   return (
@@ -61,6 +126,7 @@ export function QualityCanvas({ background = false, children, ...props }) {
     >
       {(background || q.fpsCap > 0) && <Ticker fps={background ? q.bgFps : q.fpsCap} />}
       {children}
+      {glassEnabled(q) && <GlassLayer />}
     </Canvas>
   );
 }
