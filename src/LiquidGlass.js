@@ -16,8 +16,10 @@
  *     no shadow, and `background: inherit` repaints the element's tint and rim
  *     above the bent backdrop.
  * Refraction is Chromium-only; other engines keep the blur, tint and rim.
- * How many lenses bend follows the quality tier (quality.js): every lens on
- * high, the small ones on medium, none (plain frost) on low.
+ * How the glass bends follows the quality tier (quality.js): the full lens
+ * everywhere on high; on medium the full lens on small glass and a small lens
+ * (a thin rim, no colour split) on big glass like the sidebar; none (plain
+ * frost) on low.
  */
 
 import { buildLensFilter } from './glassLens';
@@ -152,12 +154,16 @@ function remember(cache, key, value, onEvict) {
   return value;
 }
 
+// Big glass on the medium tier gets the small lens.
+const smallLens = (w, h) => smallForLarge && isLarge(w, h);
+const lensKey = (w, h, frost, radius) => `${w}x${h}f${frost}r${radius}${smallLens(w, h) ? 's' : ''}`;
+
 function lensFilterId(w, h, frost, radius = 0) {
-  const key = `${w}x${h}f${frost}r${radius}`;
+  const key = lensKey(w, h, frost, radius);
   const hit = filterCache.get(key);
   if (hit) return hit;
   const id = `lg-lens-${++filterCount}`;
-  ensureDefs().appendChild(buildLensFilter(w, h, frost, id, DISPERSION, radius));
+  ensureDefs().appendChild(buildLensFilter(w, h, frost, id, DISPERSION, radius, smallLens(w, h)));
   return remember(filterCache, key, id, (oldId) => document.getElementById(oldId)?.remove());
 }
 
@@ -169,11 +175,11 @@ function rimImage(w, h, radius) {
 // ─── Lens state: follows the quality tier ───────────────────────────────────
 
 let lensOn = true;
-// On the medium tier only the big, costly lenses (the sidebar, large cards)
-// go back to frost; buttons, the top bar and small cards keep bending.
-let largeOff = false;
+// On the medium tier the big, costly lenses (the sidebar, large cards) become
+// the small lens; buttons, the top bar and small cards keep the full one.
+let smallForLarge = false;
 const isLarge = (w, h) => Math.min(w, h) > LARGE_GLASS;
-const lensAllowed = (w, h) => lensOn && !(largeOff && isLarge(w, h));
+const lensAllowed = () => lensOn;
 const lensed = new Set(); // elements currently carrying a lens layer
 
 let refractionSupported = null;
@@ -192,16 +198,17 @@ const reducedTransparency = () =>
 // (built in idle time); glass that may not goes back to frost at once.
 function setLensLevel(level) {
   const on = level !== 'none';
-  const large = level === 'small';
-  if (on === lensOn && large === largeOff) return;
+  const small = level === 'small';
+  if (on === lensOn && small === smallForLarge) return;
   lensOn = on;
-  largeOff = large;
+  smallForLarge = small;
   for (const node of lensed) {
     if (!node.isConnected || !node._lgBase || !node._lgVariant) continue;
     const w = Math.round(node.offsetWidth);
     const h = Math.round(node.offsetHeight);
     if (lensAllowed(w, h) && supportsRefraction()) {
-      if (node.style.getPropertyValue('--lg-backdrop').startsWith('url(')) continue;
+      // Small glass keeps the lens it has; big glass swaps full and small.
+      if (!isLarge(w, h) && node.style.getPropertyValue('--lg-backdrop').startsWith('url(')) continue;
       node._lgPending = { w, h, radius: cornerRadius(node, w, h), ...node._lgVariant };
       queueLens(node, node.dataset.lgShape);
     } else {
@@ -222,7 +229,7 @@ export function glassStats() {
     supported: supportsRefraction(),
     tier: q.tier,
     why: q.why,
-    mode: !lensOn ? 'lenses off' : largeOff ? 'small lenses only' : 'all lenses on',
+    mode: !lensOn ? 'lenses off' : smallForLarge ? 'small lens on big glass' : 'all lenses on',
     lensed: [...lensed].filter((n) => n.isConnected).length,
     bending,
   };
@@ -332,7 +339,7 @@ export function applyLiquidGlass(node, target, geometry = measureGlass(node)) {
   node.style.setProperty('--lg-bw', target.skin ? `${border}px` : '0px');
   node._lgVariant = { blur, saturation };
   lensed.add(node);
-  const cached = filterCache.get(`${w}x${h}f${blur}r${radius}`);
+  const cached = filterCache.get(lensKey(w, h, blur, radius));
   // The landing page's few pieces of glass get their lens at once: it is the
   // first thing anyone sees and should never start out as plain frost.
   const canBend = lensAllowed(w, h) && supportsRefraction();

@@ -81,10 +81,14 @@ function shapeSlices(w, h, radius) {
  *                        red this much less (0 = none)
  * @param {number} radius corner radius in CSS px (a circle or capsule: half
  *                        the shorter side)
+ * @param {boolean} small the medium level's lens for big glass: a thinner
+ *                        rim (so far less of the surface is bent) and no
+ *                        colour split
  */
-export function buildLensFilter(w, h, frost, id, disp = 0, radius = 0) {
+export function buildLensFilter(w, h, frost, id, disp = 0, radius = 0, small = false) {
   const m = Math.min(w, h);
-  const sigma = Math.max(4, Math.min(12, m * 0.2));         // how far in the glass curves
+  if (small) disp = 0;
+  const sigma = Math.max(4, Math.min(small ? 6 : 12, m * 0.2)); // how far in the glass curves
   const d = Math.max(2, Math.round(sigma * 0.6));            // slope sampling distance
   // How strongly the rim bends; negative so the rim samples inward (see above).
   const scale = -Math.max(16, Math.min(70, m * 0.9));

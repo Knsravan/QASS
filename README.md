@@ -95,7 +95,7 @@ The simulator is designed for desktop and tablet screens. On narrow windows (und
 
 The sidebar (and its toggle), the top bar (the Beginner / Advanced tabs and the mute button) and the buttons are real liquid glass lenses. `src/glassLens.js` builds an SVG filter for each surface's size that runs inside `backdrop-filter`: the scene behind the glass is frosted in the middle and bent at the rim like the curved edge of a glass slab, and a fixed light from the top-left catches the rim as a reflection. Chrome does not load images inside `backdrop-filter`, so the filter makes its own displacement map from a blurred rectangle (the glass "height") with offsets and arithmetic composites. On large surfaces, only four thin rim strips run the costly steps.
 
-`LiquidGlass.js` applies the lens to a `::before` layer of each surface. On the element itself, its drop shadow would shift Chrome's filter coordinates. Lenses are built in idle time for each surface's size and are rebuilt after a resize settles; until then the surface shows plain frost. How many lenses bend follows the quality tier (see below). Disabled (faded) buttons always use plain frost. Cards, tooltips and badges keep the frosted material with a lit rim. Refraction needs a Chromium-based browser; Safari and Firefox get the frosted glass without the bending.
+`LiquidGlass.js` applies the lens to a `::before` layer of each surface. On the element itself, its drop shadow would shift Chrome's filter coordinates. Lenses are built in idle time for each surface's size and are rebuilt after a resize settles; until then the surface shows plain frost. How the glass bends follows the quality tier (see below). A soft glow in the open module's colour drifts behind the sidebar, so its bend and frost always have colour to work on. Disabled (faded) buttons always use plain frost. Cards, tooltips and badges keep the frosted material with a lit rim. Refraction needs a Chromium-based browser; Safari and Firefox get the frosted glass without the bending.
 
 The glass also moves like liquid (`src/glassMotion.js`, springs on CSS `scale` / `translate`):
 
@@ -132,14 +132,14 @@ The controls are glass too:
 | Level | 3D sharpness | Glow (bloom) | Glass |
 |---|---|---|---|
 | high | up to 1.5x pixels, antialiased | full, with the colour fringe | every lens bends |
-| medium | 1x, edge smoothing (FXAA) | worked out at half size | small lenses bend |
+| medium | 1x, edge smoothing (FXAA) | worked out at half size | full lens on small glass, a small lens (thin rim) on big glass |
 | low | 0.85x, edge smoothing (FXAA) | worked out at a third of the size | frosted, no bending |
 
 The glow is what makes the lines and rings neon, and the scenes' colours are tuned for it, so every level keeps it: a blurred halo looks almost the same worked out at a fraction of the screen size, at a fraction of the cost (`QualityComposer` shrinks the bloom's own passes). Every scene uses `QualityCanvas` and `QualityComposer` (`src/QualityScene.jsx`), which apply the level; star counts scale with it, and the star field behind the modules draws only 20–60 times a second. The bright-beam check reads each scene through `src/sceneProbe.js`: the GPU shrinks the frame and copies it asynchronously, so the page never waits for the GPU.
 
 The level is chosen once, by the loading screen's device test (below), and never changes by itself afterwards.
 
-**Display & accessibility** (`src/DisplayPanel.jsx`, the sliders button beside the mute button): people can pick Recommended (the device test's level), High, Medium or Low, or set single parts on top: glow (full, soft, off), frame rate (the display's, 60 or 30 fps), sharpness, liquid glass (full lens, small lenses, frosted), stars, motion (full or reduced) and glass surfaces (see-through or solid). Every choice applies at once, with the live frame rate shown in the panel, and is saved for the device. Reduced motion and solid surfaces also follow the system's own settings.
+**Display & accessibility** (`src/DisplayPanel.jsx`, the sliders button beside the mute button): people can pick Recommended (the device test's level), High, Medium or Low, or set single parts on top: glow (full, soft, off), frame rate (the display's, 60 or 30 fps), sharpness, liquid glass (full lens, small lens, frosted), stars, motion (full or reduced) and glass surfaces (see-through or solid). Every choice applies at once, with the live frame rate shown in the panel, and is saved for the device. Reduced motion and solid surfaces also follow the system's own settings.
 
 **The landing page always runs at high**, whatever the device: every lens, the full glow, full sharpness (`setLandingMode`). Its few pieces of glass get their lens at once instead of in idle time.
 
