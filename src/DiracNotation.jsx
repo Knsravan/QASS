@@ -2,10 +2,10 @@ import React, { useRef, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
-import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing';
-import { BlendFunction } from 'postprocessing';
+import { Bloom } from '@react-three/postprocessing';
 import { InlineMath } from 'react-katex';
 import { QuantumNavButtons } from './QuantumNavButtons';
+import { QualityComposer } from './QualityScene';
 
 // ─── CONFIG ────────────────────────────────────────────────────────────────
 const STEPS = [
@@ -261,10 +261,9 @@ export function DiracScene({ step, theme }) {
 
   return (
     <>
-      <EffectComposer disableNormalPass>
+      <QualityComposer disableNormalPass>
         <Bloom luminanceThreshold={0.3} mipmapBlur intensity={0.4} />
-        <ChromaticAberration blendFunction={BlendFunction.NORMAL} offset={[0, 0]} />
-      </EffectComposer>
+      </QualityComposer>
       
       <group position={[0, -0.5, 0]}>
         <ambientLight intensity={isLight ? 0.4 : 0.08} />

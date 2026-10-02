@@ -4,6 +4,7 @@ import { gsap } from 'gsap';
 import { WebGLRenderer } from 'three';
 import './index.css';
 import App from './App';
+import { startQualityGovernor } from './quality';
 
 // Animations must stay truthful to wall-clock time: after a background-tab
 // stall, jump state to where it should be rather than replaying it slowly.
@@ -22,6 +23,10 @@ if (import.meta.env.PROD) {
     set(value) { this._qsDebug = { ...value, checkShaderErrors: false }; },
   });
 }
+
+// Picks the quality tier for this device and adjusts it to the frame rate
+// (quality.js), before the first scene is made.
+startQualityGovernor();
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

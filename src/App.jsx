@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Stars, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
-import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing';
-import { BlendFunction } from 'postprocessing';
+import { Bloom } from '@react-three/postprocessing';
 import BlochSphere from './BlochSphere';
 import { DiracScene, DiracOverlay } from './DiracNotation';
 import { GatesScene, GatesOverlay, GATES_STEPS } from './QuantumGates';
@@ -37,6 +36,8 @@ import {
 import './liquid-glass/liquid-glass.css';
 import './App.css';
 import { SCENE_GL } from './sceneGl';
+import { QualityCanvas, QualityComposer, useCount } from './QualityScene';
+import { settleQuality } from './quality';
 
 // Self-contained modules are split into their own chunks so the landing page
 // and hub don't pay for every module's scene up front. The loaders are also
@@ -296,6 +297,22 @@ const LEARNING_MODE_TABS = [
 // LIQUID GLASS MATERIAL
 // Keeps every floating-layer element in Liquid Glass (see LiquidGlass.js).
 // ==========================================
+// The app's star field. It turns as slowly as OrbitControls' autoRotate at
+// 0.3 did, but by elapsed time, so it keeps its pace when the background
+// canvas draws fewer frames (QualityCanvas \`background\`).
+const BackgroundStars = () => {
+  const ref = useRef();
+  const count = useCount(2200);
+  useFrame((state) => {
+    if (ref.current) ref.current.rotation.y = -state.clock.getElapsedTime() * ((2 * Math.PI) / 60) * 0.3;
+  });
+  return (
+    <group ref={ref}>
+      <Stars radius={100} depth={50} count={count} factor={4} saturation={1} fade speed={1.2} />
+    </group>
+  );
+};
+
 const LiquidGlassEffects = () => {
   useEffect(() => startLiquidGlass(document.body), []);
   // The Liquid Glass skill supplies the sidebar and top bar's look and the
@@ -1169,6 +1186,7 @@ const CircuitVisualizer = ({ moduleId, gateId, multiGatesStep = 0, qubitCount = 
 // ==========================================
 function LandingBackground() {
   const starsRef = useRef();
+  const starCount = useCount(3000);
   // The orbital cloud sits at the right edge of the screen, clear of the
   // headline, copy and cards in the middle: 38% of the visible width (at its
   // depth) from the centre, whatever the window's shape.
@@ -1186,13 +1204,12 @@ function LandingBackground() {
 
   return (
     <>
-      <EffectComposer disableNormalPass>
+      <QualityComposer disableNormalPass>
         <Bloom luminanceThreshold={0.3} mipmapBlur intensity={0.4} />
-        <ChromaticAberration blendFunction={BlendFunction.NORMAL} offset={[0, 0]} />
-      </EffectComposer>
+      </QualityComposer>
 
       <group ref={starsRef}>
-        <Stars radius={100} depth={50} count={3000} factor={4} saturation={1} fade speed={1.5} />
+        <Stars radius={100} depth={50} count={starCount} factor={4} saturation={1} fade speed={1.5} />
       </group>
 
       <group position={[cloudX, 0, 0]} scale={0.85}>
@@ -1237,8 +1254,7 @@ const GatesModuleView = ({ step, applied, theme, isSidebarOpen, uiBoundsStyle, o
 
   return (
     <>
-      <Canvas
-        dpr={[1, 1.5]}
+      <QualityCanvas
         camera={{ position: [0, 0, 13], fov: 45 }}
         gl={SCENE_GL}
         style={{ position: 'absolute', inset: 0, zIndex: 1, willChange: 'transform', transform: 'translateZ(0)' }}
@@ -1246,7 +1262,7 @@ const GatesModuleView = ({ step, applied, theme, isSidebarOpen, uiBoundsStyle, o
         <CameraShifter isSidebarOpen={isSidebarOpen} />
         <OrbitControls makeDefault enableZoom={true} enablePan={true} />
         <GatesScene step={step} applied={applied} theme={theme} setProgress={setProgress} />
-      </Canvas>
+      </QualityCanvas>
       <div style={uiBoundsStyle}>
         <GatesOverlay
           step={step}
@@ -1313,6 +1329,10 @@ function App() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // A new scene is loading: the quality governor ignores the next few
+  // seconds of frames (chunk loads and shader compiles are one-off hitches).
+  useEffect(() => { settleQuality(); }, [activeModuleId, hasStarted]);
 
   // Keep the URL in step with the open module. Each change is a history
   // entry, so Back returns to the previous module or the hub.
@@ -1527,13 +1547,12 @@ function App() {
       <div className="landing-container">
         <LiquidGlassEffects />
         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }}>
-          <Canvas
-            dpr={[1, 1.5]}
+          <QualityCanvas
             gl={{ powerPreference: 'high-performance', alpha: true }}
             camera={{ position: [0, 0, 15], fov: 45 }}
           >
             <LandingBackground />
-          </Canvas>
+          </QualityCanvas>
         </div>
 
         <div className="landing-overlay">
@@ -1837,17 +1856,16 @@ function App() {
 
       {/* ── Unified Single 3D Universe Background (100vw x 100vh) ── */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', willChange: 'transform', transform: 'translateZ(0)' }}>
-        <Canvas
-          dpr={[1, 1.5]}
+        <QualityCanvas
+          background
           gl={{ ...SCENE_GL, antialias: false }}
         >
           <CameraShifter isSidebarOpen={isSidebarOpen} />
           <ambientLight intensity={0.4} />
           <pointLight position={[-15, 10, 10]} color="#38bdf8" intensity={2.5} distance={45} />
           <pointLight position={[15, -10, 10]} color="#c084fc" intensity={2.5} distance={45} />
-          <Stars radius={100} depth={50} count={2200} factor={4} saturation={1} fade speed={1.2} />
-          <OrbitControls autoRotate autoRotateSpeed={0.3} enableZoom={false} enablePan={false} enableRotate={false} />
-        </Canvas>
+          <BackgroundStars />
+        </QualityCanvas>
       </div>
 
       <main className="main-content">
@@ -2005,8 +2023,7 @@ function App() {
             />
           ) : activeModuleId === 'multi-qubit-gates' ? (
             <>
-              <Canvas
-                dpr={[1, 1.5]}
+              <QualityCanvas
                 camera={{ position: [0, 0, 15], fov: 45 }}
                 gl={SCENE_GL}
                 style={{ position: 'absolute', inset: 0, zIndex: 1, willChange: 'transform', transform: 'translateZ(0)' }}
@@ -2019,7 +2036,7 @@ function App() {
                   theme={theme}
                   inputs={multiGatesInputs}
                 />
-              </Canvas>
+              </QualityCanvas>
               <div style={uiBoundsStyle}>
                 <MultiGatesOverlay
                   step={multiGatesStep}
@@ -2081,15 +2098,14 @@ function App() {
             </>
           ) : activeModuleId === 'dirac-notation' ? (
             <>
-              <Canvas
-                dpr={[1, 1.5]}
+              <QualityCanvas
                 camera={{ position: [4, 3, 8], fov: 50 }}
                 gl={SCENE_GL}
                 style={{ position: 'absolute', inset: 0, zIndex: 1, willChange: 'transform', transform: 'translateZ(0)' }}
               >
                 <CameraShifter isSidebarOpen={isSidebarOpen} />
                 <DiracScene step={diracStep} theme={theme} />
-              </Canvas>
+              </QualityCanvas>
               <div style={uiBoundsStyle}>
                 <DiracOverlay
                   step={diracStep}
@@ -2112,8 +2128,7 @@ function App() {
           ) : activeModuleId === 'error-correction' ? (
             <QuantumErrorCorrectionModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} />
           ) : (
-            <Canvas
-              dpr={[1, 1.5]}
+            <QualityCanvas
               camera={{ position: [0, 0, 13], fov: 45 }}
               gl={SCENE_GL}
               style={{ position: 'absolute', inset: 0, zIndex: 1, willChange: 'transform', transform: 'translateZ(0)' }}
@@ -2129,7 +2144,7 @@ function App() {
                 setIsSidebarOpen={setIsSidebarOpen}
                 isGlobalMuted={isGlobalMuted}
               />
-            </Canvas>
+            </QualityCanvas>
           )}
           </Suspense>
           </ModuleErrorBoundary>

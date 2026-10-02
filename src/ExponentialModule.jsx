@@ -5,9 +5,9 @@
 // ==========================================================
 
 import React, { useState, useRef, useMemo, useEffect } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Html } from '@react-three/drei';
-import { EffectComposer, Bloom } from '@react-three/postprocessing';
+import { Bloom } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { InlineMath } from 'react-katex';
@@ -18,6 +18,7 @@ import CameraShifter from './CameraShifter';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { SCENE_GL } from './sceneGl';
 import GlassSlider from './GlassSlider';
+import { QualityCanvas, QualityComposer } from './QualityScene';
 
 // ==========================================
 // HELPER CONSTANTS & QUATERNIONS
@@ -679,13 +680,13 @@ function ExponentialScene({
       />
 
       {/* Post-Processing Neon Bloom (Optimized for 60 FPS on any laptop) */}
-      <EffectComposer disableNormalPass multisampling={0}>
+      <QualityComposer disableNormalPass multisampling={0}>
         <Bloom
           luminanceThreshold={0.25}
           mipmapBlur
           intensity={0.65}
         />
-      </EffectComposer>
+      </QualityComposer>
     </>
   );
 }
@@ -787,8 +788,7 @@ export default function ExponentialModule({ theme = 'dark', isSidebarOpen = true
     <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
       {/* ── 3D CANVAS VIEWPORT ── */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'auto' }}>
-        <Canvas
-          dpr={[1, 1.5]}
+        <QualityCanvas
           camera={{ position: [0, 1.4, 14.8], fov: 45 }}
           gl={SCENE_GL}
         >
@@ -802,7 +802,7 @@ export default function ExponentialModule({ theme = 'dark', isSidebarOpen = true
             cosmicMilestone={cosmicMilestone}
             theme={theme}
           />
-        </Canvas>
+        </QualityCanvas>
       </div>
 
       <div style={uiBoundsStyle}>

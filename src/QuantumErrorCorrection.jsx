@@ -2,9 +2,9 @@
 // 3-Qubit Bit-Flip Repetition Code Visualizer
 // Architecture mirrors NoCloning.jsx / Decoherence.jsx
 import React, { useState, useRef, useEffect, Suspense } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Html, OrbitControls } from '@react-three/drei';
-import { EffectComposer, Bloom } from '@react-three/postprocessing';
+import { Bloom } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { BlockMath, InlineMath } from 'react-katex';
@@ -13,6 +13,7 @@ import CameraShifter from './CameraShifter';
 import { useQECAudio } from './useQECAudio';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { SCENE_GL } from './sceneGl';
+import { QualityCanvas, QualityComposer } from './QualityScene';
 
 // ─── Color Palette ────────────────────────────────────────────────────────────
 const CI = '#6366f1';   // Indigo  — healthy data qubit
@@ -512,9 +513,9 @@ function QECScene({ step, errorQubit, onErrorQubitChange, theme, isSidebarOpen, 
         maxDistance={45}
       />
 
-      <EffectComposer disableNormalPass multisampling={0}>
+      <QualityComposer disableNormalPass multisampling={0}>
         <Bloom luminanceThreshold={0.22} mipmapBlur intensity={0.65} />
-      </EffectComposer>
+      </QualityComposer>
 
       <ambientLight intensity={isLight ? 0.9 : 0.5} />
       <pointLight position={[-12, 10, 10]} color={CI} intensity={isLight ? 16 : 10} distance={40} />
@@ -1358,8 +1359,7 @@ export default function QuantumErrorCorrectionModule({ theme, isSidebarOpen, isG
 
       {/* ─── 3D WebGL Canvas ─────────────────────────────────────────────── */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-        <Canvas
-          dpr={[1, 1.5]}
+        <QualityCanvas
           gl={SCENE_GL}
           camera={{ position: [0, 1.8, 34], fov: 48 }}
         >
@@ -1375,7 +1375,7 @@ export default function QuantumErrorCorrectionModule({ theme, isSidebarOpen, isG
               audio={audio}
             />
           </Suspense>
-        </Canvas>
+        </QualityCanvas>
       </div>
 
       {/* ─── 2D OVERLAYS BOUNDED TO CANVAS VIEWPORT ─────────────────────── */}

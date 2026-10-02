@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { InlineMath } from 'react-katex';
@@ -15,6 +15,7 @@ import { InterferenceSupernova } from './InterferenceSupernova';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { SCENE_GL } from './sceneGl';
 import GlassSlider from './GlassSlider';
+import { QualityCanvas } from './QualityScene';
 
 const COLORS = {
   primary: '#0ea5e9', // Cyan
@@ -835,14 +836,14 @@ function InterferenceOverlay({ theme, stage, setStage, subStage, setSubStage, in
           </div>
           <div style={{ background: 'rgba(0,0,0,0.4)', padding: '6px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', marginTop: '6px' }}>
             <div style={{ position: 'relative', width: '100%', height: '100px' }}>
-              <Canvas dpr={[1, 1.5]} gl={{ powerPreference: 'high-performance', alpha: true }} camera={{ position: [0, 0, 4] }}>
+              <QualityCanvas gl={{ powerPreference: 'high-performance', alpha: true }} camera={{ position: [0, 0, 4] }}>
                 <group position={[0, 0.6, 0]}>
                   <MiniWaveRibbon isCrest={true} color="#00e5ff" />
                 </group>
                 <group position={[0, -0.6, 0]}>
                   <MiniWaveRibbon isCrest={false} color="#f093fb" />
                 </group>
-              </Canvas>
+              </QualityCanvas>
               
               <div style={{ position: 'absolute', top: '-2px', left: '0', width: '100%', textAlign: 'center', fontSize: '11px', fontWeight: 700, color: '#00e5ff' }}>Crest (+)</div>
               <div style={{ position: 'absolute', bottom: '-2px', left: '0', width: '100%', textAlign: 'center', fontSize: '11px', fontWeight: 700, color: '#f093fb' }}>Trough (—)</div>
@@ -1407,8 +1408,7 @@ export default function InterferenceModule({ theme, isSidebarOpen, isGlobalMuted
   return (
     <>
       <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }}>
-        <Canvas
-          dpr={[1, 1.5]}
+        <QualityCanvas
           gl={SCENE_GL}
         >
           <CameraShifter isSidebarOpen={isSidebarOpen} />
@@ -1432,7 +1432,7 @@ export default function InterferenceModule({ theme, isSidebarOpen, isGlobalMuted
               audio={audio}
             />
           </Suspense>
-        </Canvas>
+        </QualityCanvas>
       </div>
       <div style={uiBoundsStyle}>
         <InterferenceOverlay

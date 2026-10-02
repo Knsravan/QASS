@@ -1,8 +1,8 @@
 // NO-CLONING THEOREM MODULE — Interactive Cinematic Story Experience
 import React, { useState, useRef, useEffect, useCallback, Suspense } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Html, OrbitControls } from '@react-three/drei';
-import { EffectComposer, Bloom } from '@react-three/postprocessing';
+import { Bloom } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { InlineMath } from 'react-katex';
@@ -11,6 +11,7 @@ import CameraShifter from './CameraShifter';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { useNoCloningAudio } from './useNoCloningAudio';
 import { SCENE_GL } from './sceneGl';
+import { QualityCanvas, QualityComposer } from './QualityScene';
 
 // Color Palette
 const CC = '#00f2fe'; // Cyan / Classical
@@ -650,8 +651,7 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted })
       {/* 3D WEBGL CANVAS SCENE */}
       {/* ========================================================== */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-        <Canvas
-          dpr={[1, 1.5]}
+        <QualityCanvas
           gl={SCENE_GL}
           camera={{ position: [0, 1.4, 31.0], fov: 45 }}
         >
@@ -665,9 +665,9 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted })
             minDistance={8}
             maxDistance={38}
           />
-          <EffectComposer disableNormalPass multisampling={0}>
+          <QualityComposer disableNormalPass multisampling={0}>
             <Bloom luminanceThreshold={0.25} mipmapBlur intensity={0.55} />
-          </EffectComposer>
+          </QualityComposer>
 
           <Suspense fallback={null}>
             <DroneCameraController step={step} orbitRef={orbitRef} audio={audio} />
@@ -881,7 +881,7 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted })
               </Html>
             </group>
           </Suspense>
-        </Canvas>
+        </QualityCanvas>
       </div>
 
       {/* ========================================================== */}

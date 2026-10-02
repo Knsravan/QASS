@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
-import { EffectComposer, Bloom } from '@react-three/postprocessing';
+import { Bloom } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import { BlockMath, InlineMath } from 'react-katex';
 import { QubitCore } from './BlochSphere';
 import gsap from 'gsap';
 import { getInitialState, GATES_MATRICES, applyMatrix, calculateProbabilities } from './quantumMath';
 import { QuantumNavButtons } from './QuantumNavButtons';
+import { QualityComposer } from './QualityScene';
 
 // --- DATA DEFINITION ---
 export const MULTI_GATES_STEPS = [
@@ -511,9 +512,9 @@ export function MultiGatesScene({ step, applied, theme, setProgress, inputs }) {
 
   return (
     <>
-      <EffectComposer disableNormalPass>
+      <QualityComposer disableNormalPass>
         <Bloom luminanceThreshold={0.3} mipmapBlur intensity={0.4} />
-      </EffectComposer>
+      </QualityComposer>
       <group position={[0, -0.5, 0]}>
         <ambientLight intensity={isLight ? 0.8 : 0.5} />
         <pointLight position={[8, 8, 8]} color="#00f2fe" intensity={isLight ? 12 : 8} distance={30} />

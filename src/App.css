@@ -5244,3 +5244,30 @@ div:has(> canvas) {
     animation: none;
   }
 }
+
+/* =============================================================================
+   MINIMAL QUALITY TIER (quality.js): solid glass for the weakest machines
+   Frosted blur is one of the costliest things a weak GPU draws; when even the
+   low tier is too slow, the glass turns solid with the same shapes and rims.
+   ============================================================================= */
+:root[data-quality="minimal"] :is(.lg-lensed, .lg, .lg-pane, .lg-bar, .gs-bubble, .angle-pill),
+:root[data-quality="minimal"] .lg-lensed::before {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+:root[data-quality="minimal"] :is(.lg-pane, .lg-bar, .gs-bubble) {
+  background: rgb(20, 24, 33);
+}
+
+:root[data-quality="minimal"] .lg.lg:not(.start-btn) {
+  background: var(--lg-rim, none) 0 0 / 100% 100% no-repeat border-box, rgb(28, 28, 30);
+}
+
+:root[data-quality="minimal"] .lg-lensed:not(.lg):not(.gs-knob) {
+  background-color: rgb(20, 24, 33) !important;
+}
+
+:root[data-quality="minimal"] .angle-pill {
+  background: color-mix(in srgb, var(--g) 45%, rgb(20, 24, 33));
+}
