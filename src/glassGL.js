@@ -54,6 +54,11 @@ const stateOf = (el) => {
   return s;
 };
 
+/** How many glass pieces this canvas drew in the last frame. */
+export function glassDrawnOn(canvas) {
+  return frame?.byCanvas.get(canvas)?.length || 0;
+}
+
 /** Whether the WebGL glass runs at all, for this level and these settings. */
 export function glassEnabled(q = getQuality()) {
   return q.surface === 'glass' && q.lens !== 'none';

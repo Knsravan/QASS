@@ -40,6 +40,7 @@ import './App.css';
 import { SCENE_GL } from './sceneGl';
 import { QualityCanvas, QualityComposer, useCount } from './QualityScene';
 import { setLandingMode, deviceProfile } from './quality';
+import { glassDrawnOn } from './glassGL';
 import { startBoot } from './BootLoader';
 import QassLogo from './QassLogo';
 
@@ -1210,7 +1211,9 @@ function LandingBackground({ exiting = false }) {
 
     // Leaving: the orbital cloud and its ribbons collapse into their centre
     // while turning; only the stars stay. Once gone, the scene stops drawing
-    // so the loading screen's device test has the GPU to itself.
+    // so the loading screen's device test has the GPU to itself. It stops
+    // only once a frame has drawn no glass: the cards' glass is drawn by this
+    // scene, and its last frame stays on screen.
     const cloud = cloudRef.current;
     if (!exiting || !cloud) return;
     if (!exitStart.current) exitStart.current = t;
@@ -1218,7 +1221,10 @@ function LandingBackground({ exiting = false }) {
     const e = p * p * (3 - 2 * p);
     cloud.scale.setScalar(0.85 * (1 - e));
     cloud.rotation.y += 0.02 * e;
-    if (p >= 1) { cloud.visible = false; setFrameloop('never'); }
+    if (p >= 1) {
+      cloud.visible = false;
+      if (!glassDrawnOn(state.gl.domElement)) setFrameloop('never');
+    }
   });
 
   return (
