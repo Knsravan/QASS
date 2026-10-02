@@ -5455,11 +5455,19 @@ div:has(> canvas) {
   position: fixed;
   z-index: 3000;
   max-height: calc(100vh - 100px);
-  overflow-y: auto;
-  padding: 16px 16px 14px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   border-radius: 22px;
   color: #e8eef8;
   font-family: 'Inter', system-ui, sans-serif;
+}
+
+.dp-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px 16px 14px;
   display: grid;
   gap: 14px;
   scrollbar-width: thin;
@@ -5826,10 +5834,11 @@ div:has(> canvas) {
   display: none !important;
 }
 
-/* Big glass that carries text (panels, the sidebar, cards): a soft blur
-   inside the rim band, feathered in, so the text reads cleanly. It frosts
-   page elements under the glass too, which the scene can't. The rim keeps
-   the WebGL bend and light. */
+/* Glass that carries text (panels, the sidebar, cards, tooltips): a soft
+   blur inside the rim band, feathered in, so the text reads cleanly. It
+   frosts page elements under the glass too (labels, the VS badge), which
+   the scene can't. The rim keeps the WebGL bend and light. Buttons and
+   pills stay Clear. */
 .lg-lensed[data-gl][data-gl-big]::before {
   inset: 10px;
   border-radius: var(--gl-ir, 14px);
@@ -5843,6 +5852,11 @@ div:has(> canvas) {
     linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent),
     linear-gradient(to bottom, transparent, #000 14px, #000 calc(100% - 14px), transparent);
   mask-composite: intersect;
+}
+
+/* Tooltips float over labels and the scene: a little more body. */
+.glass-tooltip.lg-lensed[data-gl][data-gl-big]::before {
+  background: rgba(6, 8, 12, 0.32) !important;
 }
 
 /* The top bar's pieces flow together in the glass itself. */
