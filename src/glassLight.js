@@ -53,8 +53,10 @@ function watchTilt() {
   };
 }
 
-// Glass with text over the 3D scenes. Not the landing page's.
-const DIM_TARGETS = '.lg-nav-pill, .lg-nav-circle, .sidebar-panel, .compact-hud-card, .glass-card, .glass-panel, .glass-tooltip, .section-title, .idle-fact-ticker';
+// Every piece of glass in the app: the lensed surfaces, the glass skin
+// (buttons, pills, cards, panels, tooltips) and the skill's panes and bars.
+// Not the landing page's (sampling pauses while it is shown).
+const DIM_TARGETS = '.lg-lensed, .lg, .lg-pane, .lg-bar';
 const BRIGHT = 0.55;     // a backdrop pixel this bright counts as a beam
 const PROBE = 20;        // each piece's backdrop is sampled at 20 x 20
 const FULL_AT = 0.3;     // this share of bright pixels: fully dimmed
@@ -75,9 +77,12 @@ function watchBeams() {
     const scenes = [...document.querySelectorAll('canvas')]
       .map((c) => ({ c, box: c.getBoundingClientRect() }))
       .filter(({ c, box }) => c.width && box.width > 200 && box.height > 200);
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
     for (const piece of pieces) {
       const r = piece.getBoundingClientRect();
-      if (!r.width || !r.height) continue;
+      // Skip glass that is hidden or off screen.
+      if (!r.width || !r.height || r.right < 0 || r.bottom < 0 || r.left > vw || r.top > vh) continue;
       // The scene it overlaps most; on a tie the later canvas, drawn on top.
       let best = null;
       let bestArea = 0;
