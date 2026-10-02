@@ -5031,3 +5031,216 @@ div:has(> canvas) {
 [data-lg-dim] {
   text-shadow: 0 1px 10px rgba(0, 0, 0, calc(0.9 * var(--lg-dim, 0)));
 }
+
+/* =============================================================================
+   GLASS SLIDER (GlassSlider.jsx): the iOS 26 capsule
+   A glass track with a glowing fill; a clear capsule lens (LiquidGlass.js,
+   variant "clear") bends the fill under it. The invisible native input on top
+   does the dragging, keyboard and screen readers; its thumb is the capsule's
+   size, so the capsule sits where the browser puts the thumb.
+   ============================================================================= */
+.gs-rail {
+  position: relative;
+  height: 30px;
+  width: 100%;
+  touch-action: pan-y;
+}
+
+.gs-track,
+.gs-fill,
+.gs-knob,
+.gs-bubble {
+  position: absolute;
+  pointer-events: none;
+}
+
+.gs-track {
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 10px;
+  translate: 0 -50%;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.gs-fill {
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-radius: inherit;
+  background: var(--gs-c);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--gs-c) 70%, transparent);
+  transition: background 0.3s ease;
+}
+
+.gs-knob {
+  top: 50%;
+  left: 0;
+  width: var(--gs-kw, 44px);
+  height: 24px;
+  margin: -12px 0 0 calc(var(--gs-kw, 44px) / -2);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.02) 60%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.22),
+    0 8px 18px -8px rgba(0, 0, 0, 0.9);
+}
+
+.gs-spec {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(60% 50% at 32% 22%, rgba(255, 255, 255, 0.5), transparent 70%);
+}
+
+.gs-bubble {
+  bottom: calc(50% + 18px);
+  left: 0;
+  padding: 4px 9px;
+  border-radius: 10px;
+  translate: -50% 0;
+  transform-origin: 50% 100%;
+  scale: 0;
+  white-space: nowrap;
+  font: 600 11px/1.2 'Inter', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  background: rgba(15, 23, 42, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22), 0 10px 22px -10px rgba(0, 0, 0, 0.8);
+  -webkit-backdrop-filter: blur(10px) saturate(1.5);
+  backdrop-filter: blur(10px) saturate(1.5);
+  z-index: 2;
+}
+
+.gs-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+
+.gs-input::-webkit-slider-runnable-track {
+  height: 30px;
+}
+
+.gs-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: var(--gs-kw, 44px);
+  height: 30px;
+}
+
+.gs-input::-moz-range-thumb {
+  width: var(--gs-kw, 44px);
+  height: 30px;
+  border: 0;
+  background: transparent;
+}
+
+.gs-rail:has(.gs-input:focus-visible) .gs-knob {
+  box-shadow:
+    0 0 0 2px rgba(62, 230, 255, 0.9),
+    0 0 18px 3px rgba(62, 230, 255, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+/* =============================================================================
+   ANGLE PILL (Quantum Gates): glass tinted in the gate's colour
+   ============================================================================= */
+.angle-pill {
+  padding: 3px 11px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 12px;
+  color: #fff;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(255, 255, 255, 0.22), transparent 60%),
+    color-mix(in srgb, var(--g) 34%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 0 0 1px color-mix(in srgb, var(--g) 55%, rgba(255, 255, 255, 0.3)),
+    0 0 18px -2px color-mix(in srgb, var(--g) 80%, transparent),
+    0 10px 24px -12px rgba(0, 0, 0, 0.8);
+  -webkit-backdrop-filter: blur(10px) saturate(1.6);
+  backdrop-filter: blur(10px) saturate(1.6);
+}
+
+/* =============================================================================
+   KEYBOARD FOCUS: one glowing glass rim on every glass control
+   (Back and Next used to show nothing at all.)
+   ============================================================================= */
+@keyframes lgFocusIn {
+  from { outline-offset: 7px; outline-color: rgba(62, 230, 255, 0); }
+}
+
+:is(.lg, .lg-lensed, .lg-nav-circle, .idle-hud-cta, .fact-jump-link, .step-nav-btn, .quantum-nav-btn):focus-visible {
+  outline: 2px solid rgba(62, 230, 255, 0.9) !important;
+  outline-offset: 2px;
+  box-shadow: 0 0 20px 3px rgba(62, 230, 255, 0.42);
+  animation: lgFocusIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Controls inside a bar or the sidebar keep the ring inside their edge. */
+:is(.lg-nav-tab, .glass-chip, .sidebar-toggle-btn):focus-visible {
+  outline: 2px solid rgba(62, 230, 255, 0.9) !important;
+  outline-offset: -2px;
+  box-shadow: inset 0 0 14px rgba(62, 230, 255, 0.35);
+  animation: none;
+}
+
+/* =============================================================================
+   TEXT SELECTION: a soft cyan glow that matches the glass
+   ============================================================================= */
+::selection {
+  background: rgba(62, 230, 255, 0.32);
+  color: #fff;
+}
+
+/* =============================================================================
+   REDUCE TRANSPARENCY: every piece of glass turns solid, same shape and rim
+   (LiquidGlass.js adds .lg-solid; the skinned glass has its own rule above).
+   ============================================================================= */
+@media (prefers-reduced-transparency: reduce) {
+  .lg-solid:not(.lg):not(.gs-knob) {
+    background: rgb(20, 24, 33) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .glass-tooltip.lg-solid,
+  .lg-solid.lg.glass-tooltip {
+    background: rgb(14, 17, 24) !important;
+  }
+
+  .gs-knob.lg-solid {
+    background: #e2e8f0;
+  }
+
+  .gs-bubble,
+  .angle-pill {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: rgb(20, 24, 33);
+  }
+
+  .angle-pill {
+    background: color-mix(in srgb, var(--g) 45%, rgb(20, 24, 33));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.lg, .lg-lensed, .lg-nav-circle, .idle-hud-cta, .fact-jump-link, .step-nav-btn, .quantum-nav-btn):focus-visible {
+    animation: none;
+  }
+}
