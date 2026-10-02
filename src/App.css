@@ -634,6 +634,11 @@ h6,
   box-sizing: border-box;
 }
 
+.sidebar-branding .qass-logo {
+  flex-shrink: 0;
+  overflow: visible;
+}
+
 .sidebar-branding img {
   width: 32px;
   height: 32px;
@@ -2220,6 +2225,15 @@ h6,
   box-shadow: 0 0 20px rgba(0, 242, 254, 0.2);
   animation: float 6s ease-in-out infinite;
   font-family: 'Deltha', 'Inter', sans-serif;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hero-badge .qass-logo {
+  flex-shrink: 0;
+  overflow: visible;
+  margin-left: -6px;
 }
 
 .hero-title {

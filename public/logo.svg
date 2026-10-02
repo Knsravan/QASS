@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="QASS">
+  <title>QASS</title>
+  <defs>
+    <linearGradient id="g" gradientUnits="userSpaceOnUse" x1="18" y1="16" x2="104" y2="100"><stop offset="0" stop-color="#3ee6ff"/><stop offset="1" stop-color="#b06cff"/></linearGradient>
+    <filter id="f" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <path d="M22,58 A38,11 0 0 1 98,58" fill="none" stroke="#7fe9ff" stroke-opacity=".35" stroke-width="2" stroke-dasharray="2.5 4.5"/>
+  <ellipse cx="60" cy="58" rx="16" ry="38" fill="none" stroke="#7fe9ff" stroke-width="1.6" stroke-opacity=".35"/>
+  <g filter="url(#f)">
+    <circle cx="60" cy="58" r="38" fill="none" stroke="url(#g)" stroke-width="7.5"/>
+    <path d="M33,31 A38,38 0 0 1 60,20" fill="none" stroke="#fff" stroke-opacity=".75" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M22,58 A38,11 0 0 0 98,58" fill="none" stroke="#7fe9ff" stroke-opacity=".9" stroke-width="2.6"/>
+    <line x1="60" y1="58" x2="100" y2="98" stroke="url(#g)" stroke-width="7.5" stroke-linecap="round"/>
+    <circle cx="100" cy="98" r="7" fill="#b06cff"/>
+    <circle cx="81" cy="67.6" r="2.8" fill="#fff"/>
+  </g>
+  <circle cx="60" cy="58" r="4.5" fill="#eef4ff"/>
+  <circle cx="60" cy="20" r="3" fill="#3ee6ff"/>
+</svg>

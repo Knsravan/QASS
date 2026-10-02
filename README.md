@@ -146,6 +146,10 @@ The tint, rim and highlight come from the Liquid Glass skill in `src/liquid-glas
 
 The tab bar's selection indicator is a hand-written spring (damping 0.72, stiffness 320) that stretches while it travels, can be dragged, and can be interrupted mid-flight.
 
+### The logo
+
+The QASS mark is the letter Q drawn as the app's Bloch sphere, with the state vector running out of the sphere as the Q's tail. It is code, not an image: `src/QassLogo.jsx` draws it in SVG with its motion in SMIL (a meridian turns the sphere, light runs along the equator, a spark circles it, the state point breathes), paused with reduced motion; `intro` draws it on once (the landing badge). `public/logo.svg` is the same mark still, `public/favicon.svg` a heavier version for 16 to 48 px, and the PNG icons, `favicon.ico` and the social image `og-image.jpg` are rendered from them.
+
 ### Narration clips (optional)
 
 `public/audio` holds a set of narration clips for the Superposition and Dirac Notation modules. The app does not play them yet. `scripts/generate_audio.js` can regenerate the Superposition ones with [ElevenLabs](https://elevenlabs.io/) using your own API key:

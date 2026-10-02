@@ -38,6 +38,7 @@ import './App.css';
 import { SCENE_GL } from './sceneGl';
 import { QualityCanvas, QualityComposer, useCount } from './QualityScene';
 import { settleQuality } from './quality';
+import QassLogo from './QassLogo';
 
 // Self-contained modules are split into their own chunks so the landing page
 // and hub don't pay for every module's scene up front. The loaders are also
@@ -1526,7 +1527,7 @@ function App() {
       <div className="mobile-blocker-overlay">
         <LiquidGlassEffects />
         <div className="glass-card mobile-blocker-card">
-          <img src="/logo.jpg" alt="QASS logo" style={{ width: '80px', height: '80px', borderRadius: '16px', objectFit: 'cover', marginBottom: '24px', boxShadow: '0 8px 32px rgba(79, 172, 254, 0.3)' }} />
+          <QassLogo size={84} style={{ marginBottom: '20px' }} />
           <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '15px', color: 'var(--text-primary)' }}>QASS</h2>
           <p style={{ fontSize: '16px', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '20px' }}>
             This immersive 3D quantum experience requires a larger screen to run properly.
@@ -1556,7 +1557,7 @@ function App() {
         </div>
 
         <div className="landing-overlay">
-          <div className="hero-badge">QASS · Quantum Algorithm State Simulator</div>
+          <div className="hero-badge"><QassLogo size={22} intro title="" />QASS · Quantum Algorithm State Simulator</div>
           <h1 className="hero-title">Quantum Reality. <span>Decoded.</span></h1>
           <p className="hero-subtitle">
             Step out of the textbook. Experience the profound mechanics of quantum computing through beautiful, real-time, interactive 3D simulations.
@@ -1873,7 +1874,7 @@ function App() {
         <div className="sidebar-wrapper">
           <div className={`sidebar-panel lg-pane ${isSidebarOpen ? '' : 'collapsed'}`}>
             <div className="sidebar-branding">
-              <img src="/logo.jpg" alt="Logo" />
+              <QassLogo size={34} />
               <div className="sidebar-branding-text">
                 <span className="sidebar-branding-title">QASS</span>
                 <span className="sidebar-branding-tag">Interactive Suite</span>
