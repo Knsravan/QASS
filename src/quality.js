@@ -24,11 +24,18 @@
  * never back into a tier that has already failed twice. Steady 30 fps counts
  * as slow too: smooth matters more than the last bit of sharpness.
  *
- * The tier is remembered for the tab (sessionStorage). `?quality=low`,
- * `medium`, `high` or `minimal` in the address pins it, for testing.
+ * The first tier for a device comes from the loading screen's device test
+ * (BootLoader.jsx, deviceBench.js), saved with the device's GPU name
+ * (localStorage), so later visits start where the last one left off. Until a
+ * test has run, the guess above stands. `?quality=low`, `medium`, `high` or
+ * `minimal` in the address pins a tier, for testing.
+ *
+ * The landing page always shows everything at high (setLandingMode): the
+ * tiers only decide how the simulator runs.
  */
 
-const KEY = 'quantumUI_quality';
+const KEY = 'quantumUI_quality';      // this tab's tier (sessionStorage)
+const DEVICE_KEY = 'quantumUI_device'; // the device test's result (localStorage)
 export const TIERS = ['minimal', 'low', 'medium', 'high'];
 
 const deviceDpr = () => (typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1);
@@ -50,7 +57,7 @@ const HITCH_SHARE = 0.1;  // this share of hitches in a second is slow too
 
 // ─── Device guess ───────────────────────────────────────────────────────────
 
-function gpuName() {
+export function gpuName() {
   try {
     const canvas = document.createElement('canvas');
     const gl = canvas.getContext('webgl', { failIfMajorPerformanceCaveat: false });
@@ -95,14 +102,29 @@ const pinned = (() => {
 let state = null;
 const listeners = new Set();
 
+let gpu = null; // this device's GPU, asked once
+const thisGpu = () => (gpu ||= gpuName());
+
+/** The device test's saved result, if it was for this device's GPU. */
+export function deviceProfile() {
+  try {
+    const p = JSON.parse(localStorage.getItem(DEVICE_KEY) || 'null');
+    if (p && TIERS.includes(p.tier) && p.gpu === thisGpu().name) return p;
+  } catch { /* none */ }
+  return null;
+}
+
 function init() {
   if (state) return state;
   let stored = null;
   try { stored = JSON.parse(sessionStorage.getItem(KEY) || 'null'); } catch { /* fresh */ }
+  const profile = deviceProfile();
   if (pinned) {
     state = { tier: pinned, why: 'pinned by ?quality', ceiling: pinned, failed: {} };
   } else if (stored && TIERS.includes(stored.tier)) {
     state = { ...stored, why: `remembered: ${stored.why}` };
+  } else if (profile) {
+    state = { tier: profile.tier, why: `device test: ${profile.why}`, ceiling: profile.ceiling || 'high', failed: profile.failed || {} };
   } else {
     const g = guessTier();
     state = { tier: g.tier, why: g.why, ceiling: 'high', failed: {} };
@@ -111,21 +133,55 @@ function init() {
   return state;
 }
 
-// CSS reads the tier too (App.css: solid glass on minimal).
-function mark() {
-  try { document.documentElement.dataset.quality = state.tier; } catch { /* no DOM */ }
+/** Records the loading screen's device test and switches to its tier. */
+export function applyDeviceTest(tier, why) {
+  init();
+  if (pinned || !TIERS.includes(tier)) return;
+  state.ceiling = 'high';
+  state.failed = {};
+  try {
+    localStorage.setItem(DEVICE_KEY, JSON.stringify({ tier, why, gpu: thisGpu().name, at: Date.now(), ceiling: 'high', failed: {} }));
+  } catch { /* this visit only */ }
+  setTier(tier, `device test: ${why}`, true);
 }
 
+// ─── Landing: always high ───────────────────────────────────────────────────
+
+let landing = false;
+/** While the landing page shows, every scene and lens gets the high tier. */
+export function setLandingMode(on) {
+  init();
+  if (landing === on) return;
+  landing = on;
+  snapshot = null;
+  mark();
+  settleUntil = performance.now() + SETTLE_MS;
+  listeners.forEach((fn) => fn(getQuality()));
+}
+export const isLandingMode = () => landing;
+
+// CSS reads the tier too (App.css: solid glass on minimal).
+function mark() {
+  try { document.documentElement.dataset.quality = landing ? 'high' : state.tier; } catch { /* no DOM */ }
+}
+
+// The tab keeps its tier; the device profile follows the live governor, so
+// the next visit starts from how this one ended.
 function save() {
   try { sessionStorage.setItem(KEY, JSON.stringify({ tier: state.tier, why: state.why, ceiling: state.ceiling, failed: state.failed })); } catch { /* this page only */ }
+  try {
+    const p = JSON.parse(localStorage.getItem(DEVICE_KEY) || 'null');
+    if (p) localStorage.setItem(DEVICE_KEY, JSON.stringify({ ...p, tier: state.tier, ceiling: state.ceiling, failed: state.failed }));
+  } catch { /* none */ }
 }
 
 let snapshot = null;
 export function getQuality() {
   const s = init();
-  if (!snapshot || snapshot.tier !== s.tier) {
-    const k = SETTINGS[s.tier];
-    snapshot = { tier: s.tier, ...k, dpr: k.dpr() };
+  const tier = landing ? 'high' : s.tier;
+  if (!snapshot || snapshot.tier !== tier) {
+    const k = SETTINGS[tier];
+    snapshot = { tier, ...k, dpr: k.dpr() };
   }
   return snapshot;
 }
@@ -140,8 +196,8 @@ export function subscribeQuality(fn) {
   return () => listeners.delete(fn);
 }
 
-function setTier(tier, why) {
-  if (tier === state.tier) return;
+function setTier(tier, why, force = false) {
+  if (tier === state.tier && !force) return;
   state.tier = tier;
   state.why = why;
   save();
@@ -156,7 +212,7 @@ export function settleQuality(ms = SETTLE_MS) {
 }
 
 export function resetQuality() {
-  try { sessionStorage.removeItem(KEY); } catch { /* nothing stored */ }
+  try { sessionStorage.removeItem(KEY); localStorage.removeItem(DEVICE_KEY); } catch { /* nothing stored */ }
 }
 
 // ─── Frame-time governor ────────────────────────────────────────────────────
@@ -212,7 +268,7 @@ export function startQualityGovernor() {
 
   const tick = (now) => {
     raf = requestAnimationFrame(tick);
-    if (document.hidden || now < settleUntil || !last) {
+    if (document.hidden || landing || now < settleUntil || !last) {
       last = now;
       windowStart = now;
       frames.length = 0;
