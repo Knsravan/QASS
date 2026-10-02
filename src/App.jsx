@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Stars, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing';
@@ -1164,6 +1164,11 @@ function LandingBackground() {
   const ring2Ref = useRef();
   const ring3Ref = useRef();
   const starsRef = useRef();
+  // The sphere sits at the right edge of the screen, clear of the headline,
+  // copy and cards in the middle: 38% of the visible width (at its depth)
+  // from the centre, whatever the window's shape.
+  const viewportWidth = useThree((state) => state.viewport.width);
+  const sphereX = viewportWidth * 0.38;
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
@@ -1189,13 +1194,14 @@ function LandingBackground() {
       <ambientLight intensity={0.1} />
       <pointLight position={[10, 10, 10]} color="#00f2fe" intensity={8} distance={50} />
       <pointLight position={[-10, -10, -10]} color="#f093fb" intensity={8} distance={50} />
-      <pointLight position={[0, 0, 0]} color="#ffffff" intensity={2} distance={10} />
-
       <group ref={starsRef}>
         <Stars radius={100} depth={50} count={3000} factor={4} saturation={1} fade speed={1.5} />
       </group>
 
-      <group position={[4, 0, 0]}>
+      <group position={[sphereX, 0, 0]} scale={0.85}>
+        {/* The core's own light, inside the glass. Left outside the shell it
+            showed as a sharp glint on its clearcoat in the middle of the page. */}
+        <pointLight position={[0, 0, 0]} color="#ffffff" intensity={2} distance={10} />
         <mesh ref={coreRef}>
           <icosahedronGeometry args={[1.5, 0]} />
           <meshStandardMaterial color="#ffffff" emissive="#00f2fe" emissiveIntensity={4} wireframe={false} />
