@@ -46,6 +46,12 @@ export const LIQUID_GLASS_TARGETS = [
   { selector: '.hero-badge, .section-title', variant: 'regular', lens: true, skin: true },
   { selector: '.idle-fact-ticker, .mobile-blocker-card', variant: 'thick', lens: true, skin: true },
   { selector: '.glass-tooltip, .glass-card, .glass-panel, .glass-panel-thick, .compact-hud-card', variant: 'thick', lens: true, skin: true },
+  // Module panels and cards built on the old glass utility class.
+  { selector: '.glass-interactive', variant: 'thick', lens: true, skin: true },
+  // Glass styled directly in a module (an inline backdrop-filter): it gets the
+  // lens and the bright-beam dimming but keeps its own colours. Checked last,
+  // so a surface with one of the classes above is handled by that entry.
+  { selector: '[style*="backdrop-filter"]:not([style*="backdrop-filter: none"])', variant: 'thick', lens: true, skin: false },
 ];
 
 const ALL_TARGETS = LIQUID_GLASS_TARGETS.map((t) => t.selector).join(', ');
@@ -348,7 +354,10 @@ export function applyLiquidGlass(node, target, geometry = measureGlass(node)) {
   node.style.backdropFilter = 'none';
   node.style.webkitBackdropFilter = 'none';
   node.style.setProperty('--lg-backdrop-base', base);
-  node.style.setProperty('--lg-bw', `${border}px`);
+  // Glass with the app's skin redraws its own rim, so the lens covers the
+  // border too. Glass that keeps its own look keeps its border crisp: the lens
+  // sits inside it, so it never bends the surface's own ring.
+  node.style.setProperty('--lg-bw', target.skin ? `${border}px` : '0px');
   node._lgVariant = { blur, saturation };
   lensed.add(node);
   const cached = filterCache.get(`${w}x${h}f${blur}`);
