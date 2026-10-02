@@ -125,6 +125,9 @@ export default function DisplayPanel({ open, anchor, onClose }) {
       aria-labelledby={titleId}
       style={{ top: pos.top, left: pos.left, width: pos.width }}
     >
+      {/* The content scrolls inside the glass, so the glass (and its blur)
+          stays put. */}
+      <div className="dp-scroll">
       <div className="dp-head">
         <h2 id={titleId}>Display &amp; accessibility</h2>
         <Fps />
@@ -163,6 +166,7 @@ export default function DisplayPanel({ open, anchor, onClose }) {
       <div className="dp-foot">
         <button type="button" className="dp-reset" onClick={() => setDisplayLevel('auto')}>Reset to recommended</button>
         <span>Saved on this device</span>
+      </div>
       </div>
     </div>,
     document.body,

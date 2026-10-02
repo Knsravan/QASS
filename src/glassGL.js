@@ -7,7 +7,7 @@
  * (CSS, see below), a thin veil, specular light on the rim (from the
  * top-left, swaying slowly, moved by device tilt), a soft shadow, touch light
  * from the finger, light/dark adaptation, and glass pieces that flow into each
- * other like drops when they come close.
+ * other like drops when they come close (the top bar's pieces).
  *
  * How: every scene canvas carries a GlassLayer (QualityScene.jsx). After the
  * scene (and its glow) has drawn, the layer copies the frame into a texture
@@ -32,8 +32,12 @@ export const MAX_GLASS = 16;
 const SELECTOR = LIQUID_GLASS_TARGETS.map((t) => t.selector).join(', ');
 const COVER = 0.8;            // a canvas must cover this share of the glass
 const FROST_PX = 1.2;         // Clear glass
-const BIG = 140;              // shorter side above this: big glass that carries text
-const BIG_EDGE = 10;          // its CSS blur starts this far inside the rim
+const BIG = 140;              // shorter side above this: big glass (Medium's small lens)
+const TEXT_GLASS = 60;        // shorter side above this: glass that carries text
+                              // (cards, panels, tooltips) gets the soft inner blur
+const BIG_EDGE = 10;          // that blur starts this far inside the rim
+const PRESSABLE = 'button, [role="button"], [role="tab"], a[href]';
+const MORPH_GROUP = '.lg-nav'; // only these pieces flow together
 const MORPH_PX = 5;           // pieces closer than this flow together
 const LIGHT_DEG = 225;        // light from the top-left (screen angle)
 const SWAY_DEG = 35;
@@ -77,7 +81,11 @@ let pressed = null;
 function watchPress() {
   if (pressWatched) return;
   pressWatched = true;
-  const glassOf = (e) => e.target?.closest?.('[data-gl]');
+  // Touch light is for buttons only, not cards or panels.
+  const glassOf = (e) => {
+    const el = e.target?.closest?.('[data-gl]');
+    return el && el.matches(PRESSABLE) ? el : null;
+  };
   window.addEventListener('pointerdown', (e) => {
     const el = glassOf(e);
     if (!el) return;
@@ -128,6 +136,29 @@ function opacityOf(el, s, now) {
 
 const later = (a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? b : a);
 
+// Paint order, roughly as CSS stacks it: the z-index of every positioned
+// ancestor (outermost first), then document order. Overlapping glass draws
+// only the top piece where they overlap.
+function stackKey(el, s, now) {
+  if (s.zAt && now - s.zAt < 1000) return s.z;
+  const chain = [];
+  for (let n = el; n && n !== document.body; n = n.parentElement) {
+    const cs = getComputedStyle(n);
+    if (cs.position !== 'static' && cs.zIndex !== 'auto') chain.unshift(parseInt(cs.zIndex, 10) || 0);
+  }
+  s.z = chain;
+  s.zAt = now;
+  return chain;
+}
+function paintOrder(a, b) {
+  const za = a.z; const zb = b.z;
+  for (let i = 0; i < Math.max(za.length, zb.length); i++) {
+    const x = za[i] ?? 0; const y = zb[i] ?? 0;
+    if (x !== y) return x - y;
+  }
+  return a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
+}
+
 /** The glass to draw this frame, per canvas. Computed once per frame. */
 export function glassFrame() {
   const now = document.timeline?.currentTime ?? performance.now();
@@ -163,10 +194,11 @@ export function glassFrame() {
     s.glow += (s.glowT - s.glow) * Math.min(1, dt * (s.glowT > s.glow ? 14 : 4));
     const list = byCanvas.get(best.c) || [];
     if (list.length >= MAX_GLASS) continue;
-    list.push({ el, r, s, opacity, radii: radiiOf(el, s, r.width, r.height) });
+    list.push({ el, r, s, opacity, radii: radiiOf(el, s, r.width, r.height), z: stackKey(el, s, now), group: el.closest(MORPH_GROUP) ? 1 : 0 });
     byCanvas.set(best.c, list);
     keep.add(el);
   }
+  for (const list of byCanvas.values()) list.sort(paintOrder);
   for (const el of marked) {
     if (keep.has(el)) continue;
     el.removeAttribute('data-gl');
@@ -176,7 +208,7 @@ export function glassFrame() {
   // Big glass: the soft inner blur, its corners following the glass's.
   for (const list of byCanvas.values()) {
     for (const g of list) {
-      const big = Math.min(g.r.width, g.r.height) > BIG;
+      const big = Math.min(g.r.width, g.r.height) > TEXT_GLASS;
       if (big !== g.el.hasAttribute('data-gl-big')) g.el.toggleAttribute('data-gl-big', big);
       if (big) {
         const ir = `${Math.max(0, g.radii[2] - BIG_EDGE).toFixed(1)}px`;
@@ -214,7 +246,7 @@ uniform vec4 uBox[MAX];    // centre x, y, half width, half height
 uniform vec4 uRad[MAX];    // corner radii: top-right, bottom-right, top-left, bottom-left
 uniform vec4 uA[MAX];      // bevel, frost, light/dark (0..1), dim (0..1)
 uniform vec4 uB[MAX];      // touch x, y, touch light, opacity
-uniform vec4 uC[MAX];      // lens gain
+uniform vec4 uC[MAX];      // lens gain, morph group (1: flows into the others in it)
 
 float sdRound(vec2 p, vec2 b, vec4 r) {
   r.xy = (p.x > 0.0) ? r.xy : r.zw;
@@ -227,17 +259,26 @@ float smin(float a, float b, float k) {
   float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
   return mix(b, a, h) - k * h * (1.0 - h);
 }
-float scene(vec2 p, out int idx) {
-  float d = 1e5; float best = 1e5; idx = 0;
+float piece(vec2 p, int i) { return sdRound(p - uBox[i].xy, uBox[i].zw, uRad[i]); }
+// The glass field: pieces in a morph group flow together, the rest are
+// separate. Pieces come in paint order; where pieces overlap, \`top\` is the
+// uppermost one under p and \`inside\` how many contain it.
+float scene(vec2 p, out int idx, out int top, out int inside) {
+  float dg = 1e5; float dn = 1e5; float best = 1e5; idx = 0; top = -1; inside = 0;
   for (int i = 0; i < MAX; i++) {
     if (i >= uN) break;
-    float di = sdRound(p - uBox[i].xy, uBox[i].zw, uRad[i]);
-    d = smin(d, di, uMorph);
+    float di = piece(p, i);
+    if (uC[i].y > 0.5) dg = smin(dg, di, uMorph); else dn = min(dn, di);
     if (di < best) { best = di; idx = i; }
+    if (di < 0.0) { top = i; inside++; }
   }
-  return d;
+  return min(dg, dn);
 }
-float sd(vec2 p) { int k; return scene(p, k); }
+float sd(vec2 p) { int k; int t; int c; return scene(p, k, t, c); }
+float sdTop(vec2 p, int top) {
+  for (int i = 0; i < MAX; i++) { if (i == top) return piece(p, i); }
+  return 1e5;
+}
 vec4 at(vec2 p) { return texture2D(uFrame, clamp(p / uSize, vec2(0.0), vec2(1.0))); }
 vec4 frost(vec2 p, float px) {
   if (px < 0.6) return at(p);
@@ -251,7 +292,11 @@ vec4 frost(vec2 p, float px) {
 void main() {
   vec2 p = gl_FragCoord.xy;
   vec4 src = at(p);
-  int idx; float d = scene(p, idx);
+  int idx; int top; int inside;
+  float d = scene(p, idx, top, inside);
+  // Overlapping glass: only the uppermost piece draws there.
+  bool own = inside > 1;
+  if (own) { idx = top; d = sdTop(p, top); }
   float s = uScale;
   if (d > 30.0 * s) { gl_FragColor = src; return; }
 
@@ -264,7 +309,9 @@ void main() {
   if (d < 1.0) {
     vec4 A = uA[idx]; vec4 B = uB[idx]; vec4 C = uC[idx];
     float e = 0.7 * s;
-    vec2 n = normalize(vec2(sd(p + vec2(e, 0.0)) - sd(p - vec2(e, 0.0)), sd(p + vec2(0.0, e)) - sd(p - vec2(0.0, e))) + 1e-6);
+    vec2 n = own
+      ? normalize(vec2(sdTop(p + vec2(e, 0.0), top) - sdTop(p - vec2(e, 0.0), top), sdTop(p + vec2(0.0, e), top) - sdTop(p - vec2(0.0, e), top)) + 1e-6)
+      : normalize(vec2(sd(p + vec2(e, 0.0)) - sd(p - vec2(e, 0.0)), sd(p + vec2(0.0, e)) - sd(p - vec2(0.0, e))) + 1e-6);
     float din = max(-d, 0.0);
     float bev = A.x * s;
     float t = clamp(din / bev, 0.0, 1.0);
@@ -327,7 +374,7 @@ export function fillGlassUniforms(u, pieces, canvasRect, bufW, bufH, lens) {
     // Touch light only on glass that is pressed.
     B[n].set((st.gx - canvasRect.left) * s, bufH - (st.gy - canvasRect.top) * s, st.glow, g.opacity);
     // "Small lens": big glass bends less on the medium level.
-    C[n].set(lens === 'small' && big ? 0.6 : 1, 0, 0, 0);
+    C[n].set(lens === 'small' && big ? 0.6 : 1, g.group, 0, 0);
     n++;
   }
   u.uN.value = n;
