@@ -5285,3 +5285,162 @@ div:has(> canvas) {
 :root[data-quality="minimal"] .angle-pill {
   background: color-mix(in srgb, var(--g) 45%, rgb(20, 24, 33));
 }
+
+/* =============================================================================
+   LANDING EXIT: Initialize Simulator pressed
+   Cards, copy and button shrink away (transform only at first, so their glass
+   keeps its lens; the fade comes last), the badge's mark is hidden the moment
+   its copy starts to glide to the loading screen (BootLoader.jsx).
+   ============================================================================= */
+.landing-container.landing-exit .landing-overlay {
+  pointer-events: none;
+}
+
+.landing-container.landing-exit .landing-overlay > * {
+  animation: landingVanish 0.9s cubic-bezier(.6, 0, .4, 1) both;
+}
+
+.landing-container.landing-exit .landing-overlay > :nth-child(2) { animation-delay: 60ms; }
+.landing-container.landing-exit .landing-overlay > :nth-child(3) { animation-delay: 120ms; }
+.landing-container.landing-exit .landing-overlay > :nth-child(4) { animation-delay: 180ms; }
+.landing-container.landing-exit .landing-overlay > :nth-child(5) { animation-delay: 240ms; }
+
+.landing-container.landing-exit .hero-badge .qass-logo {
+  visibility: hidden;
+}
+
+@keyframes landingVanish {
+  0% { transform: none; opacity: 1; }
+  70% { transform: scale(.88) translateY(14px); opacity: 1; }
+  100% { transform: scale(.82) translateY(20px); opacity: 0; }
+}
+
+/* =============================================================================
+   LOADING SCREEN (BootLoader.jsx)
+   ============================================================================= */
+.boot {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  display: grid;
+  place-items: center;
+  pointer-events: all;
+  color: #e8eef8;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.boot-bg {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  background:
+    radial-gradient(1px 1px at 12% 22%, rgba(255,255,255,.7), transparent),
+    radial-gradient(1px 1px at 78% 30%, rgba(255,255,255,.55), transparent),
+    radial-gradient(1px 1px at 30% 78%, rgba(255,255,255,.5), transparent),
+    radial-gradient(1px 1px at 64% 84%, rgba(255,255,255,.6), transparent),
+    radial-gradient(1px 1px at 90% 66%, rgba(255,255,255,.45), transparent),
+    radial-gradient(1px 1px at 46% 12%, rgba(255,255,255,.55), transparent),
+    radial-gradient(1px 1px at 22% 52%, rgba(255,255,255,.4), transparent),
+    radial-gradient(1px 1px at 84% 90%, rgba(255,255,255,.5), transparent),
+    radial-gradient(45% 45% at 50% 44%, rgba(62, 230, 255, .07), transparent 70%),
+    radial-gradient(circle at center, #0a0e17 0%, #02040a 100%);
+}
+
+.boot--cover .boot-bg {
+  opacity: 1;
+}
+
+.boot-center {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 26px;
+  transform: translateY(-4vh);
+  transition: transform 0.9s cubic-bezier(.6, 0, .4, 1), opacity 0.9s ease;
+}
+
+.boot-mark {
+  width: 132px;
+  height: 132px;
+  filter: drop-shadow(0 0 22px rgba(62, 230, 255, .45));
+}
+
+.boot-mark .qass-logo {
+  overflow: visible;
+}
+
+.boot-text {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  min-height: 74px;
+  width: min(560px, 86vw);
+  text-align: center;
+  animation: bootTextIn 0.6s ease 1.2s both;
+}
+
+.boot-msg {
+  margin: 0;
+  font-family: 'Deltha', 'Inter', sans-serif;
+  font-size: 15px;
+  letter-spacing: .06em;
+  color: #e8eef8;
+  animation: bootMsgIn 0.45s cubic-bezier(.2, .8, .2, 1);
+}
+
+.boot-detail {
+  margin: 0;
+  min-height: 18px;
+  font: 500 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #93a0b8;
+  font-variant-numeric: tabular-nums;
+}
+
+.boot-bar {
+  width: 180px;
+  height: 2px;
+  margin-top: 6px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, .1);
+  overflow: hidden;
+}
+
+.boot-bar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #3ee6ff, #b06cff);
+  transform-origin: left center;
+  transition: transform 0.6s cubic-bezier(.2, .8, .2, 1);
+  box-shadow: 0 0 8px rgba(62, 230, 255, .7);
+}
+
+.boot--leaving {
+  pointer-events: none;
+}
+
+.boot--leaving .boot-bg {
+  transition: opacity 0.8s ease 0.1s;
+  opacity: 0;
+}
+
+.boot--leaving .boot-center {
+  transform: translateY(-4vh) scale(.82);
+  opacity: 0;
+}
+
+/* Held behind the loading screen while a first visit's test runs. */
+.boot-hold {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at center, #0a0e17 0%, #02040a 100%);
+}
+
+@keyframes bootTextIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes bootMsgIn { from { opacity: 0; transform: translateY(6px); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-container.landing-exit .landing-overlay > * { animation-duration: 0.3s; }
+  .boot-msg, .boot-text { animation: none; }
+  .boot-center { transition-duration: 0.2s; }
+}

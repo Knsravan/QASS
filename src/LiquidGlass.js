@@ -333,8 +333,12 @@ export function applyLiquidGlass(node, target, geometry = measureGlass(node)) {
   node._lgVariant = { blur, saturation };
   lensed.add(node);
   const cached = filterCache.get(`${w}x${h}f${blur}r${radius}`);
-  if (lensAllowed(w, h) && supportsRefraction() && cached) {
-    node.style.setProperty('--lg-backdrop', `url(#${cached}) saturate(${saturation})`);
+  // The landing page's few pieces of glass get their lens at once: it is the
+  // first thing anyone sees and should never start out as plain frost.
+  const canBend = lensAllowed(w, h) && supportsRefraction();
+  const now = cached || (canBend && node.closest('.landing-container') && lensFilterId(w, h, blur, radius));
+  if (canBend && now) {
+    node.style.setProperty('--lg-backdrop', `url(#${now}) saturate(${saturation})`);
   } else {
     // Frosted at once; the lens joins when the browser is idle.
     node.style.setProperty('--lg-backdrop', base);

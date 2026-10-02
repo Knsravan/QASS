@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Stars, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
@@ -37,7 +37,8 @@ import './liquid-glass/liquid-glass.css';
 import './App.css';
 import { SCENE_GL } from './sceneGl';
 import { QualityCanvas, QualityComposer, useCount } from './QualityScene';
-import { settleQuality } from './quality';
+import { settleQuality, setLandingMode, deviceProfile } from './quality';
+import { startBoot } from './BootLoader';
 import QassLogo from './QassLogo';
 
 // Self-contained modules are split into their own chunks so the landing page
@@ -1185,8 +1186,11 @@ const CircuitVisualizer = ({ moduleId, gateId, multiGatesStep = 0, qubitCount = 
 // ==========================================
 // CINEMATIC LANDING BACKGROUND
 // ==========================================
-function LandingBackground() {
+function LandingBackground({ exiting = false }) {
   const starsRef = useRef();
+  const cloudRef = useRef();
+  const exitStart = useRef(0);
+  const setFrameloop = useThree((state) => state.setFrameloop);
   const starCount = useCount(3000);
   // The orbital cloud sits at the right edge of the screen, clear of the
   // headline, copy and cards in the middle: 38% of the visible width (at its
@@ -1201,6 +1205,18 @@ function LandingBackground() {
     state.camera.lookAt(0, 0, 0);
 
     if (starsRef.current) { starsRef.current.rotation.y += 0.0005; starsRef.current.rotation.x += 0.0002; }
+
+    // Leaving: the orbital cloud and its ribbons collapse into their centre
+    // while turning; only the stars stay. Once gone, the scene stops drawing
+    // so the loading screen's device test has the GPU to itself.
+    const cloud = cloudRef.current;
+    if (!exiting || !cloud) return;
+    if (!exitStart.current) exitStart.current = t;
+    const p = Math.min(1, (t - exitStart.current) / 1.1);
+    const e = p * p * (3 - 2 * p);
+    cloud.scale.setScalar(0.85 * (1 - e));
+    cloud.rotation.y += 0.02 * e;
+    if (p >= 1) { cloud.visible = false; setFrameloop('never'); }
   });
 
   return (
@@ -1213,7 +1229,7 @@ function LandingBackground() {
         <Stars radius={100} depth={50} count={starCount} factor={4} saturation={1} fade speed={1.5} />
       </group>
 
-      <group position={[cloudX, 0, 0]} scale={0.85}>
+      <group ref={cloudRef} position={[cloudX, 0, 0]} scale={0.85}>
         <LandingOrbitalCloud />
       </group>
     </>
@@ -1284,7 +1300,11 @@ const GatesModuleView = ({ step, applied, theme, isSidebarOpen, uiBoundsStyle, o
 // ==========================================
 function App() {
   const [hasStarted, setHasStarted] = useState(() => {
-    return readStorage('quantumUI_initialized') === 'true';
+    const started = readStorage('quantumUI_initialized') === 'true';
+    // The landing page always shows everything at the high tier; set before
+    // its scene is made (a canvas's antialiasing is fixed at creation).
+    if (!started) setLandingMode(true);
+    return started;
   });
 
   const [theme] = useState('dark');
@@ -1452,10 +1472,34 @@ function App() {
   // Circuit Diagram Accordion State
   const [showCircuit, setShowCircuit] = useState(false);
 
+  // Initialize Simulator: the landing page vanishes, its badge's mark glides
+  // to the loading screen, the device is tested (or its saved result
+  // restored), and the simulator is mounted underneath (BootLoader.jsx).
+  const [leavingLanding, setLeavingLanding] = useState(false);
+  const preloadModules = useCallback(() => Promise.all(Object.values(MODULE_LOADERS).map((load) => load().catch(() => null))), []);
   const handleInitialize = () => {
-    writeStorage('quantumUI_initialized', 'true');
-    setHasStarted(true);
+    if (leavingLanding) return;
+    setLeavingLanding(true);
+    const from = document.querySelector('.hero-badge .qass-logo')?.getBoundingClientRect() || null;
+    startBoot({
+      from,
+      mode: deviceProfile() ? 'restore' : 'full',
+      preload: preloadModules,
+      onSwitch: () => {
+        writeStorage('quantumUI_initialized', 'true');
+        setHasStarted(true);
+      },
+    });
   };
+
+  // A returning visitor who skips the landing page but has never had the
+  // device test gets the loading screen and the full test first.
+  const [booting, setBooting] = useState(() => hasStarted && !isMobile && !deviceProfile());
+  useEffect(() => {
+    if (!booting || window.__qassBootStarted) return;
+    window.__qassBootStarted = true;
+    startBoot({ from: null, mode: 'full', preload: preloadModules, onSwitch: () => setBooting(false) });
+  }, [booting, preloadModules]);
 
   useEffect(() => {
     setQubitCount(1); setIsDecohering(false); setAttemptCopy(false); setNoiseTimer(0);
@@ -1543,16 +1587,18 @@ function App() {
   // ==========================================
   // GATEWAY: CINEMATIC LANDING PAGE
   // ==========================================
+  if (booting) return <div className="boot-hold" />;
+
   if (!hasStarted) {
     return (
-      <div className="landing-container">
+      <div className={`landing-container ${leavingLanding ? 'landing-exit' : ''}`}>
         <LiquidGlassEffects />
         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }}>
           <QualityCanvas
             gl={{ powerPreference: 'high-performance', alpha: true }}
             camera={{ position: [0, 0, 15], fov: 45 }}
           >
-            <LandingBackground />
+            <LandingBackground exiting={leavingLanding} />
           </QualityCanvas>
         </div>
 
