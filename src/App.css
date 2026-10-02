@@ -5826,6 +5826,25 @@ div:has(> canvas) {
   display: none !important;
 }
 
+/* Big glass that carries text (panels, the sidebar, cards): a soft blur
+   inside the rim band, feathered in, so the text reads cleanly. It frosts
+   page elements under the glass too, which the scene can't. The rim keeps
+   the WebGL bend and light. */
+.lg-lensed[data-gl][data-gl-big]::before {
+  inset: 10px;
+  border-radius: var(--gl-ir, 14px);
+  -webkit-backdrop-filter: blur(7px) saturate(1.2) !important;
+  backdrop-filter: blur(7px) saturate(1.2) !important;
+  -webkit-mask-image:
+    linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent),
+    linear-gradient(to bottom, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent),
+    linear-gradient(to bottom, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+  mask-composite: intersect;
+}
+
 /* The top bar's pieces flow together in the glass itself. */
 .lg-nav:has(.lg-bar[data-gl]) :is(.lg-nav-neck, .lg-nav-neck-rim) {
   display: none;
