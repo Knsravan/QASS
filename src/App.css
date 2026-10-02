@@ -4930,7 +4930,7 @@ div:has(> canvas) {
   pointer-events: none;
   transform: none;
   animation: none;
-  background: linear-gradient(135deg,
+  background: linear-gradient(calc(135deg + var(--rim-shift, 0deg)),
       rgba(255, 255, 255, 0.70) 0%,
       rgba(255, 255, 255, 0.18) 28%,
       rgba(255, 255, 255, 0.04) 55%,
@@ -4938,17 +4938,51 @@ div:has(> canvas) {
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-  opacity: 0.75;
+  opacity: min(1, calc(0.75 * var(--rim-gain, 1)));
   transition: opacity 0.3s ease;
 }
 
 .landing-overlay .feature-card.lg:hover::after,
 .landing-overlay .start-btn.lg:hover::after {
-  opacity: 1;
+  opacity: min(1, calc(1 * var(--rim-gain, 1)));
 }
 
 @media (prefers-reduced-motion: reduce) {
   .landing-overlay .feature-card.lg:hover {
     transform: none;
   }
+}
+
+/* =============================================================================
+   GLASS MOTION (glassMotion.js)
+   While a spring drives an element's `scale` / `translate` (jelly press, drag
+   stretch, the mute circle's reach), those two must not also be transitioned,
+   or every frame would ease toward the last one.
+   The neck: the glass that fills the gap when the mute circle melts into the
+   Beginner/Advanced capsule. Its shape is a mask drawn by glassMotion.js.
+   ============================================================================= */
+.lg-moving {
+  transition-property: background, background-color, color, opacity, box-shadow, transform, border-color !important;
+}
+
+.lg-nav-neck,
+.lg-nav-neck-rim {
+  position: absolute;
+  inset: -12px;
+  pointer-events: none;
+  visibility: hidden;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.lg-nav-neck {
+  background: var(--lgs-tint-strong);
+  -webkit-backdrop-filter: blur(8px) saturate(1.5);
+  backdrop-filter: blur(8px) saturate(1.5);
+}
+
+.lg-nav-neck-rim {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.12));
 }
