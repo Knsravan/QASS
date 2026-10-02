@@ -306,6 +306,7 @@ export function applyLiquidGlass(node, target, geometry = measureGlass(node)) {
   node.style.webkitBackdropFilter = 'none';
   node.style.setProperty('--lg-backdrop-base', base);
   node.style.setProperty('--lg-bw', `${border}px`);
+  node._lgVariant = { blur, saturation };
   lensed.add(node);
   const cached = filterCache.get(`${w}x${h}f${blur}`);
   if (lensOn && supportsRefraction() && cached) {
@@ -318,6 +319,26 @@ export function applyLiquidGlass(node, target, geometry = measureGlass(node)) {
       queueLens(node, shapeKey);
     }
   }
+}
+
+// While a lensed element resizes (e.g. the sidebar's width transition), its
+// lens is rebuilt for the new size on every frame, at most once per frame, so
+// the bend follows the edge instead of dropping out until the size settles.
+const liveNodes = new Set();
+let liveFrame = 0;
+function followResize(node) {
+  liveNodes.add(node);
+  if (liveFrame) return;
+  liveFrame = requestAnimationFrame(() => {
+    liveFrame = 0;
+    const sizes = [...liveNodes].filter((n) => n.isConnected).map((n) => [n, Math.round(n.offsetWidth), Math.round(n.offsetHeight)]);
+    liveNodes.clear();
+    for (const [n, w, h] of sizes) {
+      const v = n._lgVariant;
+      if (!lensOn || !v || w < 4 || h < 4) continue;
+      n.style.setProperty('--lg-backdrop', `url(#${lensFilterId(w, h, v.blur)}) saturate(${v.saturation})`);
+    }
+  });
 }
 
 // Watches the document and keeps every floating-layer element in glass,
@@ -339,9 +360,9 @@ export function startLiquidGlass(root = document.body) {
     if (!frame) frame = requestAnimationFrame(flush);
   };
 
-  // A resizing element (e.g. the sidebar's width transition) is rebuilt once
-  // its size has settled, not on every frame of the animation. Meanwhile its
-  // lens, built for the old size, no longer fits, so it shows plain frost.
+  // A resizing element (e.g. the sidebar's width transition) keeps its lens:
+  // followResize() rebuilds it for each new size, every frame. The rest of
+  // the glass (rim, classes) is redone once the size has settled.
   const settleTimers = new WeakMap();
   const sizedOnce = new WeakSet();
   const resizeObserver = new ResizeObserver((entries) => {
@@ -349,8 +370,9 @@ export function startLiquidGlass(root = document.body) {
       const node = entry.target;
       if (sizedOnce.has(node)) {
         if (lensed.has(node) && node._lgBase) {
-          node.style.setProperty('--lg-backdrop', node._lgBase);
           lensQueue.delete(node);
+          if (lensOn && supportsRefraction() && !reducedTransparency()) followResize(node);
+          else node.style.setProperty('--lg-backdrop', node._lgBase);
         }
         delete node.dataset.lgShape;
       } else {

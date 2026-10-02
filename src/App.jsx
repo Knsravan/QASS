@@ -14,6 +14,7 @@ import GlassNavBar from './GlassNavBar';
 import ModuleErrorBoundary from './ModuleErrorBoundary';
 import { startLiquidGlass } from './LiquidGlass';
 import { mountLiquidGlass } from './liquid-glass/liquid-glass';
+import { mountGlassMotion } from './glassMotion';
 import { useDiracAudio } from './useDiracAudio';
 import { useGatesAudio } from './useGatesAudio';
 import { useIdleAudio } from './useIdleAudio';
@@ -299,6 +300,8 @@ const LiquidGlassEffects = () => {
   // surfaces (the skill's image-based map doesn't load in Chrome's
   // backdrop-filter). The scroll-lean loop is off: the app never scrolls.
   useEffect(() => mountLiquidGlass({ magnetic: '.lg-magnetic', glide: false, lens: false }), []);
+  // Jelly press, drag stretch, reactive rims and the top bar's droplet merge.
+  useEffect(() => mountGlassMotion(), []);
   return null;
 };
 

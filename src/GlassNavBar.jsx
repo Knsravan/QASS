@@ -185,6 +185,10 @@ export default function GlassNavBar({ tabs, selectedIndex, onSelect, standalone,
 
   return (
     <nav className="lg-nav" aria-label={ariaLabel}>
+      {/* The glass that joins the capsule and the circle when they melt
+          together; glassMotion.js draws its shape. */}
+      <div className="lg-nav-neck" aria-hidden="true" />
+      <div className="lg-nav-neck-rim" aria-hidden="true" />
       <div className="lg-nav-pill lg-bar">
         <div className="lg-nav-indicator" ref={indicatorRef} aria-hidden="true" />
         <div

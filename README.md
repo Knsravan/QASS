@@ -97,6 +97,16 @@ The sidebar (and its toggle), the top bar (the Beginner / Advanced tabs and the 
 
 `LiquidGlass.js` applies the lens to a `::before` layer of each surface. On the element itself, its drop shadow would shift Chrome's filter coordinates. Lenses are built in idle time for each surface's size and are rebuilt after a resize settles; until then the surface shows plain frost. A frame-rate guard switches every lens back to plain frost for the rest of the session if the machine can't keep up. Disabled (faded) buttons always use plain frost. Cards, tooltips and badges keep the frosted material with a lit rim. Refraction needs a Chromium-based browser; Safari and Firefox get the frosted glass without the bending.
 
+The glass also moves like liquid (`src/glassMotion.js`, springs on CSS `scale` / `translate`):
+
+- **Jelly press:** pressed glass squashes under your finger and wobbles back.
+- **Drag stretch:** dragging while pressed pulls the glass along and stretches it; on release it springs home with the drag's momentum.
+- **Reactive rim:** the light stays fixed at the top-left, but as glass moves its rim shine sloshes behind the motion and brightens with speed, and a press flashes it.
+- **Droplet merge:** in the top bar, the mute circle reaches toward the Beginner / Advanced capsule on hover and melts into it when pressed.
+- **Resizing:** the sidebar keeps its lens while it opens and closes, rebuilt for each new size.
+
+All of it is off with reduced motion.
+
 The tint, rim and highlight come from the Liquid Glass skill in `src/liquid-glass/`, whose custom properties are prefixed `--lgs-` so they never collide with `LiquidGlass.js`'s `--lg-` ones. The mute button leans toward the mouse.
 
 The tab bar's selection indicator is a hand-written spring (damping 0.72, stiffness 320) that stretches while it travels, can be dragged, and can be interrupted mid-flight.
