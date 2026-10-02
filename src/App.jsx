@@ -1929,16 +1929,6 @@ function App() {
       <main className="main-content">
         {/* ── Sidebar Column ── */}
         <div className="sidebar-wrapper">
-          {/* Colour behind the sidebar's glass for it to bend and frost: the
-              open module's accent, or the QASS cyan and violet on the hub. */}
-          <div
-            className="sidebar-glow"
-            aria-hidden="true"
-            style={{ '--glow-a': activeModule?.accent || '#3ee6ff', '--glow-b': '#b06cff' }}
-          >
-            <span className="sidebar-glow-a" />
-            <span className="sidebar-glow-b" />
-          </div>
           <div className={`sidebar-panel lg-pane ${isSidebarOpen ? '' : 'collapsed'}`}>
             <div className="sidebar-branding">
               <QassLogo size={34} />
