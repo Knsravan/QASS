@@ -111,7 +111,6 @@ And it reacts to light (`src/glassLight.js` and the lens itself):
 
 - **Colour split:** the lens bends red, green and blue by slightly different amounts, so the rim shows a faint rainbow fringe.
 - **Light cast below:** floating glass throws a soft cyan / violet glow down and to the right, opposite the top-left light.
-- **Adaptive tone:** glass with something bright in the 3D scene behind it (the landing cards, the top bar, the modules' info cards) turns lighter with dark text, then back.
 - **Tilt:** on phones and tablets, tilting the device moves the rim light and the sheen (iOS asks for permission on the first tap).
 - **Morphing:** tooltips and the glass cards and panels inside modules grow in like a drop of glass, and the sidebar opens and closes on a liquid spring.
 - **Slow computers:** the frame-rate guard first drops only the big lenses (the sidebar, large cards); the small glass keeps bending unless it is still too slow.

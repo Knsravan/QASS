@@ -305,7 +305,7 @@ const LiquidGlassEffects = () => {
   useEffect(() => mountLiquidGlass({ magnetic: '.lg-magnetic', glide: false, lens: false }), []);
   // Jelly press, drag stretch, reactive rims and the top bar's droplet merge.
   useEffect(() => mountGlassMotion(), []);
-  // Shine that follows a phone's tilt; landing cards that turn light over bright 3D.
+  // Shine that follows a phone's tilt.
   useEffect(() => mountGlassLight(), []);
   // ?glassdebug in the address shows the frame rate and lens state.
   useEffect(() => mountGlassDebug(), []);
@@ -1529,9 +1529,7 @@ function App() {
         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }}>
           <Canvas
             dpr={[1, 1.5]}
-            // preserveDrawingBuffer: glassLight.js reads the scene behind the
-            // feature cards to pick their tone.
-            gl={{ powerPreference: 'high-performance', alpha: true, preserveDrawingBuffer: true }}
+            gl={{ powerPreference: 'high-performance', alpha: true }}
             camera={{ position: [0, 0, 15], fov: 45 }}
           >
             <LandingBackground />
