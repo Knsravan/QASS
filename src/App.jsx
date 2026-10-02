@@ -11,6 +11,7 @@ import CameraShifter from './CameraShifter';
 import LandingOrbitalCloud from './LandingOrbitalCloud';
 import GlassNavBar from './GlassNavBar';
 import DisplayPanel, { DisplayPanelIcon } from './DisplayPanel';
+import SidebarPages from './SidebarPages';
 import ModuleErrorBoundary from './ModuleErrorBoundary';
 import { startLiquidGlass } from './LiquidGlass';
 import { mountLiquidGlass } from './liquid-glass/liquid-glass';
@@ -1311,6 +1312,8 @@ function App() {
   const [theme] = useState('dark');
   const [learningMode, setLearningMode] = useState(() => readStorage('quantumUI_learningMode') === 'advanced' ? 'advanced' : 'beginner');
   const [activeModuleId, setActiveModuleId] = useState(moduleFromHash); // the hub unless the URL names a module
+  const [listFor, setListFor] = useState(null); // the module the sidebar went "back" from
+  const openModulePage = useCallback((id) => { setListFor(null); setActiveModuleId(id); }, []);
   const [lastClosedModuleId, setLastClosedModuleId] = useState(() => readModuleSetting('quantumUI_lastModule'));
 
   const [qubitCount, setQubitCount] = useState(1);
@@ -1887,6 +1890,12 @@ function App() {
     }
   };
 
+  // The open module's page shows in the sidebar until "back" (which keeps the
+  // module open); opening any module, from anywhere, shows its page again.
+  const activeModule = curriculumData.find((m) => m.id === activeModuleId) || null;
+  const pageModule = isSidebarOpen ? activeModule : null;
+  const modulePage = pageModule && listFor !== pageModule.id ? pageModule : null;
+
   const currentSidebarWidth = isSidebarOpen ? 420 : 112;
   const uiBoundsStyle = {
     position: 'absolute',
@@ -1929,9 +1938,19 @@ function App() {
               </div>
             </div>
 
-            <div className="sidebar-scrollable-content">
-              {learningMode === 'beginner' ? (
-                curriculumData.map((mod) => {
+            {learningMode === 'beginner' ? (
+              <SidebarPages
+                pushed={!!modulePage}
+                page={pageModule && {
+                  mod: pageModule,
+                  prev: curriculumData[curriculumData.indexOf(pageModule) - 1],
+                  next: curriculumData[curriculumData.indexOf(pageModule) + 1],
+                  content: renderModuleContent(pageModule),
+                }}
+                icon={(mod) => <QuantumModuleIcon moduleId={mod.id} isActive color={mod.accent || '#38bdf8'} size={22} />}
+                onBack={() => setListFor(activeModuleId)}
+                onGo={openModulePage}
+                list={curriculumData.map((mod) => {
                   const isActive = activeModuleId === mod.id;
                   const accent = mod.accent || '#38bdf8';
                   return (
@@ -1943,10 +1962,12 @@ function App() {
                       <button
                         type="button"
                         className="glass-chip"
+                        data-module={mod.id}
                         aria-label={mod.title}
                         aria-pressed={isActive}
                         title={isSidebarOpen ? undefined : mod.title}
-                        onClick={() => setActiveModuleId(isActive ? null : mod.id)}
+                        // Open: the module's page. Collapsed: the icon turns the module on or off.
+                        onClick={() => (isSidebarOpen ? openModulePage(mod.id) : setActiveModuleId(isActive ? null : mod.id))}
                       >
                         <div className="chip-indicator" />
                         <div className="chip-content-wrap">
@@ -1962,19 +1983,15 @@ function App() {
                             />
                           </div>
                           {isSidebarOpen && <span className="chip-title">{mod.title}</span>}
+                          {isSidebarOpen && <span className="chip-go" aria-hidden="true">›</span>}
                         </div>
                       </button>
-                      <div className={`chip-content-drawer ${isActive && isSidebarOpen ? 'open' : ''}`}>
-                        <div className="drawer-inner">
-                          <div className="drawer-content-wrapper">
-                            {isActive && isSidebarOpen && renderModuleContent(mod)}
-                          </div>
-                        </div>
-                      </div>
                     </div>
                   );
-                })
-              ) : (
+                })}
+              />
+            ) : (
+              <div className="sidebar-scrollable-content">
                 <div
                   className="sidebar-badge sidebar-advanced-placeholder"
                   title={isSidebarOpen ? undefined : 'Advanced Sandbox Loading...'}
@@ -1988,8 +2005,8 @@ function App() {
                     </>
                   )}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           <button
