@@ -11,6 +11,7 @@ import CameraShifter from './CameraShifter';
 import { useDecoherenceAudio } from './useDecoherenceAudio';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { SCENE_GL } from './sceneGl';
+import GlassSlider from './GlassSlider';
 
 // ============================================================
 // COLORS
@@ -569,19 +570,14 @@ function DensityMatrixDisplay({ noiseLevel, onSliderChange }) {
 
       {onSliderChange && (
         <div style={{ marginTop: '8px' }}>
-          <input
-            type="range"
+          <GlassSlider
             min="0"
             max="100"
             value={Math.round(noiseLevel * 100)}
             onChange={(e) => onSliderChange(Number(e.target.value) / 100)}
-            style={{
-              width: '100%',
-              accentColor: tColor,
-              cursor: 'pointer',
-              height: '5px',
-              display: 'block',
-            }}
+            color={tColor}
+            format={(v) => `${v}%`}
+            aria-label="Noise level"
           />
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: '#64748b', marginTop: '4px', fontFamily: "'Inter', sans-serif" }}>
             <span style={{ color: CG, fontWeight: '700' }}>◀ Pure (1.0)</span>

@@ -12,6 +12,7 @@ import { useEntanglementAudio } from './useEntanglementAudio';
 import CameraShifter from './CameraShifter';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { SCENE_GL } from './sceneGl';
+import GlassSlider from './GlassSlider';
 
 // ==========================================
 // 4 MAXIMALLY ENTANGLED BELL STATES
@@ -916,8 +917,7 @@ function EntanglementOverlay({
                 {distanceMultiplier >= 1.6 && '🌌 1,000 Light Years'}
               </span>
             </div>
-            <input
-              type="range"
+            <GlassSlider
               min="1.0"
               max="2.0"
               step="0.05"
@@ -926,7 +926,9 @@ function EntanglementOverlay({
                 setDistanceMultiplier(parseFloat(e.target.value));
                 if (audio?.playDistanceShift) audio.playDistanceShift();
               }}
-              style={{ width: '100%', accentColor: currentBell.color, cursor: 'pointer', height: '4px' }}
+              color={currentBell.color}
+              format={(v) => `${v.toFixed(2)}×`}
+              aria-label="Spatial separation"
             />
           </div>
 

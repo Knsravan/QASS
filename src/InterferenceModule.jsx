@@ -14,6 +14,7 @@ import { InterferenceShatter } from './InterferenceShatter';
 import { InterferenceSupernova } from './InterferenceSupernova';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { SCENE_GL } from './sceneGl';
+import GlassSlider from './GlassSlider';
 
 const COLORS = {
   primary: '#0ea5e9', // Cyan
@@ -1093,8 +1094,7 @@ function InterferenceOverlay({ theme, stage, setStage, subStage, setSubStage, in
 
               {/* Interactive Range Slider */}
               <div style={{ marginBottom: '12px' }}>
-                <input 
-                  type="range" 
+                <GlassSlider
                   min={-Math.PI} 
                   max={Math.PI} 
                   step={0.01} 
@@ -1113,16 +1113,11 @@ function InterferenceOverlay({ theme, stage, setStage, subStage, setSubStage, in
                       else if (zone === 'destructive' && audio?.playDestructive) audio.playDestructive();
                     }
                   }}
-                  style={{
-                    width: '100%',
-                    height: '6px',
-                    borderRadius: '4px',
-                    accentColor: isConstructive ? '#00e5ff' : isDestructive ? '#f43f5e' : '#c084fc',
-                    cursor: 'pointer',
-                    background: 'linear-gradient(90deg, #f43f5e 0%, #c084fc 25%, #00e5ff 50%, #c084fc 75%, #f43f5e 100%)',
-                    outline: 'none',
-                    margin: '4px 0'
-                  }}
+                  color={isConstructive ? '#00e5ff' : isDestructive ? '#f43f5e' : '#c084fc'}
+                  track="linear-gradient(90deg, #f43f5e 0%, #c084fc 25%, #00e5ff 50%, #c084fc 75%, #f43f5e 100%)"
+                  format={(v) => `${(v / Math.PI).toFixed(2)}π`}
+                  aria-label="Relative phase"
+                  style={{ margin: '4px 0' }}
                 />
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: '#64748b', fontWeight: 600 }}>
                   <span>-π</span>

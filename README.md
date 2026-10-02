@@ -118,6 +118,14 @@ And it reacts to light (`src/glassLight.js` and the lens itself):
 
 Every glass surface in the app is lensed now, tooltips, info cards and labels included.
 
+The controls are glass too:
+
+- **Sliders** (`src/GlassSlider.jsx`): the noise, distance, qubit and phase sliders are the iOS 26 capsule, a glass track with a glowing fill and a clear capsule lens that bends the fill under it. The capsule swells when grabbed, stretches with the drag and shows the value in a small glass bubble. The browser's own slider stays underneath, invisible, so the keyboard and screen readers work as before.
+- **Keyboard focus:** every glass control, Back and Next included, shows the same glowing cyan rim when reached with Tab.
+- **Angle pill:** the angle shown at the end of a gate's rotation is glass tinted in the gate's colour.
+- **Reduce transparency:** with that system setting on, every piece of glass turns solid dark with the same shape and rim instead of see-through.
+- **Selection:** selected text gets a soft cyan highlight.
+
 To check the glass on a real machine, open the app with `?glassdebug` in the address (for example `https://qass.vercel.app/?glassdebug`). A small readout shows the frame rate, whether the browser can bend, the slow-computer fallback state and how many glass surfaces are bending, with a button to reset the fallback.
 
 The tint, rim and highlight come from the Liquid Glass skill in `src/liquid-glass/`, whose custom properties are prefixed `--lgs-` so they never collide with `LiquidGlass.js`'s `--lg-` ones. The mute button leans toward the mouse.

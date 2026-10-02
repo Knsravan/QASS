@@ -17,6 +17,7 @@ import { useExponentialAudio } from './useExponentialAudio';
 import CameraShifter from './CameraShifter';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { SCENE_GL } from './sceneGl';
+import GlassSlider from './GlassSlider';
 
 // ==========================================
 // HELPER CONSTANTS & QUATERNIONS
@@ -1009,8 +1010,7 @@ export default function ExponentialModule({ theme = 'dark', isSidebarOpen = true
               <span>Physical Qubits (<InlineMath math={String.raw`N`} />): <span style={{ color: '#38bdf8' }}>{qubitCount}</span></span>
               <span>Basis States (<InlineMath math={String.raw`2^N`} />): <span style={{ color: '#c084fc' }}>{numStates} States</span></span>
             </div>
-            <input
-              type="range"
+            <GlassSlider
               min="1"
               max="5"
               step="1"
@@ -1020,7 +1020,9 @@ export default function ExponentialModule({ theme = 'dark', isSidebarOpen = true
                 setQubitCount(val);
                 if (!isGlobalMuted) audio.playQubitAdded(val);
               }}
-              style={{ width: '100%', accentColor: '#a855f7', cursor: 'pointer', height: '5px' }}
+              color="#a855f7"
+              format={(v) => `${v} qubit${v === 1 ? '' : 's'}`}
+              aria-label="Physical qubits"
             />
           </div>
 

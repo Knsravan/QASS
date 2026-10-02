@@ -420,16 +420,7 @@ function QuantumSphereStage({ stepData, applied, isLight, setProgress, setAberra
 
       {/* Angle Label (Shows at end of animation) */}
       <Html position={[axisStart.x * 0.5, axisStart.y * 0.5 + 0.5, axisStart.z * 0.5]} center zIndexRange={[50, 0]}>
-        <div ref={angleLabelRef} style={{
-          background: stepData.color,
-          color: '#000',
-          padding: '2px 8px',
-          borderRadius: '12px',
-          fontWeight: 'bold',
-          fontSize: '12px',
-          boxShadow: `0 0 10px ${stepData.color}`,
-          opacity: 0
-        }}>
+        <div ref={angleLabelRef} className="angle-pill" style={{ '--g': stepData.color, opacity: 0 }}>
           {stepData.angleText}
         </div>
       </Html>

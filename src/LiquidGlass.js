@@ -31,6 +31,8 @@ export const GLASS_VARIANTS = {
   // Large text-bearing surfaces read as thicker glass (Apple: bigger surfaces
   // carry a heavier material so their content stays legible).
   thick: { blur: 18, saturation: 1.5 },
+  // Clear glass: the slider capsule, which shows the fill it bends.
+  clear: { blur: 0.6, saturation: 1.3 },
 };
 
 // Elements on the floating functional layer. `lens`: bend the backdrop at the
@@ -48,6 +50,8 @@ export const LIQUID_GLASS_TARGETS = [
   { selector: '.glass-tooltip, .glass-card, .glass-panel, .glass-panel-thick, .compact-hud-card', variant: 'thick', lens: true, skin: true },
   // Module panels and cards built on the old glass utility class.
   { selector: '.glass-interactive', variant: 'thick', lens: true, skin: true },
+  // The glass slider's capsule (GlassSlider.jsx).
+  { selector: '.gs-knob', variant: 'clear', lens: true, skin: false, nested: true },
   // Glass styled directly in a module (an inline backdrop-filter): it gets the
   // lens and the bright-beam dimming but keeps its own colours. Checked last,
   // so a surface with one of the classes above is handled by that entry.
@@ -332,6 +336,8 @@ export function applyLiquidGlass(node, target, geometry = measureGlass(node)) {
     wanted.push('lg-lensed');
     if (staticPos) wanted.push('lg-lensed--rel');
   }
+  // Reduce transparency: solid instead of see-through (App.css).
+  if (reducedTransparency()) wanted.push('lg-solid');
   node._lgClasses = wanted;
   const missing = wanted.filter((c) => !node.classList.contains(c));
   if (missing.length) node.classList.add(...missing);
@@ -459,8 +465,9 @@ export function startLiquidGlass(root = document.body) {
     for (const target of LIQUID_GLASS_TARGETS) {
       if (!node.matches(target.selector)) continue;
       handled.add(node);
-      if (node.parentElement?.closest(ALL_TARGETS)) {
-        // Glass never stacks on glass: nested surfaces become plain sheets.
+      if (!target.nested && node.parentElement?.closest(ALL_TARGETS)) {
+        // Glass never stacks on glass: nested surfaces become plain sheets
+        // (except the slider capsule, a lens that sits on its own track).
         node._lgClasses = ['lg-inset'];
         if (!node.classList.contains('lg-inset')) node.classList.add('lg-inset');
         return;
