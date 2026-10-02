@@ -5260,29 +5260,29 @@ div:has(> canvas) {
 }
 
 /* =============================================================================
-   MINIMAL QUALITY TIER (quality.js): solid glass for the weakest machines
-   Frosted blur is one of the costliest things a weak GPU draws; when even the
-   low tier is too slow, the glass turns solid with the same shapes and rims.
+   SOLID GLASS SURFACES (Display & Accessibility, or Reduce transparency)
+   The glass turns solid with the same shapes and rims: easier to read, and
+   lighter on the GPU (quality.js sets data-glass="solid").
    ============================================================================= */
-:root[data-quality="minimal"] :is(.lg-lensed, .lg, .lg-pane, .lg-bar, .gs-bubble, .angle-pill),
-:root[data-quality="minimal"] .lg-lensed::before {
+:root[data-glass="solid"] :is(.lg-lensed, .lg, .lg-pane, .lg-bar, .gs-bubble, .angle-pill),
+:root[data-glass="solid"] .lg-lensed::before {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
 
-:root[data-quality="minimal"] :is(.lg-pane, .lg-bar, .gs-bubble) {
+:root[data-glass="solid"] :is(.lg-pane, .lg-bar, .gs-bubble) {
   background: rgb(20, 24, 33);
 }
 
-:root[data-quality="minimal"] .lg.lg:not(.start-btn) {
+:root[data-glass="solid"] .lg.lg:not(.start-btn) {
   background: var(--lg-rim, none) 0 0 / 100% 100% no-repeat border-box, rgb(28, 28, 30);
 }
 
-:root[data-quality="minimal"] .lg-lensed:not(.lg):not(.gs-knob) {
+:root[data-glass="solid"] .lg-lensed:not(.lg):not(.gs-knob) {
   background-color: rgb(20, 24, 33) !important;
 }
 
-:root[data-quality="minimal"] .angle-pill {
+:root[data-glass="solid"] .angle-pill {
   background: color-mix(in srgb, var(--g) 45%, rgb(20, 24, 33));
 }
 
@@ -5444,3 +5444,173 @@ div:has(> canvas) {
   .boot-msg, .boot-text { animation: none; }
   .boot-center { transition-duration: 0.2s; }
 }
+
+/* =============================================================================
+   REDUCED MOTION (Display & Accessibility, or the system setting)
+   quality.js sets data-motion="reduced": interface animations and
+   transitions finish at once. The 3D scenes keep moving; that is the content.
+   ============================================================================= */
+:root[data-motion="reduced"] *,
+:root[data-motion="reduced"] *::before,
+:root[data-motion="reduced"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* =============================================================================
+   DISPLAY & ACCESSIBILITY (DisplayPanel.jsx)
+   ============================================================================= */
+.lg-nav-circle-alt {
+  box-sizing: border-box;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--lg-content-secondary, #cbd5e1);
+  cursor: pointer;
+}
+
+.lg-nav-circle-alt.is-active,
+.lg-nav-circle-alt:hover {
+  color: #ffffff;
+}
+
+.dp {
+  position: fixed;
+  z-index: 3000;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  padding: 16px 16px 14px;
+  border-radius: 22px;
+  color: #e8eef8;
+  font-family: 'Inter', system-ui, sans-serif;
+  display: grid;
+  gap: 14px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, .15) transparent;
+}
+
+.dp-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dp-head h2 {
+  margin: 0;
+  flex: 1;
+  font: 400 13px 'Deltha', 'Inter', sans-serif;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.dp-fps {
+  font: 600 11px ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+  color: #3ee6ff;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(62, 230, 255, .1);
+  border: 1px solid rgba(62, 230, 255, .3);
+}
+
+.dp-close {
+  all: unset;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 20px;
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, .06);
+}
+
+.dp-close:hover { color: #fff; background: rgba(255, 255, 255, .12); }
+
+.dp-section {
+  display: grid;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, .08);
+}
+
+.dp-row { display: grid; gap: 7px; }
+.dp-row-head { display: grid; gap: 1px; }
+.dp-label { font-size: 13px; font-weight: 600; color: #f1f5f9; }
+.dp-hint { font-size: 11.5px; color: #93a0b8; line-height: 1.4; }
+
+.dp-seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, .28);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .4), inset 0 0 0 1px rgba(255, 255, 255, .06);
+}
+
+.dp-seg button {
+  all: unset;
+  flex: 1 1 auto;
+  cursor: pointer;
+  text-align: center;
+  padding: 7px 10px;
+  border-radius: 11px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #aab6cc;
+  white-space: nowrap;
+  transition: background .2s ease, color .2s ease;
+}
+
+.dp-seg button:hover { color: #fff; background: rgba(255, 255, 255, .06); }
+
+.dp-seg button.is-on {
+  color: #fff;
+  background: linear-gradient(180deg, rgba(62, 230, 255, .28), rgba(176, 108, 255, .22));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), inset 0 0 0 1px rgba(255, 255, 255, .18), 0 0 14px -4px rgba(62, 230, 255, .6);
+}
+
+.dp-seg button:focus-visible,
+.dp-close:focus-visible,
+.dp-reset:focus-visible,
+.dp-link:focus-visible {
+  outline: 2px solid rgba(62, 230, 255, .9);
+  outline-offset: 2px;
+}
+
+.dp-note { margin: 0; font-size: 12px; color: #cbd5e1; line-height: 1.5; }
+.dp-link { all: unset; cursor: pointer; color: #3ee6ff; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+
+.dp-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, .08);
+  font-size: 11px;
+  color: #93a0b8;
+}
+
+.dp-reset {
+  all: unset;
+  cursor: pointer;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(56, 189, 248, .22);
+  box-shadow: inset 0 0 0 1px rgba(56, 189, 248, .45);
+}
+
+.dp-reset:hover { background: rgba(56, 189, 248, .32); }

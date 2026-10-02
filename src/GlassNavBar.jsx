@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import { motionReduced } from './quality';
 
 /*
  * The iOS 26 floating tab bar, after BitChord's GlassNavBar / FloatingTabBar:
- * a glass capsule of tabs and a standalone glass circle beside it.
+ * a glass capsule of tabs and a standalone glass circle beside it (and an
+ * optional second circle, the Display & Accessibility button).
  *
  * The selection indicator is a spring (damping 0.72, stiffness 320) run by
  * hand rather than a CSS transition, so it can be grabbed and redirected
@@ -21,10 +23,9 @@ const RUBBER_BAND = 0.25;
 const COMMIT_RATIO = 0.35;
 const DRAG_SLOP = 8;
 
-const prefersReducedMotion = () =>
-  window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+const prefersReducedMotion = motionReduced;
 
-export default function GlassNavBar({ tabs, selectedIndex, onSelect, standalone, ariaLabel }) {
+export default function GlassNavBar({ tabs, selectedIndex, onSelect, standalone, extra, ariaLabel }) {
   const rowRef = useRef(null);
   const indicatorRef = useRef(null);
   const geometry = useRef({ step: 0, width: 0 });
@@ -230,6 +231,20 @@ export default function GlassNavBar({ tabs, selectedIndex, onSelect, standalone,
           title={standalone.label}
         >
           {standalone.icon}
+        </button>
+      )}
+      {extra && (
+        <button
+          ref={extra.ref}
+          type="button"
+          className={`lg-nav-circle-alt lg-bar lg-magnetic${extra.active ? ' is-active' : ''}`}
+          onClick={extra.onClick}
+          aria-label={extra.label}
+          aria-expanded={extra.active}
+          aria-haspopup="dialog"
+          title={extra.label}
+        >
+          {extra.icon}
         </button>
       )}
     </nav>

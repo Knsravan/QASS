@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import QassLogo from './QassLogo';
 import { benchDevice } from './deviceBench';
-import { applyDeviceTest, getQuality, gpuName, setLandingMode, settleQuality } from './quality';
+import { applyDeviceTest, gpuName, qualityInfo, setLandingMode } from './quality';
 
 /*
  * The loading screen between the landing page and the simulator.
@@ -18,14 +18,16 @@ import { applyDeviceTest, getQuality, gpuName, setLandingMode, settleQuality } f
  * Each step takes as long as its work does (a message stays up just long
  * enough to read). The result is saved for the device (quality.js), so a
  * later visit only restores it. The simulator is mounted underneath while the
- * screen still covers it, and shows once it draws smoothly.
+ * screen still covers it, and shows once it draws smoothly. The level chosen
+ * here stays: it never changes by itself (people can change it in the
+ * Display & Accessibility panel).
  *
  * It runs in its own React root, so it survives the switch from the landing
  * page to the simulator.
  */
 
 const READ_MS = 650;   // the shortest time a message stays up
-const TIER_NAME = { high: 'High', medium: 'Medium', low: 'Low', minimal: 'Minimal' };
+const TIER_NAME = { high: 'High', medium: 'Medium', low: 'Low' };
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const frame = () => new Promise((r) => requestAnimationFrame(r));
 const reduced = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -108,8 +110,10 @@ function Loader({ from, mode, preload, onSwitch, onDone }) {
           benchDevice((tier, ms) => detail(Number.isFinite(ms) ? `${TIER_NAME[tier]} quality: ${ms.toFixed(1)} ms per frame` : `${TIER_NAME[tier]} quality: not supported`)), 0.3);
         await say('Choosing the best look for this device…', `${TIER_NAME[result.tier]} quality`, async () => applyDeviceTest(result.tier, result.why), 0.08);
       } else {
-        const tier = getQuality().tier;
-        await say('Restoring your setup for this device…', `${TIER_NAME[tier]} quality, from your last visit`, null, 0.4);
+        const info = qualityInfo();
+        const level = info.level === 'auto' ? info.deviceTier : info.level;
+        const custom = Object.keys(info.parts).length ? ' with your display choices' : '';
+        await say('Restoring your setup for this device…', `${TIER_NAME[level]} quality${custom}, from your last visit`, null, 0.4);
         await say('Loading the simulator…', 'The 3D modules and their scenes', () => preload?.(), 0.3);
       }
       if (cancelled) return;
@@ -123,7 +127,6 @@ function Loader({ from, mode, preload, onSwitch, onDone }) {
         await untilSmooth();
       }, 1);
       if (cancelled) return;
-      settleQuality();
       setLeaving(true);
       await wait(reduced() ? 200 : 900);
       onDone?.();

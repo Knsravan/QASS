@@ -19,6 +19,8 @@
  * turns all of it off.
  */
 
+import { motionReduced } from './quality';
+
 const PRESS_SEL = '.lg.lg--press, .lg-nav-circle, .sidebar-toggle-btn';
 const RIM_SEL = '.lg-pane, .lg-bar, .landing-overlay .feature-card.lg, .landing-overlay .start-btn.lg';
 const SKILL_RIM = '.lg-pane, .lg-bar'; // rim colour comes from --lgs-rim / sheen from --lgs-sheen
@@ -39,7 +41,7 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 // Rubber band: follows the pointer at first, then resists ever more.
 const rubber = (d, max) => (max * d) / (Math.abs(d) + max * 2.4);
 
-const reduced = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+const reduced = motionReduced;
 
 export function mountGlassMotion() {
   if (reduced()) return () => {};

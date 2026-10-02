@@ -127,24 +127,25 @@ The controls are glass too:
 
 ### Smooth on every machine
 
-`src/quality.js` keeps the app smooth on any device. It picks one of four quality tiers when the app opens (from the CPU cores, memory, the GPU's name, a software renderer or a high-resolution touch screen), then watches the real frame times: if frames keep running slower than about 45 fps or stutter, it steps down a tier within a few seconds; after a long stretch of easy frames it tries one tier up, but never back into a tier that has failed twice. Loading a new module is ignored, so one-off shader compiles don't count.
+`src/quality.js` keeps the app smooth on any device. Three levels:
 
-| Tier | 3D sharpness | Bloom | Glass |
+| Level | 3D sharpness | Glow (bloom) | Glass |
 |---|---|---|---|
 | high | up to 1.5x pixels, antialiased | full, with the colour fringe | every lens bends |
 | medium | 1x, edge smoothing (FXAA) | worked out at half size | small lenses bend |
 | low | 0.85x, edge smoothing (FXAA) | worked out at a third of the size | frosted, no bending |
-| minimal | 0.6x | none | solid, no blur |
 
-The glow (bloom) is what makes the lines and rings neon, and the scenes' colours are tuned for it, so every tier but minimal keeps it: a blurred halo looks almost the same worked out at a fraction of the screen size, at a fraction of the cost (`QualityComposer` shrinks the bloom's own passes).
+The glow is what makes the lines and rings neon, and the scenes' colours are tuned for it, so every level keeps it: a blurred halo looks almost the same worked out at a fraction of the screen size, at a fraction of the cost (`QualityComposer` shrinks the bloom's own passes). Every scene uses `QualityCanvas` and `QualityComposer` (`src/QualityScene.jsx`), which apply the level; star counts scale with it, and the star field behind the modules draws only 20–60 times a second. The bright-beam check reads each scene through `src/sceneProbe.js`: the GPU shrinks the frame and copies it asynchronously, so the page never waits for the GPU.
 
-Every scene uses `QualityCanvas` and `QualityComposer` (`src/QualityScene.jsx`), which apply the tier; star counts scale with it, and the star field behind the modules draws only 10–60 times a second. The bright-beam check reads each scene through `src/sceneProbe.js`: the GPU shrinks the frame and copies it asynchronously, so the page never waits for the GPU (reading the canvas directly used to block most of every frame).
+The level is chosen once, by the loading screen's device test (below), and never changes by itself afterwards.
+
+**Display & accessibility** (`src/DisplayPanel.jsx`, the sliders button beside the mute button): people can pick Recommended (the device test's level), High, Medium or Low, or set single parts on top: glow (full, soft, off), frame rate (the display's, 60 or 30 fps), sharpness, liquid glass (full lens, small lenses, frosted), stars, motion (full or reduced) and glass surfaces (see-through or solid). Every choice applies at once, with the live frame rate shown in the panel, and is saved for the device. Reduced motion and solid surfaces also follow the system's own settings.
 
 **The landing page always runs at high**, whatever the device: every lens, the full glow, full sharpness (`setLandingMode`). Its few pieces of glass get their lens at once instead of in idle time.
 
-**The loading screen** (`src/BootLoader.jsx`): pressing Initialize Simulator makes the cards, copy and the orbital cloud vanish (only the stars stay), and the QASS mark glides from the landing badge to the middle of the screen. While it moves, the device is tested for real, with a line under the mark saying what is happening: the graphics card, CPU and memory; the browser's features and the display; loading the simulator's modules; a drawing test (`src/deviceBench.js`, an off-screen scene like the simulator's drawn at each tier, timed until the GPU finishes each frame, high first); then the tier chosen. The simulator is built underneath and shown once it draws smoothly. Each step takes as long as its work does. The result is saved for the device (with its GPU's name, in localStorage), so a later visit only restores it; anyone who skips the landing page but has never had the test gets the loading screen and the test first. In the simulator the governor still adjusts the tier to the real frame rate, and the saved result follows it.
+**The loading screen** (`src/BootLoader.jsx`): pressing Initialize Simulator makes the cards, copy and the orbital cloud vanish (only the stars stay), and the QASS mark glides from the landing badge to the middle of the screen. While it moves, the device is tested for real, with a line under the mark saying what is happening: the graphics card, CPU and memory; the browser's features and the display; loading the simulator's modules; a drawing test (`src/deviceBench.js`, an off-screen scene like the simulator's drawn at each tier, timed until the GPU finishes each frame, high first); then the tier chosen. The simulator is built underneath and shown once it draws smoothly. Each step takes as long as its work does. The result is saved for the device (with its GPU's name, in localStorage), so a later visit only restores it; anyone who skips the landing page but has never had the test gets the loading screen and the test first.
 
-`?quality=high` (or `medium`, `low`, `minimal`) in the address pins a tier for testing. Open the app with `?glassdebug` (for example `https://qass.vercel.app/?glassdebug`) to see the frame rate, the tier and why it was chosen, whether the browser can bend, and how many glass surfaces are bending, with a button that forgets the tier and reloads.
+`?quality=high` (or `medium`, `low`) in the address pins a level for testing. Open the app with `?glassdebug` (for example `https://qass.vercel.app/?glassdebug`) to see the frame rate, the tier and why it was chosen, whether the browser can bend, and how many glass surfaces are bending, with a button that forgets the device test and the display choices and reloads.
 
 The tint, rim and highlight come from the Liquid Glass skill in `src/liquid-glass/`, whose custom properties are prefixed `--lgs-` so they never collide with `LiquidGlass.js`'s `--lg-` ones. The mute button leans toward the mouse.
 

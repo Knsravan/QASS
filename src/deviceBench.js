@@ -7,8 +7,8 @@
  * edge smoothing the scenes use) at a tier's pixel ratio and glow settings.
  * Each frame is timed until the GPU has finished it (a one-pixel read waits
  * for it), so the result is the drawing cost itself, not the display's
- * refresh. Tiers are tried from high down; the first whose frames fit the
- * budget wins. A tier whose first frames are clearly fast or clearly slow is
+ * refresh. High is tried first, then medium; the first whose frames fit the
+ * budget wins, and low (the floor) otherwise. A tier whose first frames are clearly fast or clearly slow is
  * decided early, so a quick device finishes in well under a second.
  */
 
@@ -18,7 +18,7 @@ import { SETTINGS } from './quality';
 
 // Drawing budget per frame for the 3D scene alone, in ms. The rest of a 60 Hz
 // frame (16.7 ms) goes to the glass, the page and the browser.
-const BUDGET = { high: 7, medium: 7.5, low: 8.5 };
+const BUDGET = { high: 7, medium: 7.5 };
 const WARM = 5;       // untimed frames first (shader compiles, first uploads)
 const EARLY = 8;      // timed frames before an early decision
 const FULL = 18;      // timed frames at most
@@ -121,11 +121,12 @@ async function timeTier(tier, onFrame) {
  */
 export async function benchDevice(onStep) {
   const probe = document.createElement('canvas');
-  if (!probe.getContext('webgl2')) return { tier: 'minimal', why: 'no WebGL 2' };
-  for (const tier of ['high', 'medium', 'low']) {
+  if (!probe.getContext('webgl2')) return { tier: 'low', why: 'no WebGL 2' };
+  for (const tier of ['high', 'medium']) {
     const ms = await timeTier(tier);
     onStep?.(tier, ms);
     if (ms <= BUDGET[tier]) return { tier, why: `${tier} scene drawn in ${ms.toFixed(1)} ms` };
   }
-  return { tier: 'minimal', why: 'low scene over budget' };
+  // Low is the floor: the simulator never goes below it.
+  return { tier: 'low', why: 'medium scene over budget' };
 }

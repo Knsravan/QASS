@@ -4,14 +4,15 @@ import { EffectComposer, Bloom, ChromaticAberration, FXAA } from '@react-three/p
 import { getQuality, subscribeQuality } from './quality';
 
 /*
- * The scenes' side of the quality governor (quality.js).
+ * The scenes' side of the quality levels (quality.js).
  *
- * - QualityCanvas: a <Canvas> whose pixel ratio follows the tier. With
- *   `background`, it draws only as often as the tier allows (the slow star
- *   field doesn't need 60 frames a second).
+ * - QualityCanvas: a <Canvas> whose pixel ratio follows the level and which
+ *   keeps to a chosen frame-rate limit. With `background`, it draws only as
+ *   often as the level allows (the slow star field doesn't need 60 frames a
+ *   second).
  * - QualityComposer: an <EffectComposer> that works the glow out at the
  *   tier's size, adds edge smoothing (FXAA) where there's no multisampling,
- *   leaves the colour fringe to the high tier and drops out on minimal.
+ *   leaves the colour fringe to the high level and drops out when glow is off.
  * - useQuality(): the current tier's settings, re-rendering on a change.
  */
 
@@ -54,9 +55,11 @@ export function QualityCanvas({ background = false, children, ...props }) {
       // pays for it (bloom scenes are drawn through the composer anyway).
       gl={{ ...props.gl, antialias: props.gl?.antialias !== false && q.tier === 'high' }}
       dpr={q.dpr}
-      frameloop={background ? 'demand' : props.frameloop}
+      // A frame-rate limit (Display & Accessibility) draws on a timer instead
+      // of every display frame; the star field always does.
+      frameloop={background || q.fpsCap ? 'demand' : props.frameloop}
     >
-      {background && <Ticker fps={q.bgFps} />}
+      {(background || q.fpsCap > 0) && <Ticker fps={background ? q.bgFps : q.fpsCap} />}
       {children}
     </Canvas>
   );
