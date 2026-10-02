@@ -152,12 +152,12 @@ function remember(cache, key, value, onEvict) {
   return value;
 }
 
-function lensFilterId(w, h, frost) {
-  const key = `${w}x${h}f${frost}`;
+function lensFilterId(w, h, frost, radius = 0) {
+  const key = `${w}x${h}f${frost}r${radius}`;
   const hit = filterCache.get(key);
   if (hit) return hit;
   const id = `lg-lens-${++filterCount}`;
-  ensureDefs().appendChild(buildLensFilter(w, h, frost, id, DISPERSION));
+  ensureDefs().appendChild(buildLensFilter(w, h, frost, id, DISPERSION, radius));
   return remember(filterCache, key, id, (oldId) => document.getElementById(oldId)?.remove());
 }
 
@@ -202,7 +202,7 @@ function setLensLevel(level) {
     const h = Math.round(node.offsetHeight);
     if (lensAllowed(w, h) && supportsRefraction()) {
       if (node.style.getPropertyValue('--lg-backdrop').startsWith('url(')) continue;
-      node._lgPending = { w, h, ...node._lgVariant };
+      node._lgPending = { w, h, radius: cornerRadius(node, w, h), ...node._lgVariant };
       queueLens(node, node.dataset.lgShape);
     } else {
       lensQueue.delete(node);
@@ -248,9 +248,9 @@ function drainLensQueue(deadline) {
     if (built > 0 && deadline.timeRemaining() < 8) break;
     lensQueue.delete(node);
     if (!node.isConnected || node.dataset.lgShape !== key) continue;
-    const { w, h, blur, saturation } = node._lgPending;
+    const { w, h, radius = 0, blur, saturation } = node._lgPending;
     if (!lensAllowed(w, h)) continue;
-    node.style.setProperty('--lg-backdrop', `url(#${lensFilterId(w, h, blur)}) saturate(${saturation})`);
+    node.style.setProperty('--lg-backdrop', `url(#${lensFilterId(w, h, blur, Math.round(radius))}) saturate(${saturation})`);
     built++;
   }
   if (lensQueue.size && !lensHandle) lensHandle = idle(drainLensQueue);
@@ -332,14 +332,14 @@ export function applyLiquidGlass(node, target, geometry = measureGlass(node)) {
   node.style.setProperty('--lg-bw', target.skin ? `${border}px` : '0px');
   node._lgVariant = { blur, saturation };
   lensed.add(node);
-  const cached = filterCache.get(`${w}x${h}f${blur}`);
+  const cached = filterCache.get(`${w}x${h}f${blur}r${radius}`);
   if (lensAllowed(w, h) && supportsRefraction() && cached) {
     node.style.setProperty('--lg-backdrop', `url(#${cached}) saturate(${saturation})`);
   } else {
     // Frosted at once; the lens joins when the browser is idle.
     node.style.setProperty('--lg-backdrop', base);
     if (lensAllowed(w, h) && supportsRefraction()) {
-      node._lgPending = { w, h, blur, saturation };
+      node._lgPending = { w, h, radius, blur, saturation };
       queueLens(node, shapeKey);
     }
   }
@@ -361,7 +361,7 @@ function followResize(node) {
       const v = n._lgVariant;
       if (!v || w < 4 || h < 4) continue;
       if (!lensAllowed(w, h)) { if (n._lgBase) n.style.setProperty('--lg-backdrop', n._lgBase); continue; }
-      n.style.setProperty('--lg-backdrop', `url(#${lensFilterId(w, h, v.blur)}) saturate(${v.saturation})`);
+      n.style.setProperty('--lg-backdrop', `url(#${lensFilterId(w, h, v.blur, Math.round(cornerRadius(n, w, h)))}) saturate(${v.saturation})`);
     }
   });
 }
