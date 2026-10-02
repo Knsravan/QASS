@@ -3,11 +3,19 @@
  *
  * Four tiers, each a set of knobs the scenes and the glass read:
  *
- *   high     sharp (up to 1.5x pixels), bloom, the colour fringe, every lens
- *   medium   1x pixels, bloom, small lenses only, fewer stars
- *   low      0.75x pixels, no bloom, no lenses, fewer stars still
- *   minimal  0.5x pixels and solid glass (no frosted blur): only if low is
- *            still too slow
+ *   high     sharp (up to 1.5x pixels, antialiased), full glow, the colour
+ *            fringe, every lens
+ *   medium   1x pixels, glow worked out at half size, edge smoothing (FXAA),
+ *            small lenses only, fewer stars
+ *   low      0.85x pixels, glow at a third of the size with fewer blur levels,
+ *            edge smoothing, no lenses, fewer stars still
+ *   minimal  0.6x pixels, no glow, solid glass (no frosted blur): only if low
+ *            is still too slow
+ *
+ * The glow (bloom) is what makes the scenes' lines and rings neon; the
+ * colours are tuned for it, so every tier but minimal keeps it. A blurred
+ * halo looks almost the same worked out at a fraction of the size, at a
+ * fraction of the cost.
  *
  * The first tier is a guess from the device (CPU cores, memory, the GPU's
  * name, a software renderer, a high-resolution touch screen). From then on
@@ -26,10 +34,10 @@ export const TIERS = ['minimal', 'low', 'medium', 'high'];
 const deviceDpr = () => (typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1);
 
 export const SETTINGS = {
-  high: { dpr: () => Math.min(deviceDpr(), 1.5), bloom: true, aberration: true, msaa: 4, stars: 1, lens: 'all', beamMs: 200, bgFps: 60 },
-  medium: { dpr: () => Math.min(deviceDpr(), 1), bloom: true, aberration: false, msaa: 0, stars: 0.6, lens: 'small', beamMs: 400, bgFps: 30 },
-  low: { dpr: () => Math.min(deviceDpr(), 0.75), bloom: false, aberration: false, msaa: 0, stars: 0.35, lens: 'none', beamMs: 800, bgFps: 20 },
-  minimal: { dpr: () => Math.min(deviceDpr(), 0.5), bloom: false, aberration: false, msaa: 0, stars: 0.2, lens: 'none', beamMs: 1000, bgFps: 10 },
+  high: { dpr: () => Math.min(deviceDpr(), 1.5), bloom: true, bloomScale: 1, bloomLevels: 8, fxaa: false, aberration: true, msaa: 4, stars: 1, lens: 'all', beamMs: 200, bgFps: 60 },
+  medium: { dpr: () => Math.min(deviceDpr(), 1), bloom: true, bloomScale: 0.5, bloomLevels: 6, fxaa: true, aberration: false, msaa: 0, stars: 0.6, lens: 'small', beamMs: 400, bgFps: 30 },
+  low: { dpr: () => Math.min(deviceDpr(), 0.85), bloom: true, bloomScale: 0.34, bloomLevels: 5, fxaa: true, aberration: false, msaa: 0, stars: 0.35, lens: 'none', beamMs: 800, bgFps: 20 },
+  minimal: { dpr: () => Math.min(deviceDpr(), 0.6), bloom: false, bloomScale: 0, bloomLevels: 0, fxaa: false, aberration: false, msaa: 0, stars: 0.2, lens: 'none', beamMs: 1000, bgFps: 10 },
 };
 
 const WINDOW_MS = 1000;   // frame times are judged a second at a time
