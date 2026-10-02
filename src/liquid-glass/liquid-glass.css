@@ -39,7 +39,7 @@
   --lgs-hi: rgba(255, 255, 255, .28);           /* inner top highlight */
   --lgs-sheen: rgba(255, 255, 255, .13);        /* the light catching the top-left of the glass */
   /* the pane surface: tint plus that fixed top-left sheen */
-  --lgs-surface: radial-gradient(280px circle at 25% 0%, var(--lgs-sheen), transparent 70%), var(--lgs-tint);
+  --lgs-surface: radial-gradient(280px circle at var(--tilt-x, 25%) 0%, var(--lgs-sheen), transparent 70%), var(--lgs-tint);
   --lgs-shadow: rgba(0, 0, 0, .5);
   --lgs-blur: 18px;
   --lgs-saturate: 1.7;
@@ -70,7 +70,7 @@
 /* the rim: a 1px gradient border, bright at the top-left like a real edge (mask trick: border only) */
 .lg-pane::after, .lg-bar::after, .lg-dots::after, .lg-screen::after {
   content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none; z-index: 3;
-  background: linear-gradient(calc(140deg + var(--rim-shift, 0deg)), var(--lgs-rim), transparent 38%, transparent 62%, var(--lgs-rim-lo));
+  background: linear-gradient(calc(140deg + var(--rim-shift, 0deg) + var(--tilt-shift, 0deg)), var(--lgs-rim), transparent 38%, transparent 62%, var(--lgs-rim-lo));
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor; mask-composite: exclude;
 }

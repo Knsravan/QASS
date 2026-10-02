@@ -107,6 +107,17 @@ The glass also moves like liquid (`src/glassMotion.js`, springs on CSS `scale` /
 
 All of it is off with reduced motion.
 
+And it reacts to light (`src/glassLight.js` and the lens itself):
+
+- **Colour split:** the lens bends red, green and blue by slightly different amounts, so the rim shows a faint rainbow fringe.
+- **Light cast below:** floating glass throws a soft cyan / violet glow down and to the right, opposite the top-left light.
+- **Adaptive tone:** a landing card with something bright behind it turns lighter with dark text, then back.
+- **Tilt:** on phones and tablets, tilting the device moves the rim light and the sheen (iOS asks for permission on the first tap).
+- **Morphing:** tooltips grow out of a point like a drop of glass, and the sidebar opens and closes on a liquid spring.
+- **Slow computers:** the frame-rate guard first drops only the big lenses (the sidebar, large cards); the small glass keeps bending unless it is still too slow.
+
+Every glass surface in the app is lensed now, tooltips, info cards and labels included.
+
 The tint, rim and highlight come from the Liquid Glass skill in `src/liquid-glass/`, whose custom properties are prefixed `--lgs-` so they never collide with `LiquidGlass.js`'s `--lg-` ones. The mute button leans toward the mouse.
 
 The tab bar's selection indicator is a hand-written spring (damping 0.72, stiffness 320) that stretches while it travels, can be dragged, and can be interrupted mid-flight.
