@@ -3,7 +3,8 @@
  *
  * Apple's material, as approved on the test page: a rounded bevel at the
  * rim bends what is behind the glass (refraction, with a slight colour
- * split), Clear frost, a thin veil, specular light on the rim (from the
+ * split), Clear frost, a soft blur inside big glass that carries text
+ * (CSS, see below), a thin veil, specular light on the rim (from the
  * top-left, swaying slowly, moved by device tilt), a soft shadow, touch light
  * from the finger, light/dark adaptation, and glass pieces that flow into each
  * other like drops when they come close.
@@ -12,7 +13,9 @@
  * scene (and its glow) has drawn, the layer copies the frame into a texture
  * and draws, over the same frame, the glass of every glass element that sits
  * on that canvas. The DOM element then only holds its text and icons
- * ([data-gl] in App.css takes its CSS glass away). Everything stays on the
+ * ([data-gl] in App.css takes its CSS glass away). Big glass that carries
+ * text ([data-gl-big]) also gets a soft CSS blur inside its rim band, which
+ * frosts page elements under it too; the rim stays the WebGL bend and light. Everything stays on the
  * GPU in the scene's own context: nothing is read back.
  *
  * Which canvas draws which glass: the topmost scene canvas that covers it
@@ -29,6 +32,8 @@ export const MAX_GLASS = 16;
 const SELECTOR = LIQUID_GLASS_TARGETS.map((t) => t.selector).join(', ');
 const COVER = 0.8;            // a canvas must cover this share of the glass
 const FROST_PX = 1.2;         // Clear glass
+const BIG = 140;              // shorter side above this: big glass that carries text
+const BIG_EDGE = 10;          // its CSS blur starts this far inside the rim
 const MORPH_PX = 5;           // pieces closer than this flow together
 const LIGHT_DEG = 225;        // light from the top-left (screen angle)
 const SWAY_DEG = 35;
@@ -60,7 +65,7 @@ export function registerGlassCanvas(canvas) {
 }
 
 function clearMarks() {
-  for (const el of marked) el.removeAttribute('data-gl');
+  for (const el of marked) { el.removeAttribute('data-gl'); el.removeAttribute('data-gl-big'); }
   marked.clear();
   frame = null;
 }
@@ -162,8 +167,23 @@ export function glassFrame() {
     byCanvas.set(best.c, list);
     keep.add(el);
   }
-  for (const el of marked) if (!keep.has(el)) el.removeAttribute('data-gl');
+  for (const el of marked) {
+    if (keep.has(el)) continue;
+    el.removeAttribute('data-gl');
+    el.removeAttribute('data-gl-big');
+  }
   for (const el of keep) if (!marked.has(el)) el.setAttribute('data-gl', '');
+  // Big glass: the soft inner blur, its corners following the glass's.
+  for (const list of byCanvas.values()) {
+    for (const g of list) {
+      const big = Math.min(g.r.width, g.r.height) > BIG;
+      if (big !== g.el.hasAttribute('data-gl-big')) g.el.toggleAttribute('data-gl-big', big);
+      if (big) {
+        const ir = `${Math.max(0, g.radii[2] - BIG_EDGE).toFixed(1)}px`;
+        if (g.s.ir !== ir) { g.el.style.setProperty('--gl-ir', ir); g.s.ir = ir; }
+      }
+    }
+  }
   marked.clear();
   keep.forEach((el) => marked.add(el));
 
@@ -301,7 +321,7 @@ export function fillGlassUniforms(u, pieces, canvasRect, bufW, bufH, lens) {
     const cy = bufH - (r.top + r.height / 2 - canvasRect.top) * s;
     box[n].set(cx, cy, (r.width / 2) * s, (r.height / 2) * s);
     rad[n].set(radii[0] * s, radii[1] * s, radii[2] * s, radii[3] * s);
-    const big = Math.min(r.width, r.height) > 140;
+    const big = Math.min(r.width, r.height) > BIG;
     const bevel = Math.max(6, Math.min(Math.min(r.width, r.height) * 0.42, 24));
     A[n].set(bevel, FROST_PX, el._glLight ? 1 : 0, el._glDim || 0);
     // Touch light only on glass that is pressed.

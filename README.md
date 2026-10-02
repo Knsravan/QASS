@@ -96,7 +96,7 @@ The simulator is designed for desktop and tablet screens. On narrow windows (und
 Glass that sits on a 3D scene (the sidebar, the top bar, the buttons, the cards, the landing page's cards) is Apple's Liquid Glass drawn in WebGL by the scene itself (`src/glassGL.js`, `GlassLayer` in `src/QualityScene.jsx`). After a scene and its glow have drawn, it copies the frame into a texture and draws, over the same frame, the glass of every glass element on it:
 
 - **Refraction:** the rim is a rounded bevel that bends what is behind it hardest right at the edge, with a slight colour split; the middle stays clear.
-- **Clear frost** and a thin veil.
+- **Frost:** small pieces (buttons, the top bar) are Clear; big glass that carries text (panels, the sidebar, cards) is softly blurred inside its rim (a CSS blur, so page elements under it are frosted too) while the rim keeps the sharp bend. A thin veil on both.
 - **Specular light** on the rim, from the top-left and again on the far edge, swaying slowly (still with reduced motion; tilt moves it on phones).
 - **Shadow:** soft, a little below the glass.
 - **Touch light:** pressing lights the glass up from the finger.
