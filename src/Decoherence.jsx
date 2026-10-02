@@ -83,8 +83,11 @@ function DroneCameraController({ step, audio }) {
     const t = clock.getElapsedTime();
     _wb.current.set(Math.cos(t * 0.85) * 0.018, Math.sin(t * 1.25) * 0.025, 0);
     _tmp.current.copy(tPos.current).add(_wb.current);
-    camera.position.lerp(_tmp.current, delta * 1.8);
-    sLook.current.lerp(tLook.current, delta * 2.2);
+    // Eased by 1 - e^(-k*dt): never past the target, however long a frame
+    // takes (a plain delta * k overshoots once a frame runs past ~0.5 s, and
+    // the camera then flies off).
+    camera.position.lerp(_tmp.current, 1 - Math.exp(-1.8 * delta));
+    sLook.current.lerp(tLook.current, 1 - Math.exp(-2.2 * delta));
     camera.lookAt(sLook.current);
   });
 
