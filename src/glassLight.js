@@ -1,8 +1,8 @@
 /*
  * Liquid glass light: two ways the glass reacts to light.
  *
- * - Tilt (phones and tablets): tilting the device moves the rim's light and
- *   the top-left sheen across the glass, the way it moves on real glass. The
+ * - Tilt (phones and tablets): tilting the device moves the light along the
+ *   rim, the way it moves on real glass. The
  *   light follows the device, never the cursor. iOS asks for permission, so
  *   the request rides on the first tap.
  * - Bright beams (inside the app, not the landing page): a few times a
@@ -36,7 +36,6 @@ function watchTilt() {
     raf = 0;
     x += (target - x) * 0.12;
     root.style.setProperty('--tilt-shift', `${(x * 2).toFixed(1)}deg`);
-    root.style.setProperty('--tilt-x', `${(25 + x * 1.2).toFixed(1)}%`);
     if (Math.abs(target - x) > 0.05) raf = requestAnimationFrame(step);
   };
   const onTilt = (e) => {
@@ -59,7 +58,6 @@ function watchTilt() {
     if (ask) window.removeEventListener('click', ask);
     if (raf) cancelAnimationFrame(raf);
     root.style.removeProperty('--tilt-shift');
-    root.style.removeProperty('--tilt-x');
   };
 }
 

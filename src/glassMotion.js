@@ -6,9 +6,9 @@
  * - Drag stretch: dragging while pressed pulls the glass after the pointer
  *   with a rubber band and stretches it along the drag; on release it springs
  *   home carrying the drag's momentum.
- * - Reactive rim: the rim's light still comes from the top-left, but as a
- *   surface moves its shine sloshes behind the motion, the rim brightens with
- *   speed, and a press flashes it. Nothing follows the cursor.
+ * - Touch light: the rim's light comes from the top-left and stays there; a
+ *   press briefly brightens it, as Apple's glass lights up under a touch.
+ *   Nothing follows the cursor or the glass's motion.
  * - Droplet merge (top bar): the mute circle reaches toward the
  *   Beginner/Advanced capsule on hover and melts into it when pressed; a
  *   "neck" of glass (.lg-nav-neck) fills the gap between them.
@@ -23,7 +23,7 @@ import { motionReduced } from './quality';
 
 const PRESS_SEL = '.lg.lg--press, .lg-nav-circle, .sidebar-toggle-btn';
 const RIM_SEL = '.lg-pane, .lg-bar, .landing-overlay .feature-card.lg, .landing-overlay .start-btn.lg';
-const SKILL_RIM = '.lg-pane, .lg-bar'; // rim colour comes from --lgs-rim / sheen from --lgs-sheen
+const SKILL_RIM = '.lg-pane, .lg-bar'; // rim colour comes from --lgs-rim
 
 const STEP = 1 / 240;
 const spring = (k, zeta, x = 0) => ({
@@ -37,7 +37,6 @@ const spring = (k, zeta, x = 0) => ({
   },
   still(eps = 0.002) { return Math.abs(this.x - this.t) < eps && Math.abs(this.v) < eps * 20; },
 });
-const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 // Rubber band: follows the pointer at first, then resists ever more.
 const rubber = (d, max) => (max * d) / (Math.abs(d) + max * 2.4);
 
@@ -59,8 +58,7 @@ export function mountGlassMotion() {
         sx: spring(420, 0.3, 1), sy: spring(420, 0.3, 1),   // jelly
         tx: spring(300, 0.38), ty: spring(300, 0.38),       // drag rubber band
         reach: spring(260, 0.42),                           // mute circle toward the capsule
-        shift: spring(70, 0.55),                            // rim angle offset, degrees
-        flare: 0, cx: null, cy: null, speed: 0,
+        flare: 0,
         rim: el.matches(RIM_SEL), skill: el.matches(SKILL_RIM), circle: el.classList.contains('lg-nav-circle'),
         hover: false,
       };
@@ -132,7 +130,6 @@ export function mountGlassMotion() {
     }
     wake();
   };
-  const onTransition = (e) => { if (e.target.matches?.(RIM_SEL)) wake(); };
 
   document.addEventListener('pointerdown', onDown, true);
   window.addEventListener('pointermove', onMove, { passive: true });
@@ -140,8 +137,6 @@ export function mountGlassMotion() {
   window.addEventListener('pointercancel', onUp, true);
   document.addEventListener('pointerover', onOver, { passive: true });
   document.addEventListener('pointerout', onOut, { passive: true });
-  document.addEventListener('transitionrun', onTransition, true);
-  window.addEventListener('resize', wake);
 
   // ── The neck of glass between the top bar's capsule and circle ──────────
   const neckKey = new WeakMap();
@@ -188,27 +183,12 @@ export function mountGlassMotion() {
     last = now;
     let moving = !!pressing;
 
-    // Reads first: where each rim surface is now.
-    const rims = [...document.querySelectorAll(RIM_SEL)];
-    const boxes = rims.map((el) => el.getBoundingClientRect());
-
-    rims.forEach((el, i) => {
-      const s = stateOf(el), b = boxes[i];
-      const x = b.left + b.width / 2, y = b.top + b.height / 2;
-      if (s.cx !== null) {
-        const vx = (x - s.cx) / dt, vy = (y - s.cy) / dt;
-        s.speed = s.speed * 0.6 + Math.hypot(vx, vy) * 0.4;
-        s.shift.t = clamp(vx / 18 - vy / 30, -40, 40);
-      }
-      s.cx = x; s.cy = y;
-    });
-
     for (const [el, s] of states) {
       if (!el.isConnected) { states.delete(el); continue; }
-      s.sx.step(dt); s.sy.step(dt); s.tx.step(dt); s.ty.step(dt); s.reach.step(dt); s.shift.step(dt);
+      s.sx.step(dt); s.sy.step(dt); s.tx.step(dt); s.ty.step(dt); s.reach.step(dt);
       s.flare = Math.max(0, s.flare - dt * 2.4);
       const settled = s.sx.still() && s.sy.still() && s.tx.still(0.05) && s.ty.still(0.05) && s.reach.still(0.05)
-        && s.shift.still(0.2) && s.flare === 0 && s.speed < 4 && pressing?.el !== el;
+        && s.flare === 0 && pressing?.el !== el;
 
       // Shape: jelly and drag (any pressable glass), reach (mute circle).
       const shaped = !(s.sx.still() && s.sy.still() && s.tx.still(0.05) && s.ty.still(0.05) && s.reach.still(0.05)
@@ -222,19 +202,15 @@ export function mountGlassMotion() {
       }
       if (s.circle) drawNeck(el);
 
-      // Rim: slosh with motion, brighten with speed, flash on press.
+      // Rim: a press briefly brightens it.
       if (s.rim) {
-        const gain = 1 + Math.min(s.speed / 900, 0.6) + s.flare * 0.8;
-        if (settled) {
-          el.style.removeProperty('--rim-shift'); el.style.removeProperty('--rim-gain');
-          el.style.removeProperty('--lgs-rim'); el.style.removeProperty('--lgs-sheen');
+        const gain = 1 + s.flare * 0.8;
+        if (s.flare === 0) {
+          el.style.removeProperty('--rim-gain');
+          el.style.removeProperty('--lgs-rim');
         } else {
-          el.style.setProperty('--rim-shift', `${s.shift.x.toFixed(1)}deg`);
           el.style.setProperty('--rim-gain', gain.toFixed(3));
-          if (s.skill) {
-            el.style.setProperty('--lgs-rim', `rgba(255, 255, 255, ${Math.min(0.9, 0.3 * gain).toFixed(3)})`);
-            el.style.setProperty('--lgs-sheen', `rgba(255, 255, 255, ${(0.13 + s.flare * 0.22).toFixed(3)})`);
-          }
+          if (s.skill) el.style.setProperty('--lgs-rim', `rgba(255, 255, 255, ${Math.min(0.9, 0.3 * gain).toFixed(3)})`);
         }
       }
       if (!settled) moving = true;
@@ -252,7 +228,5 @@ export function mountGlassMotion() {
     window.removeEventListener('pointercancel', onUp, true);
     document.removeEventListener('pointerover', onOver);
     document.removeEventListener('pointerout', onOut);
-    document.removeEventListener('transitionrun', onTransition, true);
-    window.removeEventListener('resize', wake);
   };
 }
