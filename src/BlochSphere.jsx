@@ -151,6 +151,7 @@ const _tmpGoal = new THREE.Color();
 const _tmpV = new THREE.Vector3();
 const _tmpL = new THREE.Vector3();
 const _tmpQ = new THREE.Quaternion();
+const _tmpQ2 = new THREE.Quaternion();
 const _decStartLocal = new THREE.Vector3();
 const _tmpM = new THREE.Matrix4();
 const _Q_UP = new THREE.Quaternion(); // |0>: the arrow straight up
@@ -1216,12 +1217,18 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
   // arrow was when it was clicked; on a close, from where the module's were).
   const vecOut = useRef(null);
   const decDir = useRef({ a: new THREE.Vector3(0, 1, 0), b: new THREE.Vector3(0, 1, 0), closed: false });
+  // The same arrows as seen from the camera: the hub's camera slowly orbits and then settles as the pair moves,
+  // so the arrows are held still on screen (not in the world), whatever the camera does.
+  const decView = useRef({ a: new THREE.Vector3(0, 1, 0), b: new THREE.Vector3(0, 1, 0) });
   const wasDec = useRef(false);
   if (decClosing && !decDir.current.closed) {
     // (at the first render, so the spheres' first frame already has the module's arrows)
     decDir.current.closed = true;
     decDir.current.a.copy(_UPV).applyQuaternion(handoff.decQ.pure);
     decDir.current.b.copy(_UPV).applyQuaternion(handoff.decQ.noisy);
+    _tmpQ2.copy(camera.quaternion).invert();
+    decView.current.a.copy(decDir.current.a).applyQuaternion(_tmpQ2);
+    decView.current.b.copy(decDir.current.b).applyQuaternion(_tmpQ2);
   }
   if (isDec) wasDec.current = true;
   useEffect(() => { if (isDec && !decClosing) { arrowGrow.p = 0; arrowGrow.target = 1; } }, [isDec]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1342,14 +1349,14 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
       vecOut.current.getWorldQuaternion(_tmpQ);
       decDir.current.a.copy(_UPV).applyQuaternion(_tmpQ);
       decDir.current.b.copy(decDir.current.a);
+      _tmpQ2.copy(state.camera.quaternion).invert();
+      decView.current.a.copy(decDir.current.a).applyQuaternion(_tmpQ2);
+      decView.current.b.copy(decView.current.a);
     }
     if (isDec) {
       const dd = decDir.current;
-      if (decClosing && !dd.closed) {
-        dd.closed = true;
-        dd.a.copy(_UPV).applyQuaternion(handoff.decQ.pure);
-        dd.b.copy(_UPV).applyQuaternion(handoff.decQ.noisy);
-      }
+      dd.a.copy(decView.current.a).applyQuaternion(state.camera.quaternion);
+      dd.b.copy(decView.current.b).applyQuaternion(state.camera.quaternion);
       handoff.decStart.pure.copy(dd.a);
       handoff.decStart.noisy.copy(dd.b);
       // The arrows grow slowly before the pair splits and zooms; on a close they shrink back once it has zoomed out.
