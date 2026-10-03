@@ -230,10 +230,8 @@ function opacityOf(el, s, now) {
   return o;
 }
 
-// A real overlap, not a sliver: a card whose edge touches a label's keeps
-// its WebGL glass (what shows through a few px of rim is only the label's own
-// edge).
-const OVERLAP_PX = 16;
+// Overlap by more than a hair (pieces that merely touch don't count).
+const OVERLAP_PX = 4;
 const overlaps = (a, b) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > OVERLAP_PX && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > OVERLAP_PX;
 
 // ─── Page content behind glass ──────────────────────────────────────────────
@@ -242,7 +240,7 @@ const overlaps = (a, b) => Math.min(a.right, b.right) - Math.max(a.left, b.left)
 // behind it keeps its CSS glass instead, whose lens bends everything behind
 // it. Text and icons that are inside glass are left out here: glass over glass
 // is handled by the overlap rule.
-const CONTENT_PX = 6;
+const CONTENT_PX = 3;
 const IN_GLASS = '.lg-lensed, .lg, .lg-pane, .lg-bar, [data-gl]';
 // What is on the page is scanned when the DOM changes (at most every 80 ms)
 // and every 1.5 s; where each piece of it is, is read again every frame, so a
@@ -338,6 +336,26 @@ function hasContentBehind(g, now) {
   return !!s.behindAt && now - s.behindAt < 700;
 }
 
+// An element that fades in (opacity, filter) can't backdrop-filter what is
+// behind it until the fade ends, so glass that needs the CSS lens keeps its
+// enter move but not its fade: the lens works from the first frame.
+const unfaded = new WeakSet();
+function releaseFades(el) {
+  let n = el;
+  for (let i = 0; n && n !== document.body && i < 6; i++, n = n.parentElement) {
+    for (const a of n.getAnimations?.() || []) {
+      if (unfaded.has(a)) continue;
+      unfaded.add(a);
+      const fx = a.effect;
+      const t = fx?.getComputedTiming?.();
+      if (!t || !Number.isFinite(t.iterations) || t.duration > 1500) continue;
+      const frames = fx.getKeyframes();
+      if (!frames.some((k) => 'opacity' in k || 'filter' in k)) continue;
+      fx.setKeyframes(frames.map(({ opacity, filter, computedOffset, ...rest }) => rest));
+    }
+  }
+}
+
 const later = (a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? b : a);
 
 // Paint order, roughly as CSS stacks it: the z-index of every positioned
@@ -422,6 +440,7 @@ export function glassFrame() {
   for (const g of all) {
     if (g.lens !== g.el.hasAttribute('data-gl-lens')) g.el.toggleAttribute('data-gl-lens', g.lens);
     if (g.lens) {
+      releaseFades(g.el);
       const key = `${Math.round(g.r.width)}x${Math.round(g.r.height)}`;
       if (g.s.lensKey !== key) {
         const lens = clearLens(g.el);
