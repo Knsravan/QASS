@@ -27,6 +27,10 @@ const CB = '#38bdf8'; // Blue - Cryogenic / Cold
 const CG = '#22c55e'; // Green - Pure Purity
 const CW = '#f8fafc'; // White
 
+// How visible the noise particles are. Opened from the hub they start unseen and fade in
+// with the cards (the App announces `qass-jelly-run`), and fade out with them on the way back.
+const particleFade = { p: 1, target: 1 };
+
 // ============================================================
 // CONSTANTS
 // ============================================================
@@ -293,7 +297,7 @@ function BlochSphereUnit({ posArr, color, label, isPure, noiseLevel, activeNoise
 
       {/* Top Status Chip (Above 3D Model) */}
       <Html position={[0, SPHERE_R + 0.88, 0]} center style={{ pointerEvents: 'none' }}>
-        <div style={{
+        <div data-jelly style={{ '--j': 1,
           background: activeUnitColor + '1a', border: '1.5px solid ' + activeUnitColor + '55',
           borderRadius: '16px', padding: '5px 16px',
           fontSize: '11px', fontWeight: '800', color: activeUnitColor,
@@ -309,11 +313,11 @@ function BlochSphereUnit({ posArr, color, label, isPure, noiseLevel, activeNoise
 
       {/* |0⟩ Pole Label */}
       <Html position={[0, SPHERE_R + 0.32, 0]} center style={{ pointerEvents: 'none' }}>
-        <span style={{ color: '#64748b', fontSize: '11px', fontWeight: '700', fontFamily: 'Inter, sans-serif' }}>|0⟩</span>
+        <span data-jelly style={{ '--j': 1, display: 'inline-block', color: '#64748b', fontSize: '11px', fontWeight: '700', fontFamily: 'Inter, sans-serif' }}>|0⟩</span>
       </Html>
       {/* |1⟩ Pole Label */}
       <Html position={[0, -SPHERE_R - 0.38, 0]} center style={{ pointerEvents: 'none' }}>
-        <span style={{ color: '#64748b', fontSize: '11px', fontWeight: '700', fontFamily: 'Inter, sans-serif' }}>|1⟩</span>
+        <span data-jelly style={{ '--j': 1, display: 'inline-block', color: '#64748b', fontSize: '11px', fontWeight: '700', fontFamily: 'Inter, sans-serif' }}>|1⟩</span>
       </Html>
 
       {/* 3D Coherence Decay Ribbon (Step 5 on Noisy Qubit) */}
@@ -384,6 +388,8 @@ function ParticleSystem({ color, count, noiseLevel, seedOffset, activeNoise, tem
     const t  = clock.getElapsedTime();
     const nl = noiseLevel;
     const ps = state.current;
+    meshRef.current.visible = particleFade.p > 0.01;
+    meshRef.current.material.opacity = 0.88 * particleFade.p;
 
     // In cryogenic temperatures (15 mK), thermal kinetic speed dramatically drops
     const thermalSpeed = Math.max(0.04, Math.sqrt((tempK || 300) / 300));
@@ -525,9 +531,18 @@ function NoiseParticleField({ noiseLevel, activeNoise, tempK }) {
 // ============================================================
 // 3D SCENE
 // ============================================================
+function ParticleFader() {
+  useFrame((_, delta) => {
+    particleFade.p += (particleFade.target - particleFade.p) * (1 - Math.exp(-3.2 * Math.min(delta, 0.1)));
+    if (Math.abs(particleFade.target - particleFade.p) < 0.004) particleFade.p = particleFade.target;
+  });
+  return null;
+}
+
 function DecoherenceScene({ step, noiseLevel, activeNoise, noiseBurstId, entranceRef, audio, tempK }) {
   return (
     <>
+      <ParticleFader />
       <DroneCameraController step={step} audio={audio} />
       <ambientLight intensity={0.16} />
       <pointLight position={[-6, MODEL_Y + 5, 7]} intensity={0.95} color={CT} />
@@ -697,7 +712,7 @@ const Badge = ({ icon: Icon, text, color: bc }) => {
 // ============================================================
 // MAIN MODULE
 // ============================================================
-export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted, onNavigateToModule }) {
+export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted, onNavigateToModule, fromHub = false }) {
   const audio = useDecoherenceAudio(isGlobalMuted);
   const [step, setStep]                           = useState('intro');
   const [introTooltipVisible, setIntroTooltipVisible] = useState(false);
@@ -711,7 +726,17 @@ export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted,
 
   const noiseTween          = useRef({ value: 0 });
   const tempTween           = useRef({ value: 300 });
-  const entranceAnim        = useRef({ pure: 0, noisy: 0, yRise: -2.5 });
+  // Opened from the hub, the two qubits arrive already in place (the hub's pair zoomed into them).
+  const entranceAnim        = useRef(fromHub ? { pure: 1, noisy: 1, yRise: 0 } : { pure: 0, noisy: 0, yRise: -2.5 });
+  const fadeInit            = useRef(false);
+  if (!fadeInit.current) { fadeInit.current = true; particleFade.p = fromHub ? 0 : 1; particleFade.target = fromHub ? 0 : 1; }
+  useEffect(() => {
+    const run = () => { particleFade.target = 1; };
+    const out = () => { particleFade.target = 0; };
+    window.addEventListener('qass-jelly-run', run);
+    window.addEventListener('qass-jelly-out', out);
+    return () => { window.removeEventListener('qass-jelly-run', run); window.removeEventListener('qass-jelly-out', out); particleFade.p = 1; particleFade.target = 1; };
+  }, []);
   const noiseTimerRef       = useRef(null);
   const bloomTimerRef       = useRef(null);
   const entranceTlRef       = useRef(null);
@@ -746,6 +771,7 @@ export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted,
   }, []);
 
   useEffect(() => {
+    if (fromHub) { setIntroTooltipVisible(true); return; }
     entranceAnim.current = { pure: 0, noisy: 0, yRise: -2.5 };
     setIntroTooltipVisible(false);
     bloomTimerRef.current = setTimeout(() => audioRef.current.playModuleEntranceBloom(), 80);
@@ -905,6 +931,7 @@ export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted,
     <div style={{ position: 'relative', width: '100%', height: '100%', background: 'transparent' }}>
       {/* 3D CANVAS WITH CAMERA SHIFTER */}
       <SharedCanvas
+        sceneId="bit-scene"
         camera={{ position: [0, MODEL_Y + 0.6, 20.0], fov: 44 }}
         gl={SCENE_GL}
         style={{ position: 'absolute', inset: 0, zIndex: 1 }}
@@ -918,7 +945,8 @@ export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted,
       {/* 2D OVERLAY BOUNDED TO VIEWPORT AREA */}
       <div style={uiBoundsStyle}>
         {/* TOP-LEFT NOISE FIELD SPECTRA LEGEND CARD */}
-        <div style={{
+        <div data-jelly style={{
+          '--j': 0,
           position: 'absolute',
           top: '24px',
           left: '24px',
@@ -985,7 +1013,7 @@ export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted,
         {/* INTRO: COMPACT & SLEEK DID YOU KNOW TOOLTIP */}
         {step === 'intro' && introTooltipVisible && (
           <div style={{ position: 'absolute', bottom: '16px', left: 0, right: 0, display: 'flex', justifyContent: 'center', pointerEvents: 'none', zIndex: 200 }}>
-            <div key="step-intro" style={{
+            <div key="step-intro" data-jelly style={{
               width: '380px', maxWidth: 'calc(100% - 40px)',
               background: 'transparent',
               backdropFilter: 'var(--glass-blur)',
@@ -1013,7 +1041,7 @@ export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted,
 
         {/* STEP 2: WHAT IS DECOHERENCE */}
         {step === 'what_is_decoherence' && (
-          <div key="step-what" style={cardStyle}>
+          <div key="step-what" data-jelly style={cardStyle}>
             <Badge icon={Droplets} text="Decoherence Explained" />
             <div style={titleStyle}>What is Decoherence?</div>
             <div style={textStyle}>Your qubit lives in a perfect superposition: <InlineMath math="\alpha|0\rangle + \beta|1\rangle" />. But the universe is <strong style={{ color: CW }}>not isolated</strong>. Every air molecule, stray photon, and chip vibration bumps into your qubit and steals a bit of its quantum-ness.</div>
@@ -1035,7 +1063,7 @@ export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted,
 
         {/* STEP 3: DENSITY MATRIX (With Interactive Purity Slider) */}
         {step === 'density_matrix' && (
-          <div key="step-rho" style={cardStyle}>
+          <div key="step-rho" data-jelly style={cardStyle}>
             <Badge icon={Calculator} text="Density Matrix" />
             <div style={titleStyle}>The Density Matrix — Tracking Impurity</div>
             <div style={textStyle}>When we can't describe a quantum state as a pure <InlineMath math="|\psi\rangle" /> anymore, we use a <strong style={{ color: CW }}>Density Matrix ρ</strong>. A perfectly pure qubit has <InlineMath math="\mathrm{Tr}(\rho^2) = 1" />. As decoherence sets in, <InlineMath math="\mathrm{Tr}(\rho^2) < 1" /> — the state becomes a 'mixed state': a probability cloud with no quantum edge.</div>
@@ -1057,7 +1085,7 @@ export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted,
 
         {/* STEP 4: THREE NOISE TYPES (Focused Close-Up View) */}
         {step === 'noise_types' && (
-          <div key="step-noise" style={cardStyle}>
+          <div key="step-noise" data-jelly style={cardStyle}>
             <Badge icon={Zap} text="Noise Types" color={CR} />
             <div style={titleStyle}>Three Types of Quantum Noise</div>
             <div style={textStyle}>Not all noise is the same. Click each criminal button below to trigger live quantum attack animations on the Noisy Qubit:</div>
@@ -1114,7 +1142,7 @@ export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted,
 
         {/* STEP 5: COHERENCE TIME */}
         {step === 'coherence_time' && (
-          <div key="step-t1t2" style={cardStyle}>
+          <div key="step-t1t2" data-jelly style={cardStyle}>
             <Badge icon={Timer} text="Coherence Times" />
             <div style={titleStyle}>Coherence Times: T₁ and T₂</div>
             <div style={textStyle}>Decoherence is measured using two fundamental quantum lifetimes:</div>
@@ -1154,7 +1182,7 @@ export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted,
 
         {/* STEP 6: LINDBLAD */}
         {step === 'lindblad' && (
-          <div key="step-lindblad" style={cardStyle}>
+          <div key="step-lindblad" data-jelly style={cardStyle}>
             <Badge icon={Triangle} text="Lindblad Equation" color={CP} />
             <div style={titleStyle}>The Master Equation of Quantum Noise</div>
             <div style={textStyle}>The <strong style={{ color: CW }}>Lindblad Master Equation</strong> is the complete math of how an open quantum system evolves when coupled to its environment. It's the quantum equivalent of diffusion — the universe slowly dissolving your qubit.</div>
@@ -1180,7 +1208,7 @@ export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted,
 
         {/* STEP 7: WHY HARD (Perfect Plan Alignment & Cryogenic Transformation) */}
         {step === 'why_hard' && (
-          <div key="step-hard" style={cardStyle}>
+          <div key="step-hard" data-jelly style={cardStyle}>
             <Badge icon={Thermometer} text="Real-World Reality" color={CB} />
             <div style={titleStyle}>Why Building Quantum Computers is So Hard</div>
             <div style={textStyle}>Real quantum computers operate at <strong style={{ color: CB }}>15 millikelvin</strong> — colder than outer space (2.7 K)! Even then, qubits survive only <strong style={{ color: CA }}>hundreds of microseconds</strong>. Every gate must be blazing fast and ultra-precise.</div>

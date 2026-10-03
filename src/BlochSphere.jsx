@@ -155,6 +155,12 @@ const _LIGHTS_HUB = [[8, 8, 8], [-8, -8, -8]];
 const _LIGHTS_ENT = [[8, 12, 8], [-8, -12, -8]];
 // Exponential State Space lights its qubit white and violet from further off (the hub's lights glide there as the qubit zooms in).
 const _LIGHTS_EXP = [[10, 15, 10], [-10, -10, -10]];
+// Decoherence: a dim teal and amber pair (the pure and the noisy qubit).
+const _LIGHTS_DEC = [[-6, 6.65, 7], [6, 6.65, 7]];
+const _DEC_LIGHT = { amb: 0.16, c1: new THREE.Color('#14b8a6'), i1: 0.95, c2: new THREE.Color('#f59e0b'), i2: 0.95, dist: 1000 };
+// The two qubits' arrows as Decoherence's scene starts them (on the equator, at 0.2 and 0.8 rad round).
+const _Q_DEC_A = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(Math.cos(0.2), 0, Math.sin(0.2)));
+const _Q_DEC_B = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(Math.cos(0.8), 0, Math.sin(0.8)));
 const _EXP_LIGHT = { amb: 0.6, c1: new THREE.Color('#ffffff'), i1: 2.0, c2: new THREE.Color('#a855f7'), i2: 1.5, dist: 1000 };
 const _HUB_LIGHT = { amb: 0.5, c1: new THREE.Color('#00f2fe'), i1: 8, c2: new THREE.Color('#f093fb'), i2: 8, dist: 30 };
 const _ORIGIN_BS = new THREE.Vector3(0, 0, 0);
@@ -1169,28 +1175,29 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
   const tgtLabel = useRef();
   const isMulti = activeModule === 'multi-qubit-gates'; // the hub's scene standing in for Multi Qubit Gates
   const isEnt = activeModule === 'entanglement';        // ... or for Entanglement (Alice and Bob)
-  const isPair = isMulti || isEnt;
+  const isDec = activeModule === 'decoherence';        // ... or for Decoherence (the pure and the noisy qubit)
+  const isPair = isMulti || isEnt || isDec;
   const isExp = activeModule === 'exponential';        // ... or for Exponential State Space (the lone qubit zooms in)
   const isRig = isPair || isExp;                       // the rig takes the module's size when zoomed
   const entX0 = handoff.entPairX || 4.6;
-  const targetX = useRef(multi === 'zoom' ? (isEnt ? entX0 : 2) : multi === 'split' ? 2.4 : 0);
-  const targetY = useRef(multi === 'zoom' && !isEnt ? 1.2 : 0);
-  const targetS = useRef(multi === 'zoom' ? (isEnt ? 1.15 : 1) : 1.2);
+  const targetX = useRef(multi === 'zoom' ? (isEnt ? entX0 : isDec ? 5.8 : 2) : multi === 'split' ? 2.4 : 0);
+  const targetY = useRef(multi === 'zoom' && !isEnt ? (isDec ? 1.65 : 1.2) : 0);
+  const targetS = useRef(multi === 'zoom' ? (isEnt ? 1.15 : isDec ? 1.375 : 1) : 1.2);
   const [targetOn, setTargetOn] = useState(multi === 'split' || multi === 'zoom');
   // The pair's poses: 'center' (one qubit, hub size), 'split' (two, hub size), 'zoom' (two, the
   // module's size and places). Positions are in the rig's units: spheres touch at 2.4 (hub) / 2 (module).
   // (Entanglement's zoom: Alice and Bob stand 4.6 either side of the middle at 1.15 size, on the axis.)
   const mz = isRig && multi === 'zoom';
   const mSplit = isPair && (multi === 'split' || multi === 'zoom');
-  const zoomY = isEnt ? 0 : isExp ? 0.6 : 1.2;                      // the pair's height in the zoomed pose (rig units)
-  const zoomS = isEnt || isExp ? 1.15 / 1.2 : 1 / 1.2;         // the first qubit's scale there (relative to its 1.2)
-  const zoomT = isEnt ? 1.15 : 1;                     // the second qubit's scale there
+  const zoomY = isEnt ? 0 : isDec ? 1.65 : isExp ? 0.6 : 1.2;                      // the pair's height in the zoomed pose (rig units)
+  const zoomS = isEnt || isExp ? 1.15 / 1.2 : isDec ? 1.375 / 1.2 : 1 / 1.2;         // the first qubit's scale there (relative to its 1.2)
+  const zoomT = isEnt ? 1.15 : isDec ? 1.375 : 1;                     // the second qubit's scale there
   const settleCam = useRef(0);
   const centerD0 = useRef(null);
   // Entanglement lights its pair from a little higher; the lights glide there as the pair zooms in
   // (and back as it zooms out). They start where the scene was handing over.
-  const lightStart = useMemo(() => (isEnt && multi === 'zoom' ? _LIGHTS_ENT : isExp && multi === 'zoom' ? _LIGHTS_EXP : _LIGHTS_HUB), []); // eslint-disable-line react-hooks/exhaustive-deps
-  const lightInit = useMemo(() => (isExp && multi === 'zoom' ? _EXP_LIGHT : _HUB_LIGHT), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const lightStart = useMemo(() => (isEnt && multi === 'zoom' ? _LIGHTS_ENT : isExp && multi === 'zoom' ? _LIGHTS_EXP : isDec && multi === 'zoom' ? _LIGHTS_DEC : _LIGHTS_HUB), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const lightInit = useMemo(() => (isExp && multi === 'zoom' ? _EXP_LIGHT : isDec && multi === 'zoom' ? _DEC_LIGHT : _HUB_LIGHT), []); // eslint-disable-line react-hooks/exhaustive-deps
   const ambRef = useRef();
   useLayoutEffect(() => {
     // First paint at the right size (no growth on a direct load).
@@ -1198,13 +1205,13 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
     const zoomed = isRig && multi === 'zoom';
     if (rig) {
       rig.scale.setScalar(!activeModule ? 0.7 : isRig ? (zoomed ? 1 : 0.7) : 1);
-      rig.position.y = !activeModule ? -0.8 : isMulti ? (zoomed ? -0.5 : -0.8) : isEnt || isExp ? (zoomed ? 0 : -0.8) : activeModule === 'gates' ? -0.5 : 0;
+      rig.position.y = !activeModule ? -0.8 : isMulti ? (zoomed ? -0.5 : -0.8) : isEnt || isExp || isDec ? (zoomed ? 0 : -0.8) : activeModule === 'gates' ? -0.5 : 0;
     }
     const solo = activeModule === 'superposition' || activeModule === 'interference' || isRig || centerOnly;
     if (leftRig.current) leftRig.current.scale.setScalar(solo ? 0.0001 : 1);
     if (solo) setBitOn(false);
     if (rightRig.current) {
-      rightRig.current.position.x = isPair ? (zoomed ? -(isEnt ? entX0 : 2) : multi === 'split' ? -2.4 : 0) : isExp ? 0 : solo ? 0 : 4.2;
+      rightRig.current.position.x = isPair ? (zoomed ? -(isEnt ? entX0 : isDec ? 5.8 : 2) : multi === 'split' ? -2.4 : 0) : isExp ? 0 : solo ? 0 : 4.2;
       rightRig.current.position.y = zoomed ? zoomY : 0;
       rightRig.current.scale.setScalar(zoomed ? zoomS : 1);
     }
@@ -1258,7 +1265,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
     const first = !camReady.current;
     camReady.current = true;
     if (!activeModule || !controlsRef.current || !camera) return;
-    if (first && (activeModule === 'gates' || activeModule === 'multi-qubit-gates' || activeModule === 'interference' || activeModule === 'entanglement' || activeModule === 'exponential')) {
+    if (first && (activeModule === 'gates' || activeModule === 'multi-qubit-gates' || activeModule === 'interference' || activeModule === 'entanglement' || activeModule === 'exponential' || activeModule === 'decoherence')) {
       // Standing in for a module's scene: the camera is where that module left it.
     } else if (first) {
       camera.position.set(0, 0, 13);
@@ -1319,7 +1326,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
       const rig = rigRef.current;
       const k = 1 - Math.exp(-(vanishing ? 7 : 2.5) * Math.min(delta, 0.1));
       const ts = vanishing ? 0.0001 : !activeModule ? 0.7 : isRig ? (mz ? 1 : 0.7) : 1;
-      const ty = !activeModule ? -0.8 : isMulti ? (mz ? -0.5 : -0.8) : isEnt || isExp ? (mz ? 0 : -0.8) : activeModule === 'gates' ? -0.5 : 0;
+      const ty = !activeModule ? -0.8 : isMulti ? (mz ? -0.5 : -0.8) : isEnt || isExp || isDec ? (mz ? 0 : -0.8) : activeModule === 'gates' ? -0.5 : 0;
       rig.scale.setScalar(rig.scale.x + (ts - rig.scale.x) * k);
       rig.position.y += (ty - rig.position.y) * k;
     }
@@ -1337,14 +1344,14 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
       }
       const r = rightRig.current;
       const km = 1 - Math.exp(-2.6 * Math.min(delta, 0.1)); // the move / split / zoom glide
-      const pairX = mz ? (isEnt ? (handoff.entPairX || 4.6) : 2) : 2.4; // half the gap between the pair
+      const pairX = mz ? (isEnt ? (handoff.entPairX || 4.6) : isDec ? 5.8 : 2) : 2.4; // half the gap between the pair
       if (isEnt && !mz) handoff.entPairX = 4.6; // a fresh open starts from the module's default spacing
-      const lg = isEnt && mz ? _LIGHTS_ENT : isExp && mz ? _LIGHTS_EXP : _LIGHTS_HUB;
+      const lg = isEnt && mz ? _LIGHTS_ENT : isExp && mz ? _LIGHTS_EXP : isDec && mz ? _LIGHTS_DEC : _LIGHTS_HUB;
       if (light1Ref.current) light1Ref.current.position.lerp(_tmpL.set(...lg[0]), km);
       if (light2Ref.current) light2Ref.current.position.lerp(_tmpL.set(...lg[1]), km);
-      if (isExp) {
+      if (isExp || isDec) {
         // Through the whole move the lights glide between the hub's and the module's, so nothing jumps at the hand-over.
-        const lt = mz ? _EXP_LIGHT : _HUB_LIGHT;
+        const lt = mz ? (isDec ? _DEC_LIGHT : _EXP_LIGHT) : _HUB_LIGHT;
         const l1 = light1Ref.current, l2 = light2Ref.current;
         if (ambRef.current) ambRef.current.intensity += (lt.amb - ambRef.current.intensity) * km;
         if (l1) { l1.color.lerp(lt.c1, km); l1.intensity += (lt.i1 - l1.intensity) * km; l1.distance += (lt.dist - l1.distance) * km; }
@@ -1413,7 +1420,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
         light2Ref.current.color.lerp(_tempColor2_BS, 0.05);
       }
     } else {
-      if (light1Ref.current && !isExp) light1Ref.current.intensity = THREE.MathUtils.lerp(light1Ref.current.intensity, isLight ? 12 : 8, 0.05);
+      if (light1Ref.current && !isExp && !isDec) light1Ref.current.intensity = THREE.MathUtils.lerp(light1Ref.current.intensity, isLight ? 12 : 8, 0.05);
     }
 
     // ── Cinematic camera per superposition step ──
@@ -1448,7 +1455,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
   return (
     <>
       <QualityComposer disableNormalPass>
-        <Bloom luminanceThreshold={isExp ? 0.25 : 0.3} mipmapBlur intensity={activeModule === 'gates' || activeModule === 'multi-qubit-gates' ? 0.4 : isEnt ? 0.45 : isExp ? 0.65 : 0.6} />
+        <Bloom luminanceThreshold={isExp ? 0.25 : isDec ? 0.16 : 0.3} mipmapBlur intensity={activeModule === 'gates' || activeModule === 'multi-qubit-gates' ? 0.4 : isEnt ? 0.45 : isExp || isDec ? 0.65 : 0.6} />
       </QualityComposer>
       <ambientLight ref={ambRef} intensity={isLight ? 0.8 : lightInit.amb} />
       <pointLight ref={light1Ref} position={lightStart[0]} color={lightInit.c1} intensity={isLight ? 12 : lightInit.i1} distance={lightInit.dist} />
@@ -1535,6 +1542,8 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
               <group ref={targetRig} position={[targetX.current, targetY.current, 0]} scale={targetS.current}>
                 {isEnt ? (
                   <QubitCore activeModule="entanglement" theme={theme} customVectorQuat={_Q_UP} showCustomVector={true} emissiveColor="#00f2fe" />
+                ) : isDec ? (
+                  <QubitCore activeModule="decoherence" theme={theme} customVectorQuat={_Q_DEC_B} showCustomVector={true} customGridColor="#f59e0b" customRingColor="#f59e0b" emissiveColor="#f59e0b" />
                 ) : (
                   <QubitCore
                     activeModule="multi-qubit-gates"
@@ -1625,7 +1634,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
                 onDomainUnhover={() => handleUnhoverDomain('right')} 
               />
             ) : (
-              <QubitCore position={[0, 0, 0]} scale={1.2} theme={theme} activeModule={activeModule} isDecohering={isDecohering} customVectorQuat={isRig || centerOnly ? _Q_UP : undefined} showCustomVector={isRig || centerOnly || undefined} emissiveColor={isMulti ? '#eab308' : isEnt || isExp ? '#00f2fe' : undefined} fadeExtras={isMulti} onDomainHover={() => handleHoverDomain('right')} onDomainUnhover={() => handleUnhoverDomain('right')} />
+              <QubitCore position={[0, 0, 0]} scale={1.2} theme={theme} activeModule={activeModule} isDecohering={isDecohering} customVectorQuat={isDec ? _Q_DEC_A : isRig || centerOnly ? _Q_UP : undefined} showCustomVector={isRig || centerOnly || undefined} emissiveColor={isMulti ? '#eab308' : isEnt || isExp ? '#00f2fe' : isDec ? '#14b8a6' : undefined} fadeExtras={isMulti} onDomainHover={() => handleHoverDomain('right')} onDomainUnhover={() => handleUnhoverDomain('right')} />
             )}
           </group>
         </PresentationControls>

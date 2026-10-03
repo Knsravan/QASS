@@ -198,7 +198,12 @@ function Intro() {
     };
     host.getPose = () => {
       const c = get().controls;
-      return { pos: cam.position.toArray(), target: c ? c.target.toArray() : [0, 0, 0] };
+      if (c) return { pos: cam.position.toArray(), target: c.target.toArray() };
+      // A scene that aims the camera itself (no orbit controls): the point it looks at on the z = 0 plane.
+      const dir = new THREE.Vector3();
+      cam.getWorldDirection(dir);
+      const t = Math.abs(dir.z) > 1e-3 ? -cam.position.z / dir.z : 0;
+      return { pos: cam.position.toArray(), target: t > 0 ? cam.position.clone().addScaledVector(dir, t).toArray() : [0, 0, 0] };
     };
     return () => { host.capture = null; host.settleCamera = null; host.getPose = null; };
   }, [gl, advance, cam, get]);
