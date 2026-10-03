@@ -1333,6 +1333,8 @@ function App() {
   // the hub's, right after a module closes (it then eases back to the middle).
   const [InterferenceLoaded, setInterferenceLoaded] = useState(null); // Quantum Interference, once its code is in
   const [EntanglementLoaded, setEntanglementLoaded] = useState(null); // Entanglement, once its code is in (same reason)
+  const [ExponentialLoaded, setExponentialLoaded] = useState(null);   // Exponential State Space, likewise
+  const [expFromHub, setExpFromHub] = useState(false); // Exponential State Space opens from the hub's lone qubit (its ring draws on)
   const [interferenceFromHub, setInterferenceFromHub] = useState(false); // Quantum Interference opens from the hub's lone qubit
   const [moduleTarget, setModuleTarget] = useState([0, 0, 0]);
   const [hubTarget, setHubTarget] = useState([0, 0, 0]);
@@ -1354,6 +1356,54 @@ function App() {
         setStageId(activeModuleId);
       }, 600);
       return () => { clearTimeout(t); if (!done) { setStagePhase('idle'); showSharedCanvas(); } };
+    }
+    if (stageId === null && activeModuleId === 'exponential') {
+      // Hub -> Exponential State Space: all but the qubit vanishes; it moves to the middle, then
+      // zooms to the module's size and place (camera and lights glide to the module's); the module
+      // takes over in place, its ring draws on from a point, and then its cards pop.
+      let done = false;
+      setPairModule('exponential');
+      MODULE_LOADERS.exponential().then((mod) => setExponentialLoaded(() => mod.default));
+      setStagePhase('multi-center');
+      const t1 = setTimeout(() => {
+        setStagePhase('multi-zoom');
+        settleSharedCamera([0, 1.4, 13], [0, 0, 0], 1700);
+      }, 1100);
+      const t2 = setTimeout(() => {
+        done = true;
+        setExpFromHub(true);
+        setModuleTarget([0, 0, 0]);
+        setJellyState('wait');
+        setStagePhase('ring');
+        setStageSeq((n) => n + 1);
+        setStageId(activeModuleId);
+      }, 2900);
+      return () => { clearTimeout(t1); clearTimeout(t2); if (!done) setStagePhase('idle'); };
+    }
+    if (stageId === 'exponential' && activeModuleId === null) {
+      // Exponential State Space -> hub: cards out, the ring draws back off to a point, then the
+      // qubit (in place) zooms out to the hub's size and the hub's text pops.
+      let done = false;
+      setPairModule('exponential');
+      setStagePhase('closing');
+      setJellyState('out');
+      setHubTarget(getSharedCameraPose()?.target || [0, 0, 0]);
+      // The hand-back waits for the ring to be fully drawn off (and for the cards to be out).
+      let ready = false, gone = false;
+      const go = () => {
+        if (done) return;
+        done = true;
+        setExpFromHub(false);
+        setJellyState('wait');
+        setStagePhase('multi-unzoom');
+        setStageSeq((n) => n + 1);
+        setStageId(null);
+      };
+      const onGone = () => { gone = true; if (ready) go(); };
+      window.addEventListener('qass-ring-gone', onGone);
+      const t = setTimeout(() => { ready = true; if (gone) go(); }, 700);
+      const tMax = setTimeout(go, 4500); // never hang
+      return () => { clearTimeout(t); clearTimeout(tMax); window.removeEventListener('qass-ring-gone', onGone); if (!done) { setStagePhase('idle'); setJellyState(''); } };
     }
     if (stageId === null && (activeModuleId === 'multi-qubit-gates' || activeModuleId === 'entanglement')) {
       // Hub -> Multi Qubit Gates / Entanglement: all but the qubit vanishes; the qubit moves to the
@@ -1500,6 +1550,7 @@ function App() {
     setStageId(activeModuleId);
     return undefined;
   }, [activeModuleId, stageId]);
+  useEffect(() => { if (stageId !== 'exponential') setExpFromHub(false); }, [stageId]);
   // The pop starts once the new scene is in: after it has faded in, or after the morph.
   useEffect(() => {
     if (stagePhase === 'enter') {
@@ -1511,6 +1562,13 @@ function App() {
     if (stagePhase === 'morph') {
       const t = setTimeout(() => setJellyState('run'), 1000);
       return () => clearTimeout(t);
+    }
+    if (stagePhase === 'ring') {
+      // The module's ring draws on first; its cards pop as it closes (it says when).
+      const run = () => setJellyState('run');
+      window.addEventListener('qass-ring-done', run);
+      const t = setTimeout(run, 5000); // never leave the cards hidden
+      return () => { clearTimeout(t); window.removeEventListener('qass-ring-done', run); };
     }
     if (stagePhase === 'solo-unsolo') {
       const t = setTimeout(() => setStagePhase('morph'), 250);
@@ -2309,7 +2367,7 @@ function App() {
           <ModuleErrorBoundary
             // The hub, the first module and superposition share one scene (the
             // bit and the qubit), so moving between them morphs it in place.
-            key={!stageId || stageId === 'bit-vs-qubit' || stageId === 'superposition' || stageId === 'gates' || stageId === 'multi-qubit-gates' || stageId === 'interference' || stageId === 'entanglement' ? 'bit-scene' : stageId}
+            key={!stageId || stageId === 'bit-vs-qubit' || stageId === 'superposition' || stageId === 'gates' || stageId === 'multi-qubit-gates' || stageId === 'interference' || stageId === 'entanglement' || stageId === 'exponential' ? 'bit-scene' : stageId}
             moduleTitle={curriculumData.find(m => m.id === stageId)?.title}
             boundsStyle={uiBoundsStyle}
             onRetry={() => window.location.reload()}
@@ -2445,7 +2503,9 @@ function App() {
               ? <EntanglementLoaded theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} />
               : <EntanglementModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} />)
           ) : stageId === 'exponential' ? (
-            <ExponentialModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} />
+            (ExponentialLoaded
+              ? <ExponentialLoaded theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={expFromHub} closing={stagePhase === 'closing'} />
+              : <ExponentialModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={expFromHub} closing={stagePhase === 'closing'} />)
           ) : stageId === 'nocloning' ? (
             <NoCloningModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} />
           ) : stageId === 'decoherence' ? (
