@@ -5978,27 +5978,47 @@ div:has(> canvas) {
 .sidebar-home:focus-visible { outline: 2px solid rgba(56, 189, 248, 0.8); outline-offset: 4px; }
 
 /* Jelly pop: a module's cards and buttons spring in one after another once its
-   3D scene has faded in. While waiting they sit at zero size; the animation
-   fills backwards only, so hover effects work again once it ends. */
-.module-jelly-wait [data-jelly],
-.module-jelly-wait .quantum-nav-btn { transform: scale(0) !important; animation: none !important; }
-.module-jelly [data-jelly] {
+   3D scene is in, and spring out before it leaves. The state sits on the stage
+   (data-jelly-state): "wait" holds them at zero size, "run" plays the pop,
+   "out" plays the reverse. The animation fills backwards only, so hover
+   effects work again once it ends. */
+[data-jelly-state="wait"] [data-jelly],
+[data-jelly-state="wait"] .quantum-nav-btn { transform: translate(var(--tx, 0px), 0) scale(0) !important; animation: none !important; }
+[data-jelly-state="wait"] [data-jelly-host],
+[data-jelly-state="run"] [data-jelly-host],
+[data-jelly-state="out"] [data-jelly-host] { animation: none !important; opacity: 1 !important; }
+[data-jelly-state="run"] [data-jelly] {
   animation: jellyPop 1.05s linear backwards !important;
   animation-delay: calc(var(--j, 0) * 0.14s) !important;
 }
-.module-jelly .quantum-nav-btn { animation: jellyPop 1.05s linear backwards !important; }
-.module-jelly .quantum-nav-btn:nth-child(1) { animation-delay: 0.42s !important; }
-.module-jelly .quantum-nav-btn:nth-child(2) { animation-delay: 0.56s !important; }
+[data-jelly-state="run"] .quantum-nav-btn { animation: jellyPop 1.05s linear backwards !important; }
+[data-jelly-state="run"] .quantum-nav-btn:nth-child(1) { animation-delay: 0.42s !important; }
+[data-jelly-state="run"] .quantum-nav-btn:nth-child(2) { animation-delay: 0.56s !important; }
+[data-jelly-state="out"] [data-jelly],
+[data-jelly-state="out"] .quantum-nav-btn {
+  animation: jellyOut 0.5s cubic-bezier(0.5, 0, 0.75, 0) forwards !important;
+  animation-delay: calc((3 - var(--j, 0)) * 0.07s) !important;
+}
+[data-jelly-state="out"] .quantum-nav-btn:nth-child(1) { animation-delay: 0.05s !important; }
+[data-jelly-state="out"] .quantum-nav-btn:nth-child(2) { animation-delay: 0s !important; }
+[data-jelly-fade] { transition: opacity 0.45s ease; }
+[data-jelly-state="wait"] [data-jelly-fade], [data-jelly-state="out"] [data-jelly-fade] { opacity: 0 !important; }
 @keyframes jellyPop {
-  0%   { transform: scale(0); opacity: 0; animation-timing-function: cubic-bezier(0.2, 0.8, 0.3, 1); }
+  0%   { transform: translate(var(--tx, 0px), 0) scale(0); opacity: 0; animation-timing-function: cubic-bezier(0.2, 0.8, 0.3, 1); }
   22%  { opacity: 1; }
-  40%  { transform: scale(1.14, 0.88); animation-timing-function: ease-in-out; }
-  58%  { transform: scale(0.93, 1.07); animation-timing-function: ease-in-out; }
-  76%  { transform: scale(1.04, 0.98); animation-timing-function: ease-in-out; }
-  90%  { transform: scale(0.99, 1.01); animation-timing-function: ease-in-out; }
-  100% { transform: scale(1); opacity: 1; }
+  40%  { transform: translate(var(--tx, 0px), 0) scale(1.14, 0.88); animation-timing-function: ease-in-out; }
+  58%  { transform: translate(var(--tx, 0px), 0) scale(0.93, 1.07); animation-timing-function: ease-in-out; }
+  76%  { transform: translate(var(--tx, 0px), 0) scale(1.04, 0.98); animation-timing-function: ease-in-out; }
+  90%  { transform: translate(var(--tx, 0px), 0) scale(0.99, 1.01); animation-timing-function: ease-in-out; }
+  100% { transform: translate(var(--tx, 0px), 0) scale(1); opacity: 1; }
+}
+@keyframes jellyOut {
+  0%   { transform: translate(var(--tx, 0px), 0) scale(1); }
+  25%  { transform: translate(var(--tx, 0px), 0) scale(1.07, 0.95); animation-timing-function: cubic-bezier(0.5, 0, 0.75, 0); }
+  100% { transform: translate(var(--tx, 0px), 0) scale(0); opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .module-jelly-wait [data-jelly], .module-jelly-wait .quantum-nav-btn { transform: none !important; }
-  .module-jelly [data-jelly], .module-jelly .quantum-nav-btn { animation: none !important; }
+  [data-jelly-state="wait"] [data-jelly], [data-jelly-state="wait"] .quantum-nav-btn { transform: none !important; }
+  [data-jelly-state="run"] [data-jelly], [data-jelly-state="run"] .quantum-nav-btn,
+  [data-jelly-state="out"] [data-jelly], [data-jelly-state="out"] .quantum-nav-btn { animation: none !important; }
 }
