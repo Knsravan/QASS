@@ -105,6 +105,8 @@ export const showSharedCanvas = () => showHost();
 export function seamlessNextSwap() { if (host) host.seamless = true; }
 /** Eases the shared canvas's camera to a pose (position, orbit target) over `ms`. */
 export function settleSharedCamera(pos, target, ms) { host?.settleCamera?.(pos, target, ms); }
+/** The shared canvas's camera position and orbit target right now. */
+export function getSharedCameraPose() { return host?.getPose?.() || null; }
 export function skipNextSnapshot() { if (host) host.skipSnap = true; }
 const revealed = new Set();
 /** Called whenever a scene has faded in on the shared canvas. */
@@ -182,7 +184,11 @@ function Intro() {
         },
       });
     };
-    return () => { host.capture = null; host.settleCamera = null; };
+    host.getPose = () => {
+      const c = get().controls;
+      return { pos: cam.position.toArray(), target: c ? c.target.toArray() : [0, 0, 0] };
+    };
+    return () => { host.capture = null; host.settleCamera = null; host.getPose = null; };
   }, [gl, advance, cam, get]);
   useFrame((_, delta) => {
     if (++frames.current === 4) {

@@ -409,6 +409,18 @@ function ControlBeam({ start, end, progress, isActive, isSuccess }) {
 }
 
 // --- MAIN 3D SCENE ---
+/** Where the module's camera rests for a step (and what it looks at). The hub's scene
+ *  eases the camera here as the pair zooms in, so the module's own camera move starts
+ *  from where it ends. */
+export function multiGatesPose(stepData) {
+  const offsetX = -0.4;
+  const offsetY = -1.0;
+  return {
+    cam: [stepData.camPos[0] + offsetX, stepData.camPos[1], stepData.camPos[2] + 5],
+    target: stepData.numQubits === 2 ? [offsetX, 1.2 + offsetY, 0] : [offsetX, 1.5 + offsetY, 0],
+  };
+}
+
 export function MultiGatesScene({ step, applied, theme, setProgress, inputs }) {
   const stepData = MULTI_GATES_STEPS[step] || MULTI_GATES_STEPS[0];
   const isLight = theme === 'light';
@@ -430,8 +442,9 @@ export function MultiGatesScene({ step, applied, theme, setProgress, inputs }) {
     // Also use an offsetY to pan down, pushing the scene UP away from the bottom UI panels
     const offsetX = -0.4;
     const offsetY = -1.0; 
-    const defaultCam = { x: stepData.camPos[0] + offsetX, y: stepData.camPos[1], z: stepData.camPos[2] + 5 };
-    const defaultTarget = stepData.numQubits === 2 ? { x: offsetX, y: 1.2 + offsetY, z: 0 } : { x: offsetX, y: 1.5 + offsetY, z: 0 };
+    const { cam: dc, target: dt } = multiGatesPose(stepData);
+    const defaultCam = { x: dc[0], y: dc[1], z: dc[2] };
+    const defaultTarget = { x: dt[0], y: dt[1], z: dt[2] };
 
     // Set initial position if not applied and just mounting
     if (!applied) {

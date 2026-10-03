@@ -1150,7 +1150,7 @@ const ExponentialStateOrbit = ({ qubitCount, theme, onDomainHover, onDomainUnhov
     </group>
   );
 };
-export default function BlochSphere({ theme, activeModule, qubitCount, isDecohering, attemptCopy, isSidebarOpen, setIsSidebarOpen, interferenceStep, interferencePhase, isGlobalMuted = false, vanishing = false, multi = null }) {
+export default function BlochSphere({ theme, activeModule, qubitCount, isDecohering, attemptCopy, isSidebarOpen, setIsSidebarOpen, interferenceStep, interferencePhase, isGlobalMuted = false, vanishing = false, multi = null, handoverTarget }) {
   const isLight = theme === 'light';
   const tetherRef = useRef();
   const controlsRef = useRef();
@@ -1265,7 +1265,9 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
     const first = !camReady.current;
     camReady.current = true;
     if (!activeModule || !controlsRef.current || !camera) return;
-    if (first) {
+    if (first && (activeModule === 'gates' || activeModule === 'multi-qubit-gates')) {
+      // Standing in for a module's scene: the camera is where that module left it.
+    } else if (first) {
       camera.position.set(0, 0, 13);
       camera.rotation.set(0, 0, 0);
       controlsRef.current.target.set(0, 0, 0);
@@ -1420,6 +1422,8 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
       {activeModule !== 'interference' && (
         <OrbitControls
           ref={controlsRef}
+          makeDefault
+          target={handoverTarget || [0, 0, 0]}
           enabled={hoveredDomain === null}
           enableZoom={true}
           enablePan={false}

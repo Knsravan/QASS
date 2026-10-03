@@ -6,9 +6,9 @@ import { Bloom } from '@react-three/postprocessing';
 import BlochSphere from './BlochSphere';
 import { DiracScene, DiracOverlay } from './DiracNotation';
 import { GatesScene, GatesOverlay, GATES_STEPS } from './QuantumGates';
-import { MultiGatesScene, MultiGatesOverlay, MULTI_GATES_STEPS, isResultEntangled } from './MultiQubitGates';
+import { MultiGatesScene, MultiGatesOverlay, MULTI_GATES_STEPS, isResultEntangled, multiGatesPose } from './MultiQubitGates';
 import CameraShifter from './CameraShifter';
-import { SharedCanvas, fadeOutSharedCanvas, showSharedCanvas, skipNextSnapshot, seamlessNextSwap, settleSharedCamera, onSharedCanvasRevealed } from './SharedCanvas';
+import { SharedCanvas, fadeOutSharedCanvas, showSharedCanvas, skipNextSnapshot, seamlessNextSwap, settleSharedCamera, getSharedCameraPose, onSharedCanvasRevealed } from './SharedCanvas';
 import { useExitPresence } from './useExitPresence';
 import LandingOrbitalCloud from './LandingOrbitalCloud';
 import GlassNavBar from './GlassNavBar';
@@ -1329,6 +1329,10 @@ function App() {
   const [stageId, setStageId] = useState(activeModuleId);
   const [stagePhase, setStagePhase] = useState('idle'); // 'vanish' | 'enter' | 'morph' | 'idle'
   const [jellyState, setJellyState] = useState('');     // '' | 'wait' | 'run' | 'out'
+  // The orbit target a scene takes over with: the module's, after the pair has zoomed in;
+  // the hub's, right after a module closes (it then eases back to the middle).
+  const [moduleTarget, setModuleTarget] = useState([0, 0, 0]);
+  const [hubTarget, setHubTarget] = useState([0, 0, 0]);
   const [stageSeq, setStageSeq] = useState(0);           // counts the choreographed moves (so a repeat phase restarts its timers)
   useEffect(() => {
     if (activeModuleId === stageId) return undefined;
@@ -1353,9 +1357,17 @@ function App() {
       let done = false;
       setStagePhase('multi-center');
       const t1 = setTimeout(() => setStagePhase('multi-split'), 1300);
-      const t1b = setTimeout(() => setStagePhase('multi-zoom'), 2700);
+      const pose = multiGatesPose(MULTI_GATES_STEPS[multiGatesStep]);
+      const t1b = setTimeout(() => {
+        setStagePhase('multi-zoom');
+        // The camera goes to the module's resting view as the pair zooms in, so the
+        // models land exactly where the module has them (and its own camera move
+        // has nowhere left to go).
+        settleSharedCamera(pose.cam, pose.target, 1500);
+      }, 2700);
       const t2 = setTimeout(() => {
         done = true;
+        setModuleTarget(pose.target);
         setJellyState('wait');
         setStagePhase('morph');
         setStageSeq((n) => n + 1);
@@ -1364,12 +1376,13 @@ function App() {
       return () => { clearTimeout(t1); clearTimeout(t1b); clearTimeout(t2); if (!done) setStagePhase('idle'); };
     }
     if (stageId === 'multi-qubit-gates' && activeModuleId === null) {
-      // Multi Qubit Gates -> hub: cards out, the pair takes over in place, merges
-      // into one qubit, which becomes the hub's; then the hub's text pops.
+      // Multi Qubit Gates -> hub: cards out, the pair takes over in place (camera and
+      // all), zooms out and merges into one qubit, which becomes the hub's; then the
+      // hub's text pops.
       let done = false;
       setStagePhase('closing');
       setJellyState('out');
-      settleSharedCamera([0, 0, 13], [0, 0, 0], 650);
+      setHubTarget(getSharedCameraPose()?.target || [0, 0, 0]);
       const t = setTimeout(() => {
         done = true;
         setJellyState('wait');
@@ -1457,7 +1470,9 @@ function App() {
       return () => clearTimeout(t);
     }
     if (stagePhase === 'multi-unsplit') {
-      const t = setTimeout(() => setStagePhase('multi-merge'), 1500);
+      // The zoom-out: the models shrink to the hub's size while the camera eases back.
+      settleSharedCamera([0, 0, 13], [0, 0, 0], 1500);
+      const t = setTimeout(() => { setHubTarget([0, 0, 0]); setStagePhase('multi-merge'); }, 1500);
       return () => clearTimeout(t);
     }
     if (stagePhase === 'multi-merge') {
@@ -2284,7 +2299,7 @@ function App() {
                 style={{ position: 'absolute', inset: 0, zIndex: 1, willChange: 'transform', transform: 'translateZ(0)' }}
               >
                 <CameraShifter isSidebarOpen={isSidebarOpen} />
-                <OrbitControls makeDefault enableZoom={true} enablePan={true} />
+                <OrbitControls makeDefault enableZoom={true} enablePan={true} target={moduleTarget} />
                 <MultiGatesScene
                   step={multiGatesStep}
                   applied={multiGateApplied}
@@ -2395,6 +2410,7 @@ function App() {
                 activeModule={stagePhase === 'grow' || stagePhase === 'shrink' ? 'gates' : stagePhase.startsWith('multi-') ? 'multi-qubit-gates' : stageId}
                 multi={stagePhase === 'multi-center' ? 'center' : stagePhase === 'multi-merge' ? 'merge' : stagePhase === 'multi-split' || stagePhase === 'multi-unsplit' ? 'split' : stagePhase === 'multi-zoom' || stagePhase === 'multi-unzoom' ? 'zoom' : null}
                 vanishing={stagePhase === 'vanish'}
+                handoverTarget={hubTarget}
                 qubitCount={qubitCount}
                 isDecohering={isDecohering}
                 attemptCopy={attemptCopy}
