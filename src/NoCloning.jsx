@@ -11,7 +11,9 @@ import CameraShifter from './CameraShifter';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { useNoCloningAudio } from './useNoCloningAudio';
 import { SCENE_GL } from './sceneGl';
-import { QualityCanvas, QualityComposer } from './QualityScene';
+import { QualityComposer } from './QualityScene';
+import { SharedCanvas } from './SharedCanvas';
+
 
 // Color Palette
 const CC = '#00f2fe'; // Cyan / Classical
@@ -651,7 +653,7 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted })
       {/* 3D WEBGL CANVAS SCENE */}
       {/* ========================================================== */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-        <QualityCanvas
+        <SharedCanvas
           gl={SCENE_GL}
           camera={{ position: [0, 1.4, 31.0], fov: 45 }}
         >
@@ -881,7 +883,7 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted })
               </Html>
             </group>
           </Suspense>
-        </QualityCanvas>
+        </SharedCanvas>
       </div>
 
       {/* ========================================================== */}

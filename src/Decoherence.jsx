@@ -12,7 +12,9 @@ import { useDecoherenceAudio } from './useDecoherenceAudio';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { SCENE_GL } from './sceneGl';
 import GlassSlider from './GlassSlider';
-import { QualityCanvas, QualityComposer } from './QualityScene';
+import { QualityComposer } from './QualityScene';
+import { SharedCanvas } from './SharedCanvas';
+
 
 // ============================================================
 // COLORS
@@ -902,7 +904,7 @@ export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted,
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', background: 'transparent' }}>
       {/* 3D CANVAS WITH CAMERA SHIFTER */}
-      <QualityCanvas
+      <SharedCanvas
         camera={{ position: [0, MODEL_Y + 0.6, 20.0], fov: 44 }}
         gl={SCENE_GL}
         style={{ position: 'absolute', inset: 0, zIndex: 1 }}
@@ -911,7 +913,7 @@ export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted,
           <CameraShifter isSidebarOpen={isSidebarOpen} />
           <DecoherenceScene step={step} noiseLevel={noiseLevel} activeNoise={activeNoise} noiseBurstId={noiseBurstId} entranceRef={entranceAnim} audio={audio} tempK={tempK} />
         </Suspense>
-      </QualityCanvas>
+      </SharedCanvas>
 
       {/* 2D OVERLAY BOUNDED TO VIEWPORT AREA */}
       <div style={uiBoundsStyle}>

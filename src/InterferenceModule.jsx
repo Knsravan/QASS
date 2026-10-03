@@ -16,6 +16,7 @@ import { QuantumNavButtons } from './QuantumNavButtons';
 import { SCENE_GL } from './sceneGl';
 import GlassSlider from './GlassSlider';
 import { QualityCanvas } from './QualityScene';
+import { SharedCanvas } from './SharedCanvas';
 
 const COLORS = {
   primary: '#0ea5e9', // Cyan
@@ -1408,7 +1409,7 @@ export default function InterferenceModule({ theme, isSidebarOpen, isGlobalMuted
   return (
     <>
       <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }}>
-        <QualityCanvas
+        <SharedCanvas
           gl={SCENE_GL}
         >
           <CameraShifter isSidebarOpen={isSidebarOpen} />
@@ -1432,7 +1433,7 @@ export default function InterferenceModule({ theme, isSidebarOpen, isGlobalMuted
               audio={audio}
             />
           </Suspense>
-        </QualityCanvas>
+        </SharedCanvas>
       </div>
       <div style={uiBoundsStyle}>
         <InterferenceOverlay
