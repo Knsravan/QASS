@@ -1128,7 +1128,7 @@ const ExponentialStateOrbit = ({ qubitCount, theme, onDomainHover, onDomainUnhov
     </group>
   );
 };
-export default function BlochSphere({ theme, activeModule, qubitCount, isDecohering, attemptCopy, isSidebarOpen, setIsSidebarOpen, interferenceStep, interferencePhase, isGlobalMuted = false }) {
+export default function BlochSphere({ theme, activeModule, qubitCount, isDecohering, attemptCopy, isSidebarOpen, setIsSidebarOpen, interferenceStep, interferencePhase, isGlobalMuted = false, vanishing = false }) {
   const isLight = theme === 'light';
   const tetherRef = useRef();
   const controlsRef = useRef();
@@ -1269,8 +1269,8 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
     // ── Hub <-> module: the two bits stay and grow to the module's size ──
     if (rigRef.current) {
       const rig = rigRef.current;
-      const k = 1 - Math.exp(-3.4 * Math.min(delta, 0.1));
-      const ts = !activeModule ? 0.7 : 1;
+      const k = 1 - Math.exp(-(vanishing ? 7 : 3.4) * Math.min(delta, 0.1));
+      const ts = vanishing ? 0.0001 : !activeModule ? 0.7 : 1;
       const ty = !activeModule ? -0.8 : 0;
       rig.scale.setScalar(rig.scale.x + (ts - rig.scale.x) * k);
       rig.position.y += (ty - rig.position.y) * k;

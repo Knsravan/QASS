@@ -8,7 +8,7 @@ import { DiracScene, DiracOverlay } from './DiracNotation';
 import { GatesScene, GatesOverlay, GATES_STEPS } from './QuantumGates';
 import { MultiGatesScene, MultiGatesOverlay, MULTI_GATES_STEPS, isResultEntangled } from './MultiQubitGates';
 import CameraShifter from './CameraShifter';
-import { SharedCanvas } from './SharedCanvas';
+import { SharedCanvas, fadeOutSharedCanvas, showSharedCanvas, skipNextSnapshot, onSharedCanvasRevealed } from './SharedCanvas';
 import { useExitPresence } from './useExitPresence';
 import LandingOrbitalCloud from './LandingOrbitalCloud';
 import GlassNavBar from './GlassNavBar';
@@ -1320,8 +1320,41 @@ function App() {
   const [theme] = useState('dark');
   const [learningMode, setLearningMode] = useState(() => readStorage('quantumUI_learningMode') === 'advanced' ? 'advanced' : 'beginner');
   const [activeModuleId, setActiveModuleId] = useState(moduleFromHash); // the hub unless the URL names a module
+  // What the stage (3D scene and its overlay) shows. It follows the open
+  // module, except that opening Dirac Notation from the hub first lets the
+  // hub's scene vanish, then brings Dirac's in, then pops its cards.
+  const [stageId, setStageId] = useState(activeModuleId);
+  const [stagePhase, setStagePhase] = useState('idle'); // 'vanish' | 'enter' | 'idle'
+  const [jellyReady, setJellyReady] = useState(false);
+  useEffect(() => {
+    if (activeModuleId === stageId) return undefined;
+    if (stageId === null && activeModuleId === 'dirac-notation') {
+      let done = false;
+      setStagePhase('vanish');
+      fadeOutSharedCanvas(520);
+      const t = setTimeout(() => {
+        done = true;
+        skipNextSnapshot();
+        setJellyReady(false);
+        setStagePhase('enter');
+        setStageId(activeModuleId);
+      }, 600);
+      return () => { clearTimeout(t); if (!done) { setStagePhase('idle'); showSharedCanvas(); } };
+    }
+    setStagePhase('idle');
+    setStageId(activeModuleId);
+    return undefined;
+  }, [activeModuleId, stageId]);
+  // Cards pop once the scene has faded in.
+  useEffect(() => {
+    if (stagePhase !== 'enter') return undefined;
+    let t2 = 0;
+    const off = onSharedCanvasRevealed(() => { t2 = setTimeout(() => setJellyReady(true), 420); });
+    const t3 = setTimeout(() => setJellyReady(true), 4000); // never leave the cards hidden
+    return () => { off(); clearTimeout(t2); clearTimeout(t3); };
+  }, [stagePhase]);
   // The hub's text stays mounted while it fades out after a module opens.
-  const hubShown = useExitPresence(!activeModuleId, 650);
+  const hubShown = useExitPresence(!stageId, 650);
   const [listFor, setListFor] = useState(null); // the module the sidebar went "back" from
   const openModulePage = useCallback((id) => { setListFor(null); setActiveModuleId(id); }, []);
   const [lastClosedModuleId, setLastClosedModuleId] = useState(() => readModuleSetting('quantumUI_lastModule'));
@@ -2075,7 +2108,7 @@ function App() {
               }}
             />
 
-            {activeModuleId && activeModuleId !== 'superposition' && activeModuleId !== 'dirac-notation' && activeModuleId !== 'multi-qubit-gates' && activeModuleId !== 'interference' && activeModuleId !== 'entanglement' && activeModuleId !== 'exponential' && activeModuleId !== 'nocloning' && activeModuleId !== 'decoherence' && activeModuleId !== 'error-correction' && (
+            {stageId && stageId !== 'superposition' && stageId !== 'dirac-notation' && stageId !== 'multi-qubit-gates' && stageId !== 'interference' && stageId !== 'entanglement' && stageId !== 'exponential' && stageId !== 'nocloning' && stageId !== 'decoherence' && stageId !== 'error-correction' && (
               <div className="module-appear" style={{ position: 'absolute', top: '80px', left: '50%', width: '0px', display: 'flex', justifyContent: 'center', zIndex: 10, pointerEvents: 'none' }}>
                 <div className="section-title classical" style={{ position: 'absolute', left: '-39vh', transform: 'translateX(-50%)' }}>
                   <div className="section-title-dot" />
@@ -2092,14 +2125,14 @@ function App() {
           <ModuleErrorBoundary
             // The hub, the first module and superposition share one scene (the
             // bit and the qubit), so moving between them morphs it in place.
-            key={!activeModuleId || activeModuleId === 'bit-vs-qubit' || activeModuleId === 'superposition' ? 'bit-scene' : activeModuleId}
-            moduleTitle={curriculumData.find(m => m.id === activeModuleId)?.title}
+            key={!stageId || stageId === 'bit-vs-qubit' || stageId === 'superposition' ? 'bit-scene' : stageId}
+            moduleTitle={curriculumData.find(m => m.id === stageId)?.title}
             boundsStyle={uiBoundsStyle}
             onRetry={() => window.location.reload()}
             onBackToHub={() => setActiveModuleId(null)}
           >
           <Suspense fallback={null}>
-          {activeModuleId === 'gates' ? (
+          {stageId === 'gates' ? (
             <GatesModuleView
               step={gatesStep}
               applied={gateApplied}
@@ -2124,7 +2157,7 @@ function App() {
                 setGateApplied(false);
               }}
             />
-          ) : activeModuleId === 'multi-qubit-gates' ? (
+          ) : stageId === 'multi-qubit-gates' ? (
             <>
               <SharedCanvas
                 camera={{ position: [0, 0, 15], fov: 45 }}
@@ -2199,7 +2232,7 @@ function App() {
                 />
               </div>
             </>
-          ) : activeModuleId === 'dirac-notation' ? (
+          ) : stageId === 'dirac-notation' ? (
             <>
               <SharedCanvas
                 camera={{ position: [4, 3, 8], fov: 50 }}
@@ -2209,7 +2242,7 @@ function App() {
                 <CameraShifter isSidebarOpen={isSidebarOpen} />
                 <DiracScene step={diracStep} theme={theme} />
               </SharedCanvas>
-              <div style={uiBoundsStyle}>
+              <div style={uiBoundsStyle} className={stagePhase === 'enter' ? (jellyReady ? 'module-jelly' : 'module-jelly-wait') : undefined}>
                 <DiracOverlay
                   step={diracStep}
                   theme={theme}
@@ -2218,17 +2251,17 @@ function App() {
                 />
               </div>
             </>
-          ) : activeModuleId === 'interference' ? (
+          ) : stageId === 'interference' ? (
             <InterferenceModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} />
-          ) : activeModuleId === 'entanglement' ? (
+          ) : stageId === 'entanglement' ? (
             <EntanglementModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} />
-          ) : activeModuleId === 'exponential' ? (
+          ) : stageId === 'exponential' ? (
             <ExponentialModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} />
-          ) : activeModuleId === 'nocloning' ? (
+          ) : stageId === 'nocloning' ? (
             <NoCloningModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} />
-          ) : activeModuleId === 'decoherence' ? (
+          ) : stageId === 'decoherence' ? (
             <DecoherenceModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} onNavigateToModule={(moduleId) => setActiveModuleId(moduleId)} />
-          ) : activeModuleId === 'error-correction' ? (
+          ) : stageId === 'error-correction' ? (
             <QuantumErrorCorrectionModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} />
           ) : (
             <SharedCanvas
@@ -2239,7 +2272,8 @@ function App() {
               <CameraShifter isSidebarOpen={isSidebarOpen} />
               <BlochSphere
                 theme={theme}
-                activeModule={activeModuleId}
+                activeModule={stageId}
+                vanishing={stagePhase === 'vanish'}
                 qubitCount={qubitCount}
                 isDecohering={isDecohering}
                 attemptCopy={attemptCopy}

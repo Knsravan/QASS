@@ -87,7 +87,22 @@ function showHost() {
     host.reveal = setTimeout(() => { w.style.transition = ''; w.style.opacity = ''; w.style.filter = ''; }, 900);
   }
   dissolveSnap();
+  revealed.forEach((cb) => cb());
 }
+/** Fades the shared canvas out (the scene leaving before another comes in). */
+export function fadeOutSharedCanvas(ms) {
+  if (!host) return;
+  clearTimeout(host.reveal);
+  const w = wrapperOf();
+  if (w) { w.style.transition = `opacity ${ms}ms ease-in, filter ${ms}ms ease-in`; w.style.opacity = '0'; w.style.filter = 'blur(8px)'; }
+}
+export const showSharedCanvas = () => showHost();
+/** The next scene to come in arrives without a dissolving picture of the last. */
+export function skipNextSnapshot() { if (host) host.skipSnap = true; }
+const revealed = new Set();
+/** Called whenever a scene has faded in on the shared canvas. */
+export function onSharedCanvasRevealed(cb) { revealed.add(cb); return () => revealed.delete(cb); }
+
 function snapEl() {
   if (!host.snap) {
     const c = document.createElement('canvas');
@@ -206,7 +221,10 @@ export function SharedCanvas({ children, camera, style, className }) {
     attached = true;
     emit();
     return () => {
-      if (scene?.id === id) { h.capture?.(); scene = null; }
+      if (scene?.id === id) {
+        if (h.skipSnap) h.skipSnap = false; else h.capture?.();
+        scene = null;
+      }
       // Park it in the page's stage while the next module loads, so the
       // picture holds instead of the canvas going away.
       if (h.el.parentNode === slot.current) {
