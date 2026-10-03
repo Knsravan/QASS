@@ -8,7 +8,7 @@ import { DiracScene, DiracOverlay } from './DiracNotation';
 import { GatesScene, GatesOverlay, GATES_STEPS } from './QuantumGates';
 import { MultiGatesScene, MultiGatesOverlay, MULTI_GATES_STEPS, isResultEntangled } from './MultiQubitGates';
 import CameraShifter from './CameraShifter';
-import { SharedCanvas, fadeOutSharedCanvas, showSharedCanvas, skipNextSnapshot, onSharedCanvasRevealed } from './SharedCanvas';
+import { SharedCanvas, fadeOutSharedCanvas, showSharedCanvas, skipNextSnapshot, seamlessNextSwap, onSharedCanvasRevealed } from './SharedCanvas';
 import { useExitPresence } from './useExitPresence';
 import LandingOrbitalCloud from './LandingOrbitalCloud';
 import GlassNavBar from './GlassNavBar';
@@ -1328,6 +1328,7 @@ function App() {
   const [stageId, setStageId] = useState(activeModuleId);
   const [stagePhase, setStagePhase] = useState('idle'); // 'vanish' | 'enter' | 'morph' | 'idle'
   const [jellyState, setJellyState] = useState('');     // '' | 'wait' | 'run' | 'out'
+  const [stageSeq, setStageSeq] = useState(0);           // counts the choreographed moves (so a repeat phase restarts its timers)
   useEffect(() => {
     if (activeModuleId === stageId) return undefined;
     if (stageId === null && activeModuleId === 'dirac-notation') {
@@ -1339,9 +1340,41 @@ function App() {
         skipNextSnapshot();
         setJellyState('wait');
         setStagePhase('enter');
+        setStageSeq((n) => n + 1);
         setStageId(activeModuleId);
       }, 600);
       return () => { clearTimeout(t); if (!done) { setStagePhase('idle'); showSharedCanvas(); } };
+    }
+    if (stageId === null && activeModuleId === 'gates') {
+      // Hub -> Classical Gates: the hub's text goes, the two bits grow to the
+      // module's size and pose, then the module's scene takes over unseen.
+      let done = false;
+      setStagePhase('grow');
+      const t = setTimeout(() => {
+        done = true;
+        seamlessNextSwap();
+        setJellyState('wait');
+        setStagePhase('enter');
+        setStageSeq((n) => n + 1);
+        setStageId(activeModuleId);
+      }, 1000);
+      return () => { clearTimeout(t); if (!done) setStagePhase('idle'); };
+    }
+    if (stageId === 'gates' && activeModuleId === null) {
+      // Classical Gates -> hub: cards spring out, the hub's bits take over at the
+      // module's size, shrink to the hub's, and the hub's text pops.
+      let done = false;
+      setStagePhase('closing');
+      setJellyState('out');
+      const t = setTimeout(() => {
+        done = true;
+        seamlessNextSwap();
+        setJellyState('wait');
+        setStagePhase('shrink');
+        setStageSeq((n) => n + 1);
+        setStageId(null);
+      }, 600);
+      return () => { clearTimeout(t); if (!done) { setStagePhase('idle'); setJellyState(''); } };
     }
     if (stageId !== null && activeModuleId === null) {
       // Closing, any module: the opening in reverse. Its cards spring out; then
@@ -1357,6 +1390,7 @@ function App() {
         if (!shared) skipNextSnapshot();
         setJellyState('wait');
         setStagePhase(shared ? 'morph' : 'enter');
+        setStageSeq((n) => n + 1);
         setStageId(null);
       }, shared ? 600 : 1050);
       return () => { clearTimeout(t1); clearTimeout(t2); if (!done) { setStagePhase('idle'); setJellyState(''); showSharedCanvas(); } };
@@ -1364,6 +1398,7 @@ function App() {
     if (stageId === null && activeModuleId === 'superposition') {
       setJellyState('wait');
       setStagePhase('morph');
+      setStageSeq((n) => n + 1);
       setStageId(activeModuleId);
       return undefined;
     }
@@ -1384,8 +1419,12 @@ function App() {
       const t = setTimeout(() => setJellyState('run'), 1000);
       return () => clearTimeout(t);
     }
+    if (stagePhase === 'shrink') {
+      const t = setTimeout(() => setStagePhase('morph'), 450);
+      return () => clearTimeout(t);
+    }
     return undefined;
-  }, [stagePhase]);
+  }, [stagePhase, stageSeq]);
   // The hub's text stays mounted while it fades out after a module opens.
   const hubShown = useExitPresence(!stageId, 650);
   const [listFor, setListFor] = useState(null); // the module the sidebar went "back" from
@@ -2305,7 +2344,7 @@ function App() {
               <CameraShifter isSidebarOpen={isSidebarOpen} />
               <BlochSphere
                 theme={theme}
-                activeModule={stageId}
+                activeModule={stagePhase === 'grow' || stagePhase === 'shrink' ? 'gates' : stageId}
                 vanishing={stagePhase === 'vanish'}
                 qubitCount={qubitCount}
                 isDecohering={isDecohering}

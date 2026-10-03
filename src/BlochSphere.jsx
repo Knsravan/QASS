@@ -1167,7 +1167,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
   useLayoutEffect(() => {
     // First paint at the right size (no growth on a direct load).
     const rig = rigRef.current;
-    if (rig) { rig.scale.setScalar(!activeModule ? 0.7 : 1); rig.position.y = !activeModule ? -0.8 : 0; }
+    if (rig) { rig.scale.setScalar(!activeModule ? 0.7 : 1); rig.position.y = !activeModule ? -0.8 : activeModule === 'gates' ? -0.5 : 0; }
     const solo = activeModule === 'superposition' || activeModule === 'interference';
     if (leftRig.current) leftRig.current.scale.setScalar(solo ? 0.0001 : 1);
     if (solo) setBitOn(false);
@@ -1271,21 +1271,21 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
       const rig = rigRef.current;
       const k = 1 - Math.exp(-(vanishing ? 7 : 3.4) * Math.min(delta, 0.1));
       const ts = vanishing ? 0.0001 : !activeModule ? 0.7 : 1;
-      const ty = !activeModule ? -0.8 : 0;
+      const ty = !activeModule ? -0.8 : activeModule === 'gates' ? -0.5 : 0;
       rig.scale.setScalar(rig.scale.x + (ts - rig.scale.x) * k);
       rig.position.y += (ty - rig.position.y) * k;
     }
     // Superposition is the qubit alone: the classical bit shrinks away and the qubit slides to the middle.
     {
       const solo = activeModule === 'superposition' || activeModule === 'interference';
-      const k = 1 - Math.exp(-3.4 * Math.min(delta, 0.1));
+      const k = 1 - Math.exp(-(solo ? 6 : 3.4) * Math.min(delta, 0.1));
       const l = leftRig.current;
       if (l) {
         const s = Math.max(0.0001, l.scale.x + ((solo ? 0 : 1) - l.scale.x) * k);
         l.scale.setScalar(s);
         const host = state.gl.domElement.parentElement;
-        if (host) host.style.setProperty('--bit-fade', String(Math.min(1, Math.max(0, (s - 0.15) / 0.6))));
-        if (solo && s < 0.02) setBitOn(false);
+        if (host) host.style.setProperty('--bit-fade', String(Math.min(1, Math.max(0, (s - 0.1) / 0.4))));
+        if (solo && s < 0.06) setBitOn(false);
       }
       const r = rightRig.current;
       if (r) r.position.x += ((solo ? 0 : 4.2) - r.position.x) * k;

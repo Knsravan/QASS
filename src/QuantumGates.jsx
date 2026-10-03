@@ -206,7 +206,7 @@ function ClassicalPipeStage({ stepData, applied, isLight }) {
 
       {gate === 'X' && !applied && (
         <Html position={[0, 2.9, 0]} center zIndexRange={[100, 0]}>
-          <div className="glass-tooltip" style={{
+          <div data-jelly style={{ '--j': 1 }}><div className="glass-tooltip" style={{
             textAlign: 'center',
             width: '280px',
             padding: '12px 16px',
@@ -221,7 +221,7 @@ function ClassicalPipeStage({ stepData, applied, isLight }) {
             <p style={{ color: '#f093fb', fontWeight: 'bold', fontSize: '12px', margin: 0 }}>
               Click "Apply X Gate" to see the Quantum equivalent!
             </p>
-          </div>
+          </div></div>
           <style>{`
             @keyframes loopingPopTooltip {
               0% { opacity: 0; transform: scale(0.5) translateY(20px); }
@@ -529,7 +529,7 @@ export function GatesOverlay({ step, applied, onToggleApply, onNext, onPrev, the
       <div style={{
         position: 'absolute', top: '64px', left: '50%', transform: 'translateX(-50%)',
         display: 'flex', gap: '6px', zIndex: 300, alignItems: 'center', pointerEvents: 'none',
-      }}>
+      }} data-jelly-fade>
         {GATES_STEPS.map((s, i) => (
           <div key={i} style={{
             width: i === step ? '24px' : '7px', height: '7px', borderRadius: '4px',
@@ -543,7 +543,7 @@ export function GatesOverlay({ step, applied, onToggleApply, onNext, onPrev, the
       {/* Center Explanation Card is rendered via Html in GatesScene */}
 
       {/* Bottom Center: Apply Gate Button */}
-      <div style={{ position: 'absolute', bottom: '40px', left: '50%', transform: 'translateX(-50%)', zIndex: 300, pointerEvents: 'auto' }}>
+      <div data-jelly style={{ '--j': 0, '--tx': '-50%', position: 'absolute', bottom: '40px', left: '50%', transform: 'translateX(-50%)', zIndex: 300, pointerEvents: 'auto' }}>
         <button
           className="action-btn glass-btn glass-interactive"
           onClick={onToggleApply}
