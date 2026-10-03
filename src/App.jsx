@@ -1347,20 +1347,21 @@ function App() {
       return () => { clearTimeout(t); if (!done) { setStagePhase('idle'); showSharedCanvas(); } };
     }
     if (stageId === null && activeModuleId === 'multi-qubit-gates') {
-      // Hub -> Multi Qubit Gates: all but the qubit vanishes, the qubit comes to the
-      // middle and splits in two, the pair settles into the module's places, then the
+      // Hub -> Multi Qubit Gates: all but the qubit vanishes; the qubit moves to the middle;
+      // it splits in two; the pair then zooms into the module's size and places; the
       // module's scene takes over in place and its cards pop.
       let done = false;
       setStagePhase('multi-center');
       const t1 = setTimeout(() => setStagePhase('multi-split'), 1300);
+      const t1b = setTimeout(() => setStagePhase('multi-zoom'), 2700);
       const t2 = setTimeout(() => {
         done = true;
         setJellyState('wait');
         setStagePhase('morph');
         setStageSeq((n) => n + 1);
         setStageId(activeModuleId);
-      }, 2900);
-      return () => { clearTimeout(t1); clearTimeout(t2); if (!done) setStagePhase('idle'); };
+      }, 4300);
+      return () => { clearTimeout(t1); clearTimeout(t1b); clearTimeout(t2); if (!done) setStagePhase('idle'); };
     }
     if (stageId === 'multi-qubit-gates' && activeModuleId === null) {
       // Multi Qubit Gates -> hub: cards out, the pair takes over in place, merges
@@ -1372,7 +1373,7 @@ function App() {
       const t = setTimeout(() => {
         done = true;
         setJellyState('wait');
-        setStagePhase('multi-unsplit');
+        setStagePhase('multi-unzoom');
         setStageSeq((n) => n + 1);
         setStageId(null);
       }, 700);
@@ -1451,8 +1452,12 @@ function App() {
       const t = setTimeout(() => setJellyState('run'), 1000);
       return () => clearTimeout(t);
     }
+    if (stagePhase === 'multi-unzoom') {
+      const t = setTimeout(() => setStagePhase('multi-unsplit'), 200);
+      return () => clearTimeout(t);
+    }
     if (stagePhase === 'multi-unsplit') {
-      const t = setTimeout(() => setStagePhase('multi-merge'), 200);
+      const t = setTimeout(() => setStagePhase('multi-merge'), 1500);
       return () => clearTimeout(t);
     }
     if (stagePhase === 'multi-merge') {
@@ -2388,7 +2393,7 @@ function App() {
               <BlochSphere
                 theme={theme}
                 activeModule={stagePhase === 'grow' || stagePhase === 'shrink' ? 'gates' : stagePhase.startsWith('multi-') ? 'multi-qubit-gates' : stageId}
-                multi={stagePhase === 'multi-center' ? 'center' : stagePhase === 'multi-merge' ? 'merge' : stagePhase === 'multi-split' || stagePhase === 'multi-unsplit' ? 'split' : null}
+                multi={stagePhase === 'multi-center' ? 'center' : stagePhase === 'multi-merge' ? 'merge' : stagePhase === 'multi-split' || stagePhase === 'multi-unsplit' ? 'split' : stagePhase === 'multi-zoom' || stagePhase === 'multi-unzoom' ? 'zoom' : null}
                 vanishing={stagePhase === 'vanish'}
                 qubitCount={qubitCount}
                 isDecohering={isDecohering}
