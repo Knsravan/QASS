@@ -145,6 +145,8 @@ const _CAM_TARGETS_BS = [
   new THREE.Vector3(0, 1.5, 14),
 ];
 const _DEFAULT_CAM_BS = new THREE.Vector3(0, 0, 13);
+const _tmpGoal = new THREE.Color();
+const _Q_UP = new THREE.Quaternion(); // |0>: the arrow straight up
 const _ORIGIN_BS = new THREE.Vector3(0, 0, 0);
 const _tempColor1_BS = new THREE.Color();
 const _tempColor2_BS = new THREE.Color();
@@ -158,7 +160,7 @@ const _STEP_COLORS_BS = {
 // =========================================
 // 2. QUANTUM QUBIT COMPONENT (Right Side)
 // =========================================
-export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla, isEntangled, isDecohering, attemptCopy, onDomainHover, onDomainUnhover, superpositionStep, onMeasure, onMeasuredValueChange, customVectorQuat, showCustomVector, emissiveColor, customGridColor, customRingColor, sphereRotation, visible, interferenceStep = 0, interferencePhase = 0 }) => {
+export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla, isEntangled, isDecohering, attemptCopy, onDomainHover, onDomainUnhover, superpositionStep, onMeasure, onMeasuredValueChange, customVectorQuat, showCustomVector, emissiveColor, customGridColor, customRingColor, sphereRotation, visible, interferenceStep = 0, interferencePhase = 0, fadeExtras = false }) => {
   const coreGroupRef = useRef();
   const sphereRef = useRef(); const vectorRef = useRef(); const northPoleRef = useRef(); const southPoleRef = useRef(); const glassCoreRef = useRef();
   // Ground State (Step 0) animation refs
@@ -599,7 +601,19 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla,
     return { title: "", text: "" };
   };
 
-  const vectorColor = emissiveColor ? emissiveColor : (attemptCopy ? "#ef4444" : (isDecohering ? "#94a3b8" : (isAncilla ? "#a855f7" : (isLight ? "#0d9488" : "#14b8a6"))));
+  const vectorTarget = emissiveColor ? emissiveColor : (attemptCopy ? "#ef4444" : (isDecohering ? "#94a3b8" : (isAncilla ? "#a855f7" : (isLight ? "#0d9488" : "#14b8a6"))));
+  // The arrow's colour glides to a new one (the hub's qubit turning into a module's).
+  const vecCol = useRef(null);
+  const [vectorColor, setVectorColor] = useState(vectorTarget);
+  useFrame((_, dt) => {
+    if (!vecCol.current) vecCol.current = new THREE.Color(vectorColor);
+    const goal = _tmpGoal.set(vectorTarget);
+    const c = vecCol.current;
+    const diff = Math.abs(c.r - goal.r) + Math.abs(c.g - goal.g) + Math.abs(c.b - goal.b);
+    if (diff < 0.004) { if (diff > 0) { c.copy(goal); setVectorColor(vectorTarget); } return; }
+    c.lerp(goal, 1 - Math.exp(-5 * Math.min(dt, 0.1)));
+    setVectorColor('#' + c.getHexString());
+  });
 
   return (
     <group ref={coreGroupRef} position={position} scale={scale} visible={visible !== false}>
@@ -733,13 +747,13 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla,
           {(activeModule === 'gates' || activeModule === 'multi-qubit-gates') && (
             <group>
               <Html position={[0, 0, 2.25]} center>
-                <div style={{ color: '#ef4444', fontFamily: "'Fira Code', monospace", fontWeight: 'bold', fontSize: '14px', textShadow: '0 0 5px rgba(0,0,0,0.8)' }}>X</div>
+                <div className={fadeExtras ? 'mq-extra' : undefined} style={{ color: '#ef4444', fontFamily: "'Fira Code', monospace", fontWeight: 'bold', fontSize: '14px', textShadow: '0 0 5px rgba(0,0,0,0.8)' }}>X</div>
               </Html>
               <Html position={[2.25, 0, 0]} center>
-                <div style={{ color: axisColor, fontFamily: "'Fira Code', monospace", fontWeight: 'bold', fontSize: '14px', textShadow: '0 0 5px rgba(0,0,0,0.8)' }}>Y</div>
+                <div className={fadeExtras ? 'mq-extra' : undefined} style={{ color: axisColor, fontFamily: "'Fira Code', monospace", fontWeight: 'bold', fontSize: '14px', textShadow: '0 0 5px rgba(0,0,0,0.8)' }}>Y</div>
               </Html>
               <Html position={[0, 2.25, 0]} center>
-                <div style={{ color: '#22c55e', fontFamily: "'Fira Code', monospace", fontWeight: 'bold', fontSize: '14px', textShadow: '0 0 5px rgba(0,0,0,0.8)' }}>Z</div>
+                <div className={fadeExtras ? 'mq-extra' : undefined} style={{ color: '#22c55e', fontFamily: "'Fira Code', monospace", fontWeight: 'bold', fontSize: '14px', textShadow: '0 0 5px rgba(0,0,0,0.8)' }}>Z</div>
               </Html>
             </group>
           )}
@@ -1136,7 +1150,7 @@ const ExponentialStateOrbit = ({ qubitCount, theme, onDomainHover, onDomainUnhov
     </group>
   );
 };
-export default function BlochSphere({ theme, activeModule, qubitCount, isDecohering, attemptCopy, isSidebarOpen, setIsSidebarOpen, interferenceStep, interferencePhase, isGlobalMuted = false, vanishing = false }) {
+export default function BlochSphere({ theme, activeModule, qubitCount, isDecohering, attemptCopy, isSidebarOpen, setIsSidebarOpen, interferenceStep, interferencePhase, isGlobalMuted = false, vanishing = false, multi = null }) {
   const isLight = theme === 'light';
   const tetherRef = useRef();
   const controlsRef = useRef();
@@ -1171,15 +1185,25 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
   const leftRig = useRef();
   const [bitOn, setBitOn] = useState(true);
   const rightRig = useRef();
+  const targetRig = useRef();
+  const ctlLabel = useRef();
+  const tgtLabel = useRef();
+  const targetX = useRef(multi === 'split' ? 2 : 0);
+  const [targetOn, setTargetOn] = useState(multi === 'split');
+  const isMulti = activeModule === 'multi-qubit-gates'; // the hub's scene standing in for Multi Qubit Gates
   const settleCam = useRef(0);
   useLayoutEffect(() => {
     // First paint at the right size (no growth on a direct load).
     const rig = rigRef.current;
-    if (rig) { rig.scale.setScalar(!activeModule ? 0.7 : 1); rig.position.y = !activeModule ? -0.8 : activeModule === 'gates' ? -0.5 : 0; }
-    const solo = activeModule === 'superposition' || activeModule === 'interference';
+    if (rig) { rig.scale.setScalar(!activeModule ? 0.7 : 1); rig.position.y = !activeModule ? -0.8 : (activeModule === 'gates' || activeModule === 'multi-qubit-gates') ? -0.5 : 0; }
+    const solo = activeModule === 'superposition' || activeModule === 'interference' || activeModule === 'multi-qubit-gates';
     if (leftRig.current) leftRig.current.scale.setScalar(solo ? 0.0001 : 1);
     if (solo) setBitOn(false);
-    if (rightRig.current) rightRig.current.position.x = solo ? 0 : 4.2;
+    if (rightRig.current) {
+      rightRig.current.position.x = activeModule === 'multi-qubit-gates' ? (multi === 'split' ? -2 : 0) : solo ? 0 : 4.2;
+      rightRig.current.position.y = activeModule === 'multi-qubit-gates' ? 1.2 : 0;
+      rightRig.current.scale.setScalar(activeModule === 'multi-qubit-gates' ? 1 / 1.2 : 1);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1224,6 +1248,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
   useEffect(() => {
     if (activeModule !== 'superposition' && activeModule !== 'interference') setBitOn(true);
   }, [activeModule]);
+  useEffect(() => { if (isMulti && multi === 'split') setTargetOn(true); }, [isMulti, multi]);
   const camReady = useRef(false);
   useEffect(() => {
     const first = !camReady.current;
@@ -1277,16 +1302,16 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
     // ── Hub <-> module: the two bits stay and grow to the module's size ──
     if (rigRef.current) {
       const rig = rigRef.current;
-      const k = 1 - Math.exp(-(vanishing ? 7 : 3.4) * Math.min(delta, 0.1));
+      const k = 1 - Math.exp(-(vanishing ? 7 : 2.5) * Math.min(delta, 0.1));
       const ts = vanishing ? 0.0001 : !activeModule ? 0.7 : 1;
-      const ty = !activeModule ? -0.8 : activeModule === 'gates' ? -0.5 : 0;
+      const ty = !activeModule ? -0.8 : (activeModule === 'gates' || activeModule === 'multi-qubit-gates') ? -0.5 : 0;
       rig.scale.setScalar(rig.scale.x + (ts - rig.scale.x) * k);
       rig.position.y += (ty - rig.position.y) * k;
     }
     // Superposition is the qubit alone: the classical bit shrinks away and the qubit slides to the middle.
     {
-      const solo = activeModule === 'superposition' || activeModule === 'interference';
-      const k = 1 - Math.exp(-(solo ? 6 : 3.4) * Math.min(delta, 0.1));
+      const solo = activeModule === 'superposition' || activeModule === 'interference' || activeModule === 'multi-qubit-gates';
+      const k = 1 - Math.exp(-(solo ? 4.2 : 2.5) * Math.min(delta, 0.1));
       const l = leftRig.current;
       if (l) {
         const s = Math.max(0.0001, l.scale.x + ((solo ? 0 : 1) - l.scale.x) * k);
@@ -1296,7 +1321,19 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
         if (solo && s < 0.06) setBitOn(false);
       }
       const r = rightRig.current;
-      if (r) r.position.x += ((solo ? 0 : 4.2) - r.position.x) * k;
+      const km = 1 - Math.exp(-2.6 * Math.min(delta, 0.1)); // the split / merge glide
+      if (r) {
+        const goalX = isMulti ? (multi === 'split' ? -2 : 0) : solo ? 0 : 4.2;
+        r.position.x += (goalX - r.position.x) * (isMulti ? km : k);
+        r.position.y += ((isMulti ? 1.2 : 0) - r.position.y) * km;
+        r.scale.setScalar(r.scale.x + ((isMulti ? 1 / 1.2 : 1) - r.scale.x) * km);
+      }
+      // The second qubit of the pair splits off the first and glides to its place.
+      targetX.current += ((isMulti && multi === 'split' ? 2 : 0) - targetX.current) * km;
+      if (targetRig.current) targetRig.current.position.set(targetX.current, 1.2, 0);
+      if (r && ctlLabel.current) ctlLabel.current.position.set(r.position.x, r.position.y, 0);
+      if (tgtLabel.current) tgtLabel.current.position.set(targetX.current, 1.2, 0);
+      if (targetOn && !(isMulti && multi === 'split') && targetX.current < 0.04) setTargetOn(false);
     }
     // The hub's slow orbit leaves the camera anywhere; ease it back to the module's view.
     if (settleCam.current > 0 && controlsRef.current) {
@@ -1361,7 +1398,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
   return (
     <>
       <QualityComposer disableNormalPass>
-        <Bloom luminanceThreshold={0.3} mipmapBlur intensity={activeModule === 'gates' ? 0.4 : 0.6} />
+        <Bloom luminanceThreshold={0.3} mipmapBlur intensity={activeModule === 'gates' || activeModule === 'multi-qubit-gates' ? 0.4 : 0.6} />
       </QualityComposer>
       <ambientLight intensity={isLight ? 0.8 : 0.5} />
       <pointLight ref={light1Ref} position={[8, 8, 8]} color="#00f2fe" intensity={isLight ? 12 : 8} distance={30} />
@@ -1432,6 +1469,37 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
             `}
           </style>
         </Html>
+      )}
+
+      {isMulti && (
+        <>
+          <group ref={ctlLabel}>
+            <Html position={[0, -2.6, 0]} center>
+              <div className="mq-extra" style={{ color: '#eab308', fontWeight: 'bold', fontSize: '15px', textShadow: '0 0 10px #eab30880', whiteSpace: 'nowrap', letterSpacing: '1px' }}>Control</div>
+            </Html>
+          </group>
+          {targetOn && (
+            <>
+              <group ref={targetRig} position={[targetX.current, 1.2, 0]}>
+                <QubitCore
+                  activeModule="multi-qubit-gates"
+                  theme={theme}
+                  customVectorQuat={_Q_UP}
+                  showCustomVector={true}
+                  customGridColor="#0284c7"
+                  customRingColor="#38bdf8"
+                  emissiveColor="#0ea5e9"
+                  fadeExtras
+                />
+              </group>
+              <group ref={tgtLabel} position={[targetX.current, 1.2, 0]}>
+                <Html position={[0, -2.6, 0]} center>
+                  <div className="mq-extra" style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '15px', textShadow: '0 0 10px #38bdf880', whiteSpace: 'nowrap', letterSpacing: '1px' }}>Target</div>
+                </Html>
+              </group>
+            </>
+          )}
+        </>
       )}
 
       <group ref={rightRig} onWheel={handleWheelRight}>
@@ -1507,7 +1575,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
                 onDomainUnhover={() => handleUnhoverDomain('right')} 
               />
             ) : (
-              <QubitCore position={[0, 0, 0]} scale={1.2} theme={theme} activeModule={activeModule} isDecohering={isDecohering} onDomainHover={() => handleHoverDomain('right')} onDomainUnhover={() => handleUnhoverDomain('right')} />
+              <QubitCore position={[0, 0, 0]} scale={1.2} theme={theme} activeModule={activeModule} isDecohering={isDecohering} customVectorQuat={isMulti ? _Q_UP : undefined} showCustomVector={isMulti || undefined} emissiveColor={isMulti ? '#eab308' : undefined} fadeExtras={isMulti} onDomainHover={() => handleHoverDomain('right')} onDomainUnhover={() => handleUnhoverDomain('right')} />
             )}
           </group>
         </PresentationControls>

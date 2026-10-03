@@ -1346,6 +1346,37 @@ function App() {
       }, 600);
       return () => { clearTimeout(t); if (!done) { setStagePhase('idle'); showSharedCanvas(); } };
     }
+    if (stageId === null && activeModuleId === 'multi-qubit-gates') {
+      // Hub -> Multi Qubit Gates: all but the qubit vanishes, the qubit comes to the
+      // middle and splits in two, the pair settles into the module's places, then the
+      // module's scene takes over in place and its cards pop.
+      let done = false;
+      setStagePhase('multi-center');
+      const t1 = setTimeout(() => setStagePhase('multi-split'), 1300);
+      const t2 = setTimeout(() => {
+        done = true;
+        setJellyState('wait');
+        setStagePhase('morph');
+        setStageSeq((n) => n + 1);
+        setStageId(activeModuleId);
+      }, 2900);
+      return () => { clearTimeout(t1); clearTimeout(t2); if (!done) setStagePhase('idle'); };
+    }
+    if (stageId === 'multi-qubit-gates' && activeModuleId === null) {
+      // Multi Qubit Gates -> hub: cards out, the pair takes over in place, merges
+      // into one qubit, which becomes the hub's; then the hub's text pops.
+      let done = false;
+      setStagePhase('closing');
+      setJellyState('out');
+      const t = setTimeout(() => {
+        done = true;
+        setJellyState('wait');
+        setStagePhase('multi-unsplit');
+        setStageSeq((n) => n + 1);
+        setStageId(null);
+      }, 700);
+      return () => { clearTimeout(t); if (!done) { setStagePhase('idle'); setJellyState(''); } };
+    }
     if (stageId === null && activeModuleId === 'gates') {
       // Hub -> Classical Gates: the hub's text goes, the two bits grow to the
       // module's size and pose, then the module's scene takes over unseen.
@@ -1357,7 +1388,7 @@ function App() {
         setStagePhase('morph');
         setStageSeq((n) => n + 1);
         setStageId(activeModuleId);
-      }, 1000);
+      }, 1400);
       return () => { clearTimeout(t); if (!done) setStagePhase('idle'); };
     }
     if (stageId === 'gates' && activeModuleId === null) {
@@ -1416,6 +1447,14 @@ function App() {
     }
     if (stagePhase === 'morph') {
       const t = setTimeout(() => setJellyState('run'), 1000);
+      return () => clearTimeout(t);
+    }
+    if (stagePhase === 'multi-unsplit') {
+      const t = setTimeout(() => setStagePhase('multi-merge'), 200);
+      return () => clearTimeout(t);
+    }
+    if (stagePhase === 'multi-merge') {
+      const t = setTimeout(() => setStagePhase('morph'), 1500);
       return () => clearTimeout(t);
     }
     if (stagePhase === 'shrink') {
@@ -2197,7 +2236,7 @@ function App() {
           <ModuleErrorBoundary
             // The hub, the first module and superposition share one scene (the
             // bit and the qubit), so moving between them morphs it in place.
-            key={!stageId || stageId === 'bit-vs-qubit' || stageId === 'superposition' || stageId === 'gates' ? 'bit-scene' : stageId}
+            key={!stageId || stageId === 'bit-vs-qubit' || stageId === 'superposition' || stageId === 'gates' || stageId === 'multi-qubit-gates' ? 'bit-scene' : stageId}
             moduleTitle={curriculumData.find(m => m.id === stageId)?.title}
             boundsStyle={uiBoundsStyle}
             onRetry={() => window.location.reload()}
@@ -2232,6 +2271,7 @@ function App() {
           ) : stageId === 'multi-qubit-gates' ? (
             <>
               <SharedCanvas
+                sceneId="bit-scene"
                 camera={{ position: [0, 0, 15], fov: 45 }}
                 gl={SCENE_GL}
                 style={{ position: 'absolute', inset: 0, zIndex: 1, willChange: 'transform', transform: 'translateZ(0)' }}
@@ -2345,7 +2385,8 @@ function App() {
               <CameraShifter isSidebarOpen={isSidebarOpen} />
               <BlochSphere
                 theme={theme}
-                activeModule={stagePhase === 'grow' || stagePhase === 'shrink' ? 'gates' : stageId}
+                activeModule={stagePhase === 'grow' || stagePhase === 'shrink' ? 'gates' : stagePhase.startsWith('multi-') ? 'multi-qubit-gates' : stageId}
+                multi={stagePhase === 'multi-center' || stagePhase === 'multi-merge' ? 'center' : stagePhase === 'multi-split' || stagePhase === 'multi-unsplit' ? 'split' : null}
                 vanishing={stagePhase === 'vanish'}
                 qubitCount={qubitCount}
                 isDecohering={isDecohering}
