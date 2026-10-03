@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { useFrame, useThree } from '@react-three/fiber';
 import { QualityCanvas, useQuality } from './QualityScene';
 import { SCENE_GL } from './sceneGl';
+import gsap from 'gsap';
 import { glassHold } from './glassGL';
 
 /*
@@ -102,6 +103,8 @@ export const showSharedCanvas = () => showHost();
 /** The next scene to come in arrives without a dissolving picture of the last. */
 /** The next scene swap is between two scenes that look the same: crossfade, no push-in or blur. */
 export function seamlessNextSwap() { if (host) host.seamless = true; }
+/** Eases the shared canvas's camera to a pose (position, orbit target) over `ms`. */
+export function settleSharedCamera(pos, target, ms) { host?.settleCamera?.(pos, target, ms); }
 export function skipNextSnapshot() { if (host) host.skipSnap = true; }
 const revealed = new Set();
 /** Called whenever a scene has faded in on the shared canvas. */
@@ -158,10 +161,29 @@ function Intro() {
   const advance = useThree((s) => s.advance);
   const frames = useRef(0);
   const push = useRef(false);
+  const get = useThree((s) => s.get);
   useLayoutEffect(() => {
     host.capture = () => captureSnap(gl, advance);
-    return () => { host.capture = null; };
-  }, [gl, advance]);
+    // Eases the camera (and the orbit target) to a pose; used before a hand-over
+    // so the scene taking over finds the camera where it expects it.
+    host.settleCamera = (pos, target, ms) => {
+      const controls = get().controls;
+      gsap.killTweensOf(cam.position);
+      if (controls) gsap.killTweensOf(controls.target);
+      const t = { k: 0 };
+      const p0 = cam.position.clone();
+      const t0 = controls ? controls.target.clone() : null;
+      gsap.to(t, {
+        k: 1, duration: ms / 1000, ease: 'power2.inOut',
+        onUpdate: () => {
+          cam.position.set(p0.x + (pos[0] - p0.x) * t.k, p0.y + (pos[1] - p0.y) * t.k, p0.z + (pos[2] - p0.z) * t.k);
+          if (controls && t0) { controls.target.set(t0.x + (target[0] - t0.x) * t.k, t0.y + (target[1] - t0.y) * t.k, t0.z + (target[2] - t0.z) * t.k); controls.update(); }
+          else cam.lookAt(target[0], target[1], target[2]);
+        },
+      });
+    };
+    return () => { host.capture = null; host.settleCamera = null; };
+  }, [gl, advance, cam, get]);
   useFrame((_, delta) => {
     if (++frames.current === 4) {
       showHost();

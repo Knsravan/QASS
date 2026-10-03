@@ -8,7 +8,7 @@ import { DiracScene, DiracOverlay } from './DiracNotation';
 import { GatesScene, GatesOverlay, GATES_STEPS } from './QuantumGates';
 import { MultiGatesScene, MultiGatesOverlay, MULTI_GATES_STEPS, isResultEntangled } from './MultiQubitGates';
 import CameraShifter from './CameraShifter';
-import { SharedCanvas, fadeOutSharedCanvas, showSharedCanvas, skipNextSnapshot, seamlessNextSwap, onSharedCanvasRevealed } from './SharedCanvas';
+import { SharedCanvas, fadeOutSharedCanvas, showSharedCanvas, skipNextSnapshot, seamlessNextSwap, settleSharedCamera, onSharedCanvasRevealed } from './SharedCanvas';
 import { useExitPresence } from './useExitPresence';
 import LandingOrbitalCloud from './LandingOrbitalCloud';
 import GlassNavBar from './GlassNavBar';
@@ -1368,6 +1368,7 @@ function App() {
       let done = false;
       setStagePhase('closing');
       setJellyState('out');
+      settleSharedCamera([0, 0, 13], [0, 0, 0], 650);
       const t = setTimeout(() => {
         done = true;
         setJellyState('wait');
@@ -1397,6 +1398,7 @@ function App() {
       let done = false;
       setStagePhase('closing');
       setJellyState('out');
+      settleSharedCamera([0, 0, 13], [0, 0, 0], 650);
       const t = setTimeout(() => {
         done = true;
         setJellyState('wait');
@@ -2386,7 +2388,7 @@ function App() {
               <BlochSphere
                 theme={theme}
                 activeModule={stagePhase === 'grow' || stagePhase === 'shrink' ? 'gates' : stagePhase.startsWith('multi-') ? 'multi-qubit-gates' : stageId}
-                multi={stagePhase === 'multi-center' || stagePhase === 'multi-merge' ? 'center' : stagePhase === 'multi-split' || stagePhase === 'multi-unsplit' ? 'split' : null}
+                multi={stagePhase === 'multi-center' ? 'center' : stagePhase === 'multi-merge' ? 'merge' : stagePhase === 'multi-split' || stagePhase === 'multi-unsplit' ? 'split' : null}
                 vanishing={stagePhase === 'vanish'}
                 qubitCount={qubitCount}
                 isDecohering={isDecohering}

@@ -6045,5 +6045,5 @@ div:has(> canvas) {
 
 /* Multi Qubit Gates: the labels the pair gains as the hub's qubit splits fade in
    (and out again on the way back). */
-.mq-extra { animation: moduleFade 0.9s ease-out 0.1s both; }
+.mq-extra { animation: moduleFade 0.9s ease-out 0.1s backwards; }
 .canvas-container[data-jelly-state="out"] .mq-extra { opacity: 0 !important; transition: opacity 0.45s ease; animation: none !important; }
