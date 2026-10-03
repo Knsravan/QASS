@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { EffectComposer, Bloom, ChromaticAberration, FXAA } from '@react-three/postprocessing';
 import { getQuality, subscribeQuality } from './quality';
-import { GLASS_FRAGMENT, GLASS_VERTEX, MAX_GLASS, fillGlassUniforms, glassEnabled, glassFrame, registerGlassCanvas } from './glassGL';
+import { GLASS_FRAGMENT, GLASS_VERTEX, MAX_GLASS, glassHold, fillGlassUniforms, glassEnabled, glassFrame, registerGlassCanvas } from './glassGL';
 
 /*
  * The scenes' side of the quality levels (quality.js).
@@ -85,6 +85,7 @@ function GlassLayer() {
   useFrame((state) => {
     // Nothing else draws this canvas: draw the scene first.
     if (state.internal.priority <= 1) gl.render(state.scene, state.camera);
+    if (glassHold.off) return;
     const frame = glassFrame();
     const pieces = frame?.byCanvas.get(gl.domElement);
     if (!pieces?.length) return;

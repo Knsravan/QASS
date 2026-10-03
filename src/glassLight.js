@@ -93,7 +93,7 @@ function watchBeams() {
     // The scenes (not the slow star field behind them, which may not have
     // drawn this frame).
     const scenes = [...document.querySelectorAll('canvas')]
-      .filter((c) => !c.closest('.scene-bg'))
+      .filter((c) => !c.closest('.scene-bg') && !('snap' in c.dataset))
       .map((c) => ({ c, box: c.getBoundingClientRect() }))
       .filter(({ c, box }) => c.width && box.width > 200 && box.height > 200);
     if (!scenes.length) return;

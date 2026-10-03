@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { useFrame, useThree } from '@react-three/fiber';
 import { QualityCanvas, useQuality } from './QualityScene';
 import { SCENE_GL } from './sceneGl';
+import { glassHold } from './glassGL';
 
 /*
  * One 3D canvas for all the modules.
@@ -61,26 +62,94 @@ function CameraRig({ camera }) {
   return null;
 }
 
-// The canvas keeps its last picture while a new module builds its scene, and
-// shows a blank frame when it is first resized. Hide it on every swap and fade
-// it in once the new scene has drawn a few frames.
+// Moving between modules: the outgoing scene is copied to a flat picture that
+// stays on screen and dissolves (zooming and softening away) while the new
+// scene builds behind it, then fades in with a gentle push-in. The canvas
+// keeps its last picture and shows a blank frame when resized, so the new
+// scene stays hidden until it has drawn a few frames.
+const wrapperOf = () => host && host.el.querySelector(':scope > div');
+
 function hideHost() {
   if (!host) return;
   clearTimeout(host.reveal);
-  host.el.style.transition = 'none';
-  host.el.style.opacity = '0';
+  const w = wrapperOf();
+  if (w) { w.style.transition = 'none'; w.style.opacity = '0'; w.style.filter = 'blur(10px)'; }
   host.reveal = setTimeout(showHost, 2500); // never stay hidden if frames stall
 }
 function showHost() {
   if (!host) return;
   clearTimeout(host.reveal);
-  host.el.style.transition = 'opacity 0.22s ease-out';
-  host.el.style.opacity = '1';
-  host.reveal = setTimeout(() => { host.el.style.transition = ''; host.el.style.opacity = ''; }, 260);
+  const w = wrapperOf();
+  if (w) {
+    w.style.transition = 'opacity 0.8s ease-out, filter 0.8s ease-out';
+    w.style.opacity = '1';
+    w.style.filter = 'blur(0px)';
+    host.reveal = setTimeout(() => { w.style.transition = ''; w.style.opacity = ''; w.style.filter = ''; }, 900);
+  }
+  dissolveSnap();
 }
-function Reveal() {
+function snapEl() {
+  if (!host.snap) {
+    const c = document.createElement('canvas');
+    c.dataset.snap = '';
+    c.setAttribute('aria-hidden', 'true');
+    c.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5;display:none;will-change:transform,opacity,filter';
+    host.el.appendChild(c);
+    host.snap = c;
+  }
+  return host.snap;
+}
+// Copies what the canvas is showing (one more frame, drawn now, without glass:
+// the glass belongs to DOM that is about to go).
+function captureSnap(gl, advance) {
+  try {
+    const src = gl.domElement;
+    if (!src.width || !src.height) return;
+    glassHold.off = true;
+    advance(performance.now(), true);
+    const c = snapEl();
+    c.getAnimations().forEach((a) => a.cancel());
+    c.width = src.width;
+    c.height = src.height;
+    c.getContext('2d').drawImage(src, 0, 0);
+    c.style.display = 'block';
+  } catch (e) {
+    /* no picture to dissolve: the new scene just fades in */
+  } finally {
+    glassHold.off = false;
+  }
+}
+function dissolveSnap() {
+  const c = host.snap;
+  if (!c || c.style.display === 'none') return;
+  const a = c.animate(
+    [{ opacity: 1, transform: 'scale(1)', filter: 'blur(0px)' }, { opacity: 0, transform: 'scale(1.12)', filter: 'blur(14px)' }],
+    { duration: 750, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' },
+  );
+  a.onfinish = () => { c.style.display = 'none'; a.cancel(); };
+}
+// Registers the picture-taker, and runs the reveal for a scene that just mounted.
+function Intro() {
+  const cam = useThree((s) => s.camera);
+  const gl = useThree((s) => s.gl);
+  const advance = useThree((s) => s.advance);
   const frames = useRef(0);
-  useFrame(() => { if (++frames.current === 4) showHost(); });
+  const push = useRef(false);
+  useLayoutEffect(() => {
+    host.capture = () => captureSnap(gl, advance);
+    return () => { host.capture = null; };
+  }, [gl, advance]);
+  useFrame((_, delta) => {
+    if (++frames.current === 4) {
+      showHost();
+      if (host.snap?.style.display === 'block') { cam.zoom = 0.9; push.current = true; }
+    }
+    if (push.current) {
+      cam.zoom += (1 - cam.zoom) * (1 - Math.exp(-3.4 * Math.min(delta, 0.1)));
+      if (1 - cam.zoom < 0.0008) { cam.zoom = 1; push.current = false; }
+      cam.updateProjectionMatrix();
+    }
+  });
   return null;
 }
 
@@ -96,7 +165,7 @@ function Stage() {
           {/* Keyed: a new module's scene must mount fresh, not reuse the last one's. */}
           <Fragment key={s.id}>
             <CameraRig camera={s.camera} />
-            <Reveal />
+            <Intro />
             {s.children}
           </Fragment>
         </SceneBoundary>
@@ -132,12 +201,18 @@ export function SharedCanvas({ children, camera, style, className }) {
 
   useLayoutEffect(() => {
     const h = ensureHost();
+    h.el.style.pointerEvents = '';
     slot.current.appendChild(h.el);
     attached = true;
     emit();
     return () => {
-      if (h.el.parentNode === slot.current) h.el.remove();
-      if (scene?.id === id) scene = null;
+      if (scene?.id === id) { h.capture?.(); scene = null; }
+      // Park it in the page's stage while the next module loads, so the
+      // picture holds instead of the canvas going away.
+      if (h.el.parentNode === slot.current) {
+        const stage = document.querySelector('.canvas-container');
+        if (stage) { h.el.style.pointerEvents = 'none'; stage.prepend(h.el); } else h.el.remove();
+      }
       attached = false;
       emit();
     };
