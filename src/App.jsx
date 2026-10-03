@@ -9,6 +9,7 @@ import { GatesScene, GatesOverlay, GATES_STEPS } from './QuantumGates';
 import { MultiGatesScene, MultiGatesOverlay, MULTI_GATES_STEPS, isResultEntangled } from './MultiQubitGates';
 import CameraShifter from './CameraShifter';
 import { SharedCanvas } from './SharedCanvas';
+import { useExitPresence } from './useExitPresence';
 import LandingOrbitalCloud from './LandingOrbitalCloud';
 import GlassNavBar from './GlassNavBar';
 import DisplayPanel, { DisplayPanelIcon } from './DisplayPanel';
@@ -1319,6 +1320,8 @@ function App() {
   const [theme] = useState('dark');
   const [learningMode, setLearningMode] = useState(() => readStorage('quantumUI_learningMode') === 'advanced' ? 'advanced' : 'beginner');
   const [activeModuleId, setActiveModuleId] = useState(moduleFromHash); // the hub unless the URL names a module
+  // The hub's text stays mounted while it fades out after a module opens.
+  const hubShown = useExitPresence(!activeModuleId, 650);
   const [listFor, setListFor] = useState(null); // the module the sidebar went "back" from
   const openModulePage = useCallback((id) => { setListFor(null); setActiveModuleId(id); }, []);
   const [lastClosedModuleId, setLastClosedModuleId] = useState(() => readModuleSetting('quantumUI_lastModule'));
@@ -2065,7 +2068,7 @@ function App() {
             />
 
             {activeModuleId && activeModuleId !== 'superposition' && activeModuleId !== 'dirac-notation' && activeModuleId !== 'multi-qubit-gates' && activeModuleId !== 'interference' && activeModuleId !== 'entanglement' && activeModuleId !== 'exponential' && activeModuleId !== 'nocloning' && activeModuleId !== 'decoherence' && activeModuleId !== 'error-correction' && (
-              <div style={{ position: 'absolute', top: '80px', left: '50%', width: '0px', display: 'flex', justifyContent: 'center', zIndex: 10, pointerEvents: 'none' }}>
+              <div className="module-appear" style={{ position: 'absolute', top: '80px', left: '50%', width: '0px', display: 'flex', justifyContent: 'center', zIndex: 10, pointerEvents: 'none' }}>
                 <div className="section-title classical" style={{ position: 'absolute', left: '-39vh', transform: 'translateX(-50%)' }}>
                   <div className="section-title-dot" />
                   <span>CLASSICAL PHYSICS</span>
@@ -2079,7 +2082,9 @@ function App() {
           </div>
 
           <ModuleErrorBoundary
-            key={activeModuleId || 'hub'}
+            // The hub and the first module share one scene (the two bits), so
+            // opening the module grows them in place instead of rebuilding.
+            key={!activeModuleId || activeModuleId === 'bit-vs-qubit' ? 'bit-scene' : activeModuleId}
             moduleTitle={curriculumData.find(m => m.id === activeModuleId)?.title}
             boundsStyle={uiBoundsStyle}
             onRetry={() => window.location.reload()}
@@ -2239,8 +2244,8 @@ function App() {
           </Suspense>
           </ModuleErrorBoundary>
 
-          {!activeModuleId && (
-            <div style={uiBoundsStyle}>
+          {hubShown && (
+            <div style={uiBoundsStyle} className={`idle-hud ${activeModuleId ? 'idle-hud-leaving' : ''}`}>
               {/* Welcoming Headline + Call-to-Action */}
               <div style={{
                 position: 'absolute', top: '130px', left: '0', right: '0',
