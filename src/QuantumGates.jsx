@@ -486,7 +486,7 @@ export function GatesScene({ step, applied, theme, setProgress }) {
         <ClassicalPipeStage stepData={stepData} applied={applied} isLight={isLight} />
         
         <Html position={[0, 0, 0]} center zIndexRange={[100, 0]} style={{ opacity: applied ? 0 : 1, transition: 'opacity 0.5s' }}>
-          <div style={{
+          <div className="vs-badge" style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             background: 'var(--glass-bg-base)',
             backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)',

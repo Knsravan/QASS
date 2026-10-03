@@ -6026,7 +6026,7 @@ div:has(> canvas) {
 /* Closing any module: whatever glass cards and buttons it has spring out (using
    the independent `scale` property, so their own positioning transforms stay).
    The top bar stays; elements that already have their own pop (data-jelly) use that. */
-.canvas-container[data-jelly-state="out"] :is([data-gl], .glass-tooltip, .glass-interactive, .lg-pane):not([data-jelly]):not(.quantum-nav-btn):not(.lg-nav):not(.lg-nav *) {
+.canvas-container[data-jelly-state="out"] :is([data-gl], .glass-tooltip, .glass-interactive, .lg-pane, .section-title, .vs-badge):not([data-jelly]):not(.quantum-nav-btn):not(.lg-nav):not(.lg-nav *) {
   animation: jellyOutScale 0.5s cubic-bezier(0.5, 0, 0.75, 0) forwards !important;
 }
 @keyframes jellyOutScale {
@@ -6035,5 +6035,5 @@ div:has(> canvas) {
   100% { scale: 0; opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .canvas-container[data-jelly-state="out"] :is([data-gl], .glass-tooltip, .glass-interactive, .lg-pane) { animation: none !important; }
+  .canvas-container[data-jelly-state="out"] :is([data-gl], .glass-tooltip, .glass-interactive, .lg-pane, .section-title, .vs-badge) { animation: none !important; }
 }
