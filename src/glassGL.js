@@ -142,7 +142,11 @@ function opacityOf(el, s, now) {
   return o;
 }
 
-const overlaps = (a, b) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 2 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 2;
+// A real overlap, not a sliver: a card whose edge touches a label's keeps
+// its WebGL glass (what shows through a few px of rim is only the label's own
+// edge).
+const OVERLAP_PX = 16;
+const overlaps = (a, b) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > OVERLAP_PX && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > OVERLAP_PX;
 
 const later = (a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? b : a);
 
