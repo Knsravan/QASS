@@ -5956,3 +5956,14 @@ div:has(> canvas) {
   pointer-events: none;
   z-index: 500;
 }
+
+
+/* Opening the first module from the hub: the hub's text fades up and away
+   while the two bits stay and grow; the module's own pieces fade in after. */
+.idle-hud { transition: opacity 0.5s ease, transform 0.55s cubic-bezier(0.4, 0, 0.2, 1); }
+.idle-hud-leaving { opacity: 0; transform: translateY(-14px); }
+.idle-hud-leaving * { pointer-events: none !important; }
+.module-appear { animation: moduleAppear 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.5s both; }
+@keyframes moduleAppear { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes moduleFade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .idle-hud, .module-appear { transition: none; animation: none; } }

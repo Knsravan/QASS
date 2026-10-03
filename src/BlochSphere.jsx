@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useLayoutEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Html, PresentationControls } from '@react-three/drei';
 import { useSpring, a } from '@react-spring/three';
@@ -1157,6 +1157,19 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
   const [hasMeasured, setHasMeasured] = useState(false);
   const [globalMeasuredValue, setGlobalMeasuredValue] = useState(null);
   const hoverTimeouts = useRef({});
+  const rigRef = useRef();
+  const settleCam = useRef(0);
+  const wasHub = useRef(!activeModule);
+  useLayoutEffect(() => {
+    // First paint at the right size (no growth on a direct load).
+    const rig = rigRef.current;
+    if (rig) { rig.scale.setScalar(!activeModule ? 0.7 : 1); rig.position.y = !activeModule ? -0.8 : 0; }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (wasHub.current && activeModule === 'bit-vs-qubit') settleCam.current = 1.6;
+    wasHub.current = !activeModule;
+  }, [activeModule]);
 
   useEffect(() => {
     const timeouts = hoverTimeouts.current;
@@ -1235,8 +1248,26 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
     }
   };
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     const time = state.clock.getElapsedTime();
+
+    // ── Hub <-> module: the two bits stay and grow to the module's size ──
+    if (rigRef.current) {
+      const rig = rigRef.current;
+      const k = 1 - Math.exp(-3.4 * Math.min(delta, 0.1));
+      const ts = !activeModule ? 0.7 : 1;
+      const ty = !activeModule ? -0.8 : 0;
+      rig.scale.setScalar(rig.scale.x + (ts - rig.scale.x) * k);
+      rig.position.y += (ty - rig.position.y) * k;
+    }
+    // The hub's slow orbit leaves the camera anywhere; ease it back to the module's view.
+    if (settleCam.current > 0 && controlsRef.current) {
+      settleCam.current -= delta;
+      const k = 1 - Math.exp(-4 * Math.min(delta, 0.1));
+      controlsRef.current.object.position.lerp(_DEFAULT_CAM_BS, k);
+      controlsRef.current.target.lerp(_ORIGIN_BS, k);
+      controlsRef.current.update();
+    }
 
     // ── Dynamic lights per superposition step ──
     if (activeModule === 'superposition') {
@@ -1312,7 +1343,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
       )}
 
 
-      <group scale={!activeModule ? 0.70 : 1} position={[0, !activeModule ? -0.8 : 0, 0]}>
+      <group ref={rigRef}>
         <group position={[-4.2, 0, 0]} onWheel={handleWheelLeft}>
 
         <mesh position={[0, 0, -2.5]} onPointerOver={(e) => { e.stopPropagation(); handleHoverDomain('left'); }} onPointerOut={() => handleUnhoverDomain('left')} visible={false}>
@@ -1350,7 +1381,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
             backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
             border: isLight ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.18)', borderRadius: '50%',
             width: '80px', height: '80px', boxShadow: '0 8px 32px 0 rgba(0,0,0,0.37)',
-            animation: 'pulseVS 3s infinite alternate'
+            animation: 'pulseVS 3s infinite alternate, moduleFade 0.7s ease-out 0.5s both'
           }}>
             <span style={{ fontSize: '32px', fontWeight: '900', background: 'linear-gradient(to right, #00f2fe, #f093fb)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontFamily: "'Inter', sans-serif" }}>VS</span>
           </div>
