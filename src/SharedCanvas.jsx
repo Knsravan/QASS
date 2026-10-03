@@ -81,7 +81,7 @@ function showHost() {
   clearTimeout(host.reveal);
   const w = wrapperOf();
   if (w) {
-    const ms = host.seamless ? 450 : 800;
+    const ms = host.seamless ? 260 : 800;
     w.style.transition = `opacity ${ms}ms ease-out, filter ${ms}ms ease-out`;
     w.style.opacity = '1';
     w.style.filter = host.seamless ? 'none' : 'blur(0px)';
@@ -147,7 +147,7 @@ function dissolveSnap() {
     same
       ? [{ opacity: 1 }, { opacity: 0 }]
       : [{ opacity: 1, transform: 'scale(1)', filter: 'blur(0px)' }, { opacity: 0, transform: 'scale(1.12)', filter: 'blur(14px)' }],
-    { duration: same ? 450 : 750, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' },
+    { duration: same ? 260 : 750, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' },
   );
   a.onfinish = () => { c.style.display = 'none'; a.cancel(); };
 }
