@@ -1333,6 +1333,7 @@ function App() {
   // the hub's, right after a module closes (it then eases back to the middle).
   const [InterferenceLoaded, setInterferenceLoaded] = useState(null); // Quantum Interference, once its code is in
   const [EntanglementLoaded, setEntanglementLoaded] = useState(null); // Entanglement, once its code is in (same reason)
+  const [hubEnter, setHubEnter] = useState(false); // the hub's text slides back in (after a plain close)
   const [ExponentialLoaded, setExponentialLoaded] = useState(null);   // Exponential State Space, likewise
   const [expFromHub, setExpFromHub] = useState(false); // Exponential State Space opens from the hub's lone qubit (its ring draws on)
   const [interferenceFromHub, setInterferenceFromHub] = useState(false); // Quantum Interference opens from the hub's lone qubit
@@ -1517,6 +1518,22 @@ function App() {
         setStageSeq((n) => n + 1);
         setStageId(null);
       }, 700);
+      return () => { clearTimeout(t); if (!done) { setStagePhase('idle'); setJellyState(''); } };
+    }
+    if (stageId === 'nocloning' && activeModuleId === null) {
+      // No-Cloning -> hub (the opening in reverse): its panels fade out, its scene dissolves into
+      // the hub's, and the hub's text slides back in.
+      let done = false;
+      setStagePhase('closing');
+      setJellyState('fade');
+      const t = setTimeout(() => {
+        done = true;
+        setJellyState('');
+        setStagePhase('idle');
+        setHubEnter(true);
+        setStageId(null);
+        setTimeout(() => setHubEnter(false), 1500);
+      }, 550);
       return () => { clearTimeout(t); if (!done) { setStagePhase('idle'); setJellyState(''); } };
     }
     if (stageId !== null && activeModuleId === null) {
@@ -2542,7 +2559,7 @@ function App() {
           </ModuleErrorBoundary>
 
           {hubShown && (
-            <div style={uiBoundsStyle} className={`idle-hud ${activeModuleId ? 'idle-hud-leaving' : ''}`}>
+            <div style={uiBoundsStyle} className={`idle-hud ${activeModuleId ? 'idle-hud-leaving' : ''} ${hubEnter ? 'idle-hud-enter' : ''}`}>
               {/* Welcoming Headline + Call-to-Action */}
               <div style={{
                 position: 'absolute', top: '130px', left: '0', right: '0',
