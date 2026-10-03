@@ -12,7 +12,7 @@ import { QuantumNavButtons } from './QuantumNavButtons';
 import { useNoCloningAudio } from './useNoCloningAudio';
 import { SCENE_GL } from './sceneGl';
 import { QualityComposer } from './QualityScene';
-import { SharedCanvas } from './SharedCanvas';
+import { SharedCanvas, onSharedCanvasRevealed } from './SharedCanvas';
 
 
 // Color Palette
@@ -128,7 +128,7 @@ function ClassicalEnergyTether({ active, isCopied }) {
         </mesh>
       ))}
       <Html center position={[midX, POS_BIT_1[1] + 1.8, 0]} zIndexRange={[60, 0]}>
-        <div style={{
+        <div data-jelly style={{ '--j': 1,
           background: isCopied ? 'rgba(6, 40, 20, 0.88)' : 'rgba(8, 24, 40, 0.88)',
           backdropFilter: 'blur(16px)',
           border: `1.5px solid ${tetherColor}88`,
@@ -220,7 +220,7 @@ function QuantumConduitTether({ active, snapping, color = CP }) {
         </mesh>
       ))}
       <Html center position={[midX, POS_QUBIT_A[1] + 1.8, 0]} zIndexRange={[60, 0]}>
-        <div style={{
+        <div data-jelly style={{ '--j': 1,
           background: 'rgba(15, 4, 30, 0.88)',
           backdropFilter: 'blur(16px)',
           border: `1.5px solid ${snapping ? CR : color}88`,
@@ -343,10 +343,20 @@ const easeBackOut = (x, s = 1.5) => {
 };
 const easeCubicOut = (x) => 1 - Math.pow(1 - x, 3);
 
+const ENTRANCE_TOTAL = 1.1; // when the last model has settled (s)
+
 function ModelEntranceAnimator({ entranceRef, groupBit1, groupBit2, groupVS, groupQubitA, groupQubitB }) {
   useFrame(() => {
-    const startedAt = entranceRef.current.startedAt;
-    const elapsed = startedAt == null ? 0 : (performance.now() - startedAt) / 1000;
+    const a = entranceRef.current;
+    const now = performance.now();
+    let elapsed;
+    if (a.leaveAt != null) {
+      // Leaving: the entrance played backwards (the models bounce back down and shrink away).
+      elapsed = Math.max(0, ENTRANCE_TOTAL - Math.max(0, now - a.leaveAt) / 1000);
+      if (elapsed <= 0 && !a.gone) { a.gone = true; window.dispatchEvent(new Event('qass-nc-gone')); }
+    } else {
+      elapsed = a.startedAt == null ? 0 : (now - a.startedAt) / 1000;
+    }
     const yRise = -2.2 * (1 - easeCubicOut(THREE.MathUtils.clamp(elapsed / ENTRANCE_RISE, 0, 1)));
 
     const apply = (group, baseY, delay) => {
@@ -366,7 +376,7 @@ function ModelEntranceAnimator({ entranceRef, groupBit1, groupBit2, groupVS, gro
 }
 
 // ==========================================================
-export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted }) {
+export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted, fromHub = false, closing = false }) {
   // Interactive Story Steps:
   // 'intro' -> 'classical_focus' -> 'classical_copying' -> 'classical_done' -> 'quantum_focus' -> 'quantum_cnot' -> 'quantum_collapse' -> 'summary'
   const [step, setStep] = useState('intro');
@@ -383,7 +393,7 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted })
   const groupQubitA = useRef();
   const groupQubitB = useRef();
 
-  const entranceAnim = useRef({ startedAt: null });
+  const entranceAnim = useRef({ startedAt: null, leaveAt: null, gone: false });
   const epochRef = useRef(performance.now());
 
   const orbitRef = useRef();
@@ -437,11 +447,34 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted })
   // The popup is gated on a wall-clock timeout (not an animation callback), so the CTA
   // reliably appears ~1.5s after mount regardless of how slowly the scene renders.
   useEffect(() => {
-    entranceAnim.current.startedAt = performance.now();
     setIntroTooltipVisible(false);
-    scheduleTimeout(() => setIntroTooltipVisible(true), 1400);
+    if (!fromHub) {
+      entranceAnim.current.startedAt = performance.now();
+      scheduleTimeout(() => setIntroTooltipVisible(true), 1400);
+      return undefined;
+    }
+    // Opened from the hub: the hub's scene has fully gone, and this one is faded in empty; the
+    // models bounce in once it is showing.
+    let started = false;
+    const start = () => {
+      if (started) return;
+      started = true;
+      off();
+      entranceAnim.current.startedAt = performance.now() + 250;
+      scheduleTimeout(() => setIntroTooltipVisible(true), 1650);
+    };
+    const off = onSharedCanvasRevealed(start);
+    const fb = scheduleTimeout(start, 3500); // never wait forever
+    return () => { off(); clearTimeout(fb); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Closing to the hub: once the panels have sprung out, the entrance plays backwards.
+  useEffect(() => {
+    if (!closing) return undefined;
+    const t = setTimeout(() => { entranceAnim.current.leaveAt = performance.now(); }, 450);
+    return () => clearTimeout(t);
+  }, [closing]);
 
   // Precession animation loop for Qubits (Matches 1st Module natural superposition rotation)
   useEffect(() => {
@@ -701,7 +734,7 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted })
                 attemptCopy={false}
               />
               <Html center position={[0, 4.0, 0]} zIndexRange={[50, 0]}>
-                <div style={{
+                <div data-jelly style={{ '--j': 1,
                   padding: '4px 14px',
                   borderRadius: '18px',
                   background: 'rgba(15, 23, 42, 0.88)',
@@ -732,7 +765,7 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted })
                 customGridColor={isCopied ? CG : '#f59e0b'}
               />
               <Html center position={[0, 4.0, 0]} zIndexRange={[50, 0]}>
-                <div style={{
+                <div data-jelly style={{ '--j': 1,
                   padding: '4px 14px',
                   borderRadius: '18px',
                   background: 'rgba(15, 23, 42, 0.88)',
@@ -775,7 +808,7 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted })
                 emissiveColor={step === 'quantum_collapse' || step === 'summary' ? CR : CP}
               />
               <Html center position={[0, 4.2, 0]} zIndexRange={[50, 0]}>
-                <div style={{
+                <div data-jelly style={{ '--j': 1,
                   padding: '4px 14px',
                   borderRadius: '20px',
                   background: 'rgba(15, 23, 42, 0.88)',
@@ -810,7 +843,7 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted })
                 emissiveColor={step === 'quantum_cnot' ? CP : (step === 'quantum_collapse' || step === 'summary' ? CR : '#f59e0b')}
               />
               <Html center position={[0, 4.2, 0]} zIndexRange={[50, 0]}>
-                <div style={{
+                <div data-jelly style={{ '--j': 1,
                   padding: '4px 14px',
                   borderRadius: '20px',
                   background: 'rgba(15, 23, 42, 0.88)',
@@ -850,7 +883,7 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted })
             {/* ========================================================== */}
             <group ref={groupVS} position={[0, -0.6, 0]}>
               <Html center position={[0, 0, 0]} zIndexRange={[40, 0]}>
-                <div style={{
+                <div data-jelly style={{ '--j': 1,
                   opacity: step === 'intro' || step === 'summary' ? 1 : 0,
                   transform: step === 'intro' || step === 'summary' ? 'scale(1)' : 'scale(0.75)',
                   transition: 'opacity 0.45s ease, transform 0.45s ease',
@@ -889,7 +922,7 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted })
       {/* ========================================================== */}
       {/* 2D HTML INTERACTIVE STORY POP-UP TOOLTIPS */}
       {/* ========================================================== */}
-      <div data-module-ui style={uiBoundsStyle}>
+      <div style={uiBoundsStyle}>
         {/* Classical Physics & Quantum Physics Section Headers (Smooth fade-out when clicking "Let's see how it works", reappears on Restart) */}
         <div style={{
           position: 'absolute',
@@ -904,11 +937,11 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted })
           transform: step === 'intro' ? 'translateY(0)' : 'translateY(-14px)',
           transition: 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
         }}>
-          <div className="section-title classical" style={{ position: 'absolute', left: '-39vh', transform: 'translateX(-50%)' }}>
+          <div className="section-title classical" data-jelly style={{ '--tx': '-50%', '--j': 0, position: 'absolute', left: '-39vh', transform: 'translateX(-50%)' }}>
             <div className="section-title-dot" />
             <span>CLASSICAL PHYSICS</span>
           </div>
-          <div className="section-title quantum" style={{ position: 'absolute', left: '39vh', transform: 'translateX(-50%)' }}>
+          <div className="section-title quantum" data-jelly style={{ '--tx': '-50%', '--j': 0, position: 'absolute', left: '39vh', transform: 'translateX(-50%)' }}>
             <div className="section-title-dot" />
             <span>QUANTUM PHYSICS</span>
           </div>
@@ -928,7 +961,7 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted })
             pointerEvents: 'none',
             zIndex: 200
           }}>
-            <div key="step-intro" style={{
+            <div key="step-intro" data-jelly style={{
               width: '395px',
               maxWidth: 'calc(100% - 48px)',
               background: 'transparent',
@@ -1021,7 +1054,7 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted })
         {/* STEP 2: CLASSICAL FOCUS TOOLTIP (ABOVE CLASSICAL BITS) */}
         {/* ========================================================== */}
         {step === 'classical_focus' && (
-          <div key="step-classical-focus" style={cardStyle}>
+          <div key="step-classical-focus" data-jelly style={cardStyle}>
             <div style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -1114,7 +1147,7 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted })
         {/* STEP 3: CLASSICAL DONE TOOLTIP (ABOVE CLASSICAL BITS) */}
         {/* ========================================================== */}
         {step === 'classical_done' && (
-          <div key="step-classical-done" style={cardStyle}>
+          <div key="step-classical-done" data-jelly style={cardStyle}>
             <div style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -1193,7 +1226,7 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted })
         {/* STEP 4: QUANTUM FOCUS TOOLTIP (TOP-RIGHT) */}
         {/* ========================================================== */}
         {step === 'quantum_focus' && (
-          <div key="step-quantum-focus" style={cardStyle}>
+          <div key="step-quantum-focus" data-jelly style={cardStyle}>
             <div style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -1272,7 +1305,7 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted })
         {/* STEP 5: QUANTUM CNOT (ENTANGLEMENT TRAP) TOOLTIP (TOP-RIGHT) */}
         {/* ========================================================== */}
         {step === 'quantum_cnot' && (
-          <div key="step-quantum-cnot" style={cardStyle}>
+          <div key="step-quantum-cnot" data-jelly style={cardStyle}>
             <div style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -1379,7 +1412,7 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted })
         {/* STEP 6: QUANTUM COLLAPSE & MATHEMATICAL PROOF (TOP-RIGHT) */}
         {/* ========================================================== */}
         {step === 'quantum_collapse' && (
-          <div key="step-quantum-collapse" style={cardStyle}>
+          <div key="step-quantum-collapse" data-jelly style={cardStyle}>
             <div style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -1485,7 +1518,7 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted })
             pointerEvents: 'none',
             zIndex: 200
           }}>
-            <div key="step-summary" style={{
+            <div key="step-summary" data-jelly style={{
               width: '395px',
               maxWidth: 'calc(100% - 48px)',
               background: 'transparent',
