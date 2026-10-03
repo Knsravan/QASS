@@ -1332,10 +1332,13 @@ function App() {
   // The orbit target a scene takes over with: the module's, after the pair has zoomed in;
   // the hub's, right after a module closes (it then eases back to the middle).
   const [InterferenceLoaded, setInterferenceLoaded] = useState(null); // Quantum Interference, once its code is in
+  const [EntanglementLoaded, setEntanglementLoaded] = useState(null); // Entanglement, once its code is in (same reason)
   const [interferenceFromHub, setInterferenceFromHub] = useState(false); // Quantum Interference opens from the hub's lone qubit
   const [moduleTarget, setModuleTarget] = useState([0, 0, 0]);
   const [hubTarget, setHubTarget] = useState([0, 0, 0]);
   const [stageSeq, setStageSeq] = useState(0);           // counts the choreographed moves (so a repeat phase restarts its timers)
+  // The two modules that open from the hub's lone qubit splitting into a pair (Multi Qubit Gates, Entanglement).
+  const [pairModule, setPairModule] = useState('multi-qubit-gates');
   useEffect(() => {
     if (activeModuleId === stageId) return undefined;
     if (stageId === null && activeModuleId === 'dirac-notation') {
@@ -1352,14 +1355,18 @@ function App() {
       }, 600);
       return () => { clearTimeout(t); if (!done) { setStagePhase('idle'); showSharedCanvas(); } };
     }
-    if (stageId === null && activeModuleId === 'multi-qubit-gates') {
-      // Hub -> Multi Qubit Gates: all but the qubit vanishes; the qubit moves to the middle;
-      // it splits in two; the pair then zooms into the module's size and places; the
+    if (stageId === null && (activeModuleId === 'multi-qubit-gates' || activeModuleId === 'entanglement')) {
+      // Hub -> Multi Qubit Gates / Entanglement: all but the qubit vanishes; the qubit moves to the
+      // middle; it splits in two; the pair then zooms into the module's size and places; the
       // module's scene takes over in place and its cards pop.
       let done = false;
+      setPairModule(activeModuleId);
+      if (activeModuleId === 'entanglement') MODULE_LOADERS.entanglement().then((mod) => setEntanglementLoaded(() => mod.default));
       setStagePhase('multi-center');
       const t1 = setTimeout(() => setStagePhase('multi-split'), 1300);
-      const pose = multiGatesPose(MULTI_GATES_STEPS[multiGatesStep]);
+      const pose = activeModuleId === 'entanglement'
+        ? { cam: [isSidebarOpen ? 0.6 : 0, 0.2, 14.2], target: [0, 0, 0] } // where the Entanglement scene rests
+        : multiGatesPose(MULTI_GATES_STEPS[multiGatesStep]);
       const t1b = setTimeout(() => {
         setStagePhase('multi-zoom');
         // The camera goes to the module's resting view as the pair zooms in, so the
@@ -1377,11 +1384,12 @@ function App() {
       }, 4300);
       return () => { clearTimeout(t1); clearTimeout(t1b); clearTimeout(t2); if (!done) setStagePhase('idle'); };
     }
-    if (stageId === 'multi-qubit-gates' && activeModuleId === null) {
-      // Multi Qubit Gates -> hub: cards out, the pair takes over in place (camera and
+    if ((stageId === 'multi-qubit-gates' || stageId === 'entanglement') && activeModuleId === null) {
+      // Multi Qubit Gates / Entanglement -> hub: cards out, the pair takes over in place (camera and
       // all), zooms out and merges into one qubit, which becomes the hub's; then the
       // hub's text pops.
       let done = false;
+      setPairModule(stageId);
       setStagePhase('closing');
       setJellyState('out');
       setHubTarget(getSharedCameraPose()?.target || [0, 0, 0]);
@@ -2301,7 +2309,7 @@ function App() {
           <ModuleErrorBoundary
             // The hub, the first module and superposition share one scene (the
             // bit and the qubit), so moving between them morphs it in place.
-            key={!stageId || stageId === 'bit-vs-qubit' || stageId === 'superposition' || stageId === 'gates' || stageId === 'multi-qubit-gates' || stageId === 'interference' ? 'bit-scene' : stageId}
+            key={!stageId || stageId === 'bit-vs-qubit' || stageId === 'superposition' || stageId === 'gates' || stageId === 'multi-qubit-gates' || stageId === 'interference' || stageId === 'entanglement' ? 'bit-scene' : stageId}
             moduleTitle={curriculumData.find(m => m.id === stageId)?.title}
             boundsStyle={uiBoundsStyle}
             onRetry={() => window.location.reload()}
@@ -2433,7 +2441,9 @@ function App() {
               ? <InterferenceLoaded theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={interferenceFromHub} />
               : <InterferenceModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={interferenceFromHub} />)
           ) : stageId === 'entanglement' ? (
-            <EntanglementModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} />
+            (EntanglementLoaded
+              ? <EntanglementLoaded theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} />
+              : <EntanglementModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} />)
           ) : stageId === 'exponential' ? (
             <ExponentialModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} />
           ) : stageId === 'nocloning' ? (
@@ -2452,7 +2462,7 @@ function App() {
               <CameraShifter isSidebarOpen={isSidebarOpen} />
               <BlochSphere
                 theme={theme}
-                activeModule={stagePhase === 'grow' || stagePhase === 'shrink' ? 'gates' : stagePhase.startsWith('multi-') ? 'multi-qubit-gates' : stagePhase === 'solo-unsolo' ? 'interference' : stageId}
+                activeModule={stagePhase === 'grow' || stagePhase === 'shrink' ? 'gates' : stagePhase.startsWith('multi-') ? pairModule : stagePhase === 'solo-unsolo' ? 'interference' : stageId}
                 multi={stagePhase === 'multi-center' ? 'center' : stagePhase === 'multi-merge' ? 'merge' : stagePhase === 'multi-split' || stagePhase === 'multi-unsplit' ? 'split' : stagePhase === 'multi-zoom' || stagePhase === 'multi-unzoom' ? 'zoom' : null}
                 vanishing={stagePhase === 'vanish'}
                 handoverTarget={hubTarget}

@@ -15,6 +15,7 @@ import { SCENE_GL } from './sceneGl';
 import GlassSlider from './GlassSlider';
 import { QualityComposer } from './QualityScene';
 import { SharedCanvas } from './SharedCanvas';
+import { handoff } from './handoff';
 
 
 // ==========================================
@@ -97,6 +98,8 @@ function EntanglementScene({
   const currentSpacing = baseSpacing * distanceMultiplier;
   const posA = useMemo(() => [-currentSpacing, 0, 0], [currentSpacing]);
   const posB = useMemo(() => [currentSpacing, 0, 0], [currentSpacing]);
+  // Where the pair stands, for the hub's scene to take over from when the module closes.
+  useEffect(() => { handoff.entPairX = currentSpacing; }, [currentSpacing]);
 
   // Dynamic Quaternions for Alice & Bob
   const quatAlice = useMemo(() => {
@@ -172,8 +175,10 @@ function EntanglementScene({
         {/* 3D Floating Name Badge */}
         <Html position={[0, 2.6, 0]} center zIndexRange={[50, 0]}>
           <div
+            data-jelly
             onClick={() => { if (canMeasure) onMeasureQubit('A'); }}
             style={{
+              '--j': 1,
               padding: '4px 14px',
               borderRadius: '20px',
               background: 'rgba(15, 23, 42, 0.85)',
@@ -247,8 +252,10 @@ function EntanglementScene({
         {/* 3D Floating Name Badge */}
         <Html position={[0, 2.6, 0]} center zIndexRange={[50, 0]}>
           <div
+            data-jelly
             onClick={() => { if (canMeasure) onMeasureQubit('B'); }}
             style={{
+              '--j': 1,
               padding: '4px 14px',
               borderRadius: '20px',
               background: 'rgba(15, 23, 42, 0.85)',
@@ -331,9 +338,7 @@ function BellMeasurementTooltip({ bellState, measuredState }) {
   }
 
   return (
-    <div
-      className="compact-hud-card"
-      style={{
+    <div className="compact-hud-card" data-jelly style={{ '--tx': '-50%', '--j': 2,
         position: 'absolute',
         top: '168px',
         left: '50%',
@@ -634,7 +639,9 @@ function EntanglementOverlay({
       `}</style>
 
       {/* ── TOP CENTER: STEPPER PILLS (MOVED BELOW NAVBAR, ZERO OVERLAP) ── */}
-      <div style={{
+      <div data-jelly style={{
+        '--tx': '-50%',
+        '--j': 0,
         position: 'absolute',
         top: '72px',
         left: '50%',
@@ -663,7 +670,7 @@ function EntanglementOverlay({
 
       {/* ── STAGE 1: COMPACT SEPARABLE CARD (BOTTOM CENTERED - INCREASED COMFORT SIZE) ── */}
       {stage === 1 && (
-        <div className="compact-hud-card" style={{
+        <div className="compact-hud-card" data-jelly style={{ '--tx': '-50%', '--j': 2,
           pointerEvents: 'auto',
           position: 'absolute',
           bottom: '25px',
@@ -724,7 +731,7 @@ function EntanglementOverlay({
 
       {/* ── STAGE 2: COMPACT ENTANGLER CIRCUIT CARD (BOTTOM CENTERED - INCREASED COMFORT SIZE) ── */}
       {stage === 2 && (
-        <div className="compact-hud-card" style={{
+        <div className="compact-hud-card" data-jelly style={{ '--tx': '-50%', '--j': 2,
           pointerEvents: 'auto',
           position: 'absolute',
           bottom: '25px',
@@ -778,7 +785,9 @@ function EntanglementOverlay({
       {stage === 3 && (
         <>
           {/* Top Bell States Selector Pills (Centered) with Sequential Dot-Arrow & Pop Badge on Right */}
-          <div style={{
+          <div data-jelly style={{
+            '--tx': '-50%',
+            '--j': 1,
             position: 'absolute',
             top: '120px',
             left: '50%',
@@ -858,7 +867,7 @@ function EntanglementOverlay({
           />
 
           {/* Bottom-Left: Compact Statistics Card */}
-          <div className="compact-hud-card" style={{
+          <div className="compact-hud-card" data-jelly style={{ '--j': 2,
           pointerEvents: 'auto',
             position: 'absolute',
             bottom: '25px',
@@ -897,7 +906,7 @@ function EntanglementOverlay({
           </div>
 
           {/* Bottom-Center: Compact Distance Slider Card (Positioned above Measurement Buttons) */}
-          <div className="compact-hud-card" style={{
+          <div className="compact-hud-card" data-jelly style={{ '--tx': '-50%', '--j': 2,
           pointerEvents: 'auto',
             position: 'absolute',
             bottom: '92px',
@@ -936,7 +945,9 @@ function EntanglementOverlay({
           </div>
 
           {/* Bottom Center Action Trigger Pill Buttons */}
-          <div style={{
+          <div data-jelly style={{
+            '--tx': '-50%',
+            '--j': 3,
             position: 'absolute',
             bottom: '35px',
             left: '50%',
@@ -978,7 +989,7 @@ function EntanglementOverlay({
 
       {/* ── STAGE 4: NO-COMMUNICATION THEOREM DEBUNKED (BOTTOM CENTERED - INCREASED COMFORT SIZE) ── */}
       {stage === 4 && (
-        <div className="compact-hud-card" style={{
+        <div className="compact-hud-card" data-jelly style={{ '--tx': '-50%', '--j': 2,
           pointerEvents: 'auto',
           position: 'absolute',
           bottom: '25px',
@@ -1037,7 +1048,7 @@ export default function EntanglementModule({ theme, isSidebarOpen, isGlobalMuted
   const [stage, setStage] = useState(1);
   const [subStage, setSubStage] = useState(0);
   const [bellState, setBellState] = useState(BELL_STATES[0]);
-  const [isEntangled, setIsEntangled] = useState(true);
+  const [isEntangled, setIsEntangled] = useState(false); // stage 1 starts unentangled
   const [measuredState, setMeasuredState] = useState(null);
   const [distanceMultiplier, setDistanceMultiplier] = useState(1.0);
 
@@ -1196,11 +1207,13 @@ export default function EntanglementModule({ theme, isSidebarOpen, isGlobalMuted
       {/* 3D Canvas */}
       <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }}>
         <SharedCanvas
+          sceneId="bit-scene"
           gl={SCENE_GL}
           camera={{ position: [0, 0.2, 13.5], fov: 45 }}
+          style={{ position: 'absolute', inset: 0, zIndex: 1, willChange: 'transform', transform: 'translateZ(0)' }}
         >
           <CameraShifter isSidebarOpen={isSidebarOpen} />
-          <OrbitControls enablePan={false} enableZoom={true} enableRotate={true} minDistance={6} maxDistance={30} />
+          <OrbitControls makeDefault enablePan={false} enableZoom={true} enableRotate={true} minDistance={6} maxDistance={30} />
           <QualityComposer disableNormalPass multisampling={0}>
             <Bloom luminanceThreshold={0.3} mipmapBlur intensity={0.45} />
           </QualityComposer>
