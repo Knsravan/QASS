@@ -13,7 +13,9 @@ import CameraShifter from './CameraShifter';
 import { useQECAudio } from './useQECAudio';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { SCENE_GL } from './sceneGl';
-import { QualityCanvas, QualityComposer } from './QualityScene';
+import { QualityComposer } from './QualityScene';
+import { SharedCanvas } from './SharedCanvas';
+
 
 // ─── Color Palette ────────────────────────────────────────────────────────────
 const CI = '#6366f1';   // Indigo  — healthy data qubit
@@ -1359,7 +1361,7 @@ export default function QuantumErrorCorrectionModule({ theme, isSidebarOpen, isG
 
       {/* ─── 3D WebGL Canvas ─────────────────────────────────────────────── */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-        <QualityCanvas
+        <SharedCanvas
           gl={SCENE_GL}
           camera={{ position: [0, 1.8, 34], fov: 48 }}
         >
@@ -1375,7 +1377,7 @@ export default function QuantumErrorCorrectionModule({ theme, isSidebarOpen, isG
               audio={audio}
             />
           </Suspense>
-        </QualityCanvas>
+        </SharedCanvas>
       </div>
 
       {/* ─── 2D OVERLAYS BOUNDED TO CANVAS VIEWPORT ─────────────────────── */}

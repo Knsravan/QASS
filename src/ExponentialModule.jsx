@@ -18,7 +18,9 @@ import CameraShifter from './CameraShifter';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { SCENE_GL } from './sceneGl';
 import GlassSlider from './GlassSlider';
-import { QualityCanvas, QualityComposer } from './QualityScene';
+import { QualityComposer } from './QualityScene';
+import { SharedCanvas } from './SharedCanvas';
+
 
 // ==========================================
 // HELPER CONSTANTS & QUATERNIONS
@@ -788,7 +790,7 @@ export default function ExponentialModule({ theme = 'dark', isSidebarOpen = true
     <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
       {/* ── 3D CANVAS VIEWPORT ── */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'auto' }}>
-        <QualityCanvas
+        <SharedCanvas
           camera={{ position: [0, 1.4, 14.8], fov: 45 }}
           gl={SCENE_GL}
         >
@@ -802,7 +804,7 @@ export default function ExponentialModule({ theme = 'dark', isSidebarOpen = true
             cosmicMilestone={cosmicMilestone}
             theme={theme}
           />
-        </QualityCanvas>
+        </SharedCanvas>
       </div>
 
       <div style={uiBoundsStyle}>

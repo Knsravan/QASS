@@ -8,6 +8,7 @@ import { DiracScene, DiracOverlay } from './DiracNotation';
 import { GatesScene, GatesOverlay, GATES_STEPS } from './QuantumGates';
 import { MultiGatesScene, MultiGatesOverlay, MULTI_GATES_STEPS, isResultEntangled } from './MultiQubitGates';
 import CameraShifter from './CameraShifter';
+import { SharedCanvas } from './SharedCanvas';
 import LandingOrbitalCloud from './LandingOrbitalCloud';
 import GlassNavBar from './GlassNavBar';
 import DisplayPanel, { DisplayPanelIcon } from './DisplayPanel';
@@ -1279,7 +1280,7 @@ const GatesModuleView = ({ step, applied, theme, isSidebarOpen, uiBoundsStyle, o
 
   return (
     <>
-      <QualityCanvas
+      <SharedCanvas
         camera={{ position: [0, 0, 13], fov: 45 }}
         gl={SCENE_GL}
         style={{ position: 'absolute', inset: 0, zIndex: 1, willChange: 'transform', transform: 'translateZ(0)' }}
@@ -1287,7 +1288,7 @@ const GatesModuleView = ({ step, applied, theme, isSidebarOpen, uiBoundsStyle, o
         <CameraShifter isSidebarOpen={isSidebarOpen} />
         <OrbitControls makeDefault enableZoom={true} enablePan={true} />
         <GatesScene step={step} applied={applied} theme={theme} setProgress={setProgress} />
-      </QualityCanvas>
+      </SharedCanvas>
       <div style={uiBoundsStyle}>
         <GatesOverlay
           step={step}
@@ -2112,7 +2113,7 @@ function App() {
             />
           ) : activeModuleId === 'multi-qubit-gates' ? (
             <>
-              <QualityCanvas
+              <SharedCanvas
                 camera={{ position: [0, 0, 15], fov: 45 }}
                 gl={SCENE_GL}
                 style={{ position: 'absolute', inset: 0, zIndex: 1, willChange: 'transform', transform: 'translateZ(0)' }}
@@ -2125,7 +2126,7 @@ function App() {
                   theme={theme}
                   inputs={multiGatesInputs}
                 />
-              </QualityCanvas>
+              </SharedCanvas>
               <div style={uiBoundsStyle}>
                 <MultiGatesOverlay
                   step={multiGatesStep}
@@ -2187,14 +2188,14 @@ function App() {
             </>
           ) : activeModuleId === 'dirac-notation' ? (
             <>
-              <QualityCanvas
+              <SharedCanvas
                 camera={{ position: [4, 3, 8], fov: 50 }}
                 gl={SCENE_GL}
                 style={{ position: 'absolute', inset: 0, zIndex: 1, willChange: 'transform', transform: 'translateZ(0)' }}
               >
                 <CameraShifter isSidebarOpen={isSidebarOpen} />
                 <DiracScene step={diracStep} theme={theme} />
-              </QualityCanvas>
+              </SharedCanvas>
               <div style={uiBoundsStyle}>
                 <DiracOverlay
                   step={diracStep}
@@ -2217,7 +2218,7 @@ function App() {
           ) : activeModuleId === 'error-correction' ? (
             <QuantumErrorCorrectionModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} />
           ) : (
-            <QualityCanvas
+            <SharedCanvas
               camera={{ position: [0, 0, 13], fov: 45 }}
               gl={SCENE_GL}
               style={{ position: 'absolute', inset: 0, zIndex: 1, willChange: 'transform', transform: 'translateZ(0)' }}
@@ -2233,7 +2234,7 @@ function App() {
                 setIsSidebarOpen={setIsSidebarOpen}
                 isGlobalMuted={isGlobalMuted}
               />
-            </QualityCanvas>
+            </SharedCanvas>
           )}
           </Suspense>
           </ModuleErrorBoundary>

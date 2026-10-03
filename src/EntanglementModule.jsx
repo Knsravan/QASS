@@ -13,7 +13,9 @@ import CameraShifter from './CameraShifter';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { SCENE_GL } from './sceneGl';
 import GlassSlider from './GlassSlider';
-import { QualityCanvas, QualityComposer } from './QualityScene';
+import { QualityComposer } from './QualityScene';
+import { SharedCanvas } from './SharedCanvas';
+
 
 // ==========================================
 // 4 MAXIMALLY ENTANGLED BELL STATES
@@ -1193,7 +1195,7 @@ export default function EntanglementModule({ theme, isSidebarOpen, isGlobalMuted
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
       {/* 3D Canvas */}
       <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }}>
-        <QualityCanvas
+        <SharedCanvas
           gl={SCENE_GL}
           camera={{ position: [0, 0.2, 13.5], fov: 45 }}
         >
@@ -1217,7 +1219,7 @@ export default function EntanglementModule({ theme, isSidebarOpen, isGlobalMuted
               isSidebarOpen={isSidebarOpen}
             />
           </Suspense>
-        </QualityCanvas>
+        </SharedCanvas>
       </div>
 
       {/* 2D HTML Overlay & HUD */}
