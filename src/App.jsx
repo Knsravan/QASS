@@ -1942,11 +1942,19 @@ function App() {
         <div className="sidebar-wrapper">
           <div className={`sidebar-panel lg-pane ${isSidebarOpen ? '' : 'collapsed'}`}>
             <div className="sidebar-branding">
-              <QassLogo size={34} />
-              <div className="sidebar-branding-text">
-                <span className="sidebar-branding-title">QASS</span>
-                <span className="sidebar-branding-tag">Interactive Suite</span>
-              </div>
+              <button
+                type="button"
+                className="sidebar-home"
+                onClick={() => { setListFor(null); setDisplayOpen(false); setActiveModuleId(null); }}
+                aria-label="QASS home: back to the start"
+                title="Back to the start"
+              >
+                <QassLogo size={34} />
+                <div className="sidebar-branding-text">
+                  <span className="sidebar-branding-title">QASS</span>
+                  <span className="sidebar-branding-tag">Interactive Suite</span>
+                </div>
+              </button>
               {isSidebarOpen && (
                 <button
                   type="button"
