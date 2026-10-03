@@ -6022,3 +6022,18 @@ div:has(> canvas) {
   [data-jelly-state="run"] [data-jelly], [data-jelly-state="run"] .quantum-nav-btn,
   [data-jelly-state="out"] [data-jelly], [data-jelly-state="out"] .quantum-nav-btn { animation: none !important; }
 }
+
+/* Closing any module: whatever glass cards and buttons it has spring out (using
+   the independent `scale` property, so their own positioning transforms stay).
+   The top bar stays; elements that already have their own pop (data-jelly) use that. */
+.canvas-container[data-jelly-state="out"] :is([data-gl], .glass-tooltip, .glass-interactive, .lg-pane):not([data-jelly]):not(.quantum-nav-btn):not(.lg-nav):not(.lg-nav *) {
+  animation: jellyOutScale 0.5s cubic-bezier(0.5, 0, 0.75, 0) forwards !important;
+}
+@keyframes jellyOutScale {
+  0%   { scale: 1; }
+  25%  { scale: 1.06 0.95; animation-timing-function: cubic-bezier(0.5, 0, 0.75, 0); }
+  100% { scale: 0; opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .canvas-container[data-jelly-state="out"] :is([data-gl], .glass-tooltip, .glass-interactive, .lg-pane) { animation: none !important; }
+}

@@ -1323,7 +1323,7 @@ function App() {
   // What the stage (3D scene and its overlay) shows. It follows the open
   // module, except in the choreographed moves:
   //  - hub -> Dirac Notation: the hub's scene vanishes, Dirac's comes in, its cards pop;
-  //  - Dirac Notation -> hub: the reverse (cards out, scene out, hub scene in, hub pops);
+  //  - any module -> hub: the reverse (cards out, scene out, hub scene in, hub pops);
   //  - hub -> Superposition: the shared scene morphs in place, then the cards pop.
   const [stageId, setStageId] = useState(activeModuleId);
   const [stagePhase, setStagePhase] = useState('idle'); // 'vanish' | 'enter' | 'morph' | 'idle'
@@ -1343,18 +1343,22 @@ function App() {
       }, 600);
       return () => { clearTimeout(t); if (!done) { setStagePhase('idle'); showSharedCanvas(); } };
     }
-    if (stageId === 'dirac-notation' && activeModuleId === null) {
+    if (stageId !== null && activeModuleId === null) {
+      // Closing, any module: the opening in reverse. Its cards spring out; then
+      // either the shared scene morphs back (the bit-and-qubit scene), or the
+      // scene fades out and the hub's fades in; then the hub's text pops.
       let done = false;
+      const shared = stageId === 'bit-vs-qubit' || stageId === 'superposition';
       setStagePhase('closing');
       setJellyState('out');
-      const t1 = setTimeout(() => fadeOutSharedCanvas(450), 550);
+      const t1 = shared ? 0 : setTimeout(() => fadeOutSharedCanvas(450), 550);
       const t2 = setTimeout(() => {
         done = true;
-        skipNextSnapshot();
+        if (!shared) skipNextSnapshot();
         setJellyState('wait');
-        setStagePhase('enter');
+        setStagePhase(shared ? 'morph' : 'enter');
         setStageId(null);
-      }, 1050);
+      }, shared ? 600 : 1050);
       return () => { clearTimeout(t1); clearTimeout(t2); if (!done) { setStagePhase('idle'); setJellyState(''); showSharedCanvas(); } };
     }
     if (stageId === null && activeModuleId === 'superposition') {
