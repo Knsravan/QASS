@@ -1410,7 +1410,7 @@ function App() {
         setStagePhase('morph');
         setStageSeq((n) => n + 1);
         setStageId(activeModuleId);
-      }, 1700);
+      }, 1100);
       return () => { clearTimeout(t); if (!done) setStagePhase('idle'); };
     }
     if (stageId === 'interference' && activeModuleId === null) {
