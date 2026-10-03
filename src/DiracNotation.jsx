@@ -337,8 +337,8 @@ export function DiracOverlay({ step, onNext, onPrev, theme, isMuted, onToggleMut
       {/* ── Top-left: Title card ── */}
       <div style={{
         position: 'absolute', top: '80px', left: '50px',
-        animation: 'diracSlideUp 0.5s ease both', zIndex: 300,
-      }}>
+        animation: 'diracSlideUp 0.5s ease both', zIndex: 300, '--j': 0,
+      }} data-jelly>
         <div className="glass-interactive" style={{
           background: 'var(--glass-bg-base)',
           backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)',
@@ -368,8 +368,8 @@ export function DiracOverlay({ step, onNext, onPrev, theme, isMuted, onToggleMut
       {/* ── Top-right: Description card ── */}
       <div style={{
         position: 'absolute', top: '80px', right: '50px',
-        animation: 'diracSlideUp 0.5s ease 0.1s both', zIndex: 300,
-      }}>
+        animation: 'diracSlideUp 0.5s ease 0.1s both', zIndex: 300, '--j': 1,
+      }} data-jelly>
         <div className="glass-interactive" style={{
           background: 'var(--glass-bg-base)',
           backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)',
@@ -398,8 +398,8 @@ export function DiracOverlay({ step, onNext, onPrev, theme, isMuted, onToggleMut
       {/* ── Bottom-left: Math card ── */}
       <div style={{
         position: 'absolute', bottom: '120px', left: '50px',
-        animation: 'diracSlideUp 0.5s ease 0.2s both', zIndex: 300,
-      }}>
+        animation: 'diracSlideUp 0.5s ease 0.2s both', zIndex: 300, '--j': 2,
+      }} data-jelly>
         <div className="glass-interactive" style={{
           background: 'var(--glass-bg-base)',
           backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)',
