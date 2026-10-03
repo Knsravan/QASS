@@ -1420,8 +1420,12 @@ function App() {
       return () => clearTimeout(t);
     }
     if (stagePhase === 'shrink') {
-      const t = setTimeout(() => setStagePhase('morph'), 450);
-      return () => clearTimeout(t);
+      // Shrink only once the hub's scene has faded in over the module's (so the
+      // two are never seen at different sizes).
+      let t2 = 0;
+      const off = onSharedCanvasRevealed(() => { t2 = setTimeout(() => setStagePhase('morph'), 350); });
+      const t3 = setTimeout(() => setStagePhase('morph'), 3000);
+      return () => { off(); clearTimeout(t2); clearTimeout(t3); };
     }
     return undefined;
   }, [stagePhase, stageSeq]);

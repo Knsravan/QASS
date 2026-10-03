@@ -265,9 +265,14 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla,
         }
       }
       else if (['gates', 'multi-qubit-gates'].includes(activeModule)) {
-        // Fallback state-space sweep, only visible when no customVectorQuat is driving the vector
-        targetX = Math.abs(Math.sin(time * 1.5)) * Math.PI;
-        targetY = Math.cos(time) * Math.PI;
+        // Fallback state-space sweep, only visible when no customVectorQuat is driving the vector.
+        // (Here "gates" is also the hub's scene on its way to or from Classical Gates,
+        // where the vector rests at |0> to match that scene's start.)
+        if (activeModule === 'gates') { targetX = 0; targetY = 0; }
+        else {
+          targetX = Math.abs(Math.sin(time * 1.5)) * Math.PI;
+          targetY = Math.cos(time) * Math.PI;
+        }
         if (glassCoreRef.current) {
           glassCoreRef.current.emissiveIntensity = 0;
           if (emissiveColor) {
@@ -1405,7 +1410,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
 
       {activeModule === 'bit-vs-qubit' && (
         <Html position={[0, 0, 0]} center zIndexRange={[100, 0]}>
-          <div style={{
+          <div className="vs-badge" style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             background: isLight ? 'rgba(255,255,255,0.4)' : 'linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.0))',
             backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
