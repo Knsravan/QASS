@@ -240,6 +240,17 @@ function ClassicalPipeStage({ stepData, applied, isLight }) {
 function QuantumSphereStage({ stepData, applied, isLight, setProgress, setAberrationOffset }) {
   const radius = 2.0;
   const trailRef = useRef();
+  // The rotation axis fades in when the module takes over from the hub's scene,
+  // and out when it hands back (the stage's data-jelly-state is "out").
+  const axisLineRef = useRef();
+  const axisAlpha = useRef(0);
+  useFrame(() => {
+    const m = axisLineRef.current?.material;
+    if (!m) return;
+    const closing = document.querySelector('.canvas-container')?.dataset.jellyState === 'out';
+    axisAlpha.current += ((closing ? 0 : 0.6) - axisAlpha.current) * 0.08;
+    m.opacity = axisAlpha.current;
+  });
   const currentQuat = useRef(new THREE.Quaternion().copy(stepData.startQuat));
   const { camera, controls } = useThree();
   
@@ -403,13 +414,13 @@ function QuantumSphereStage({ stepData, applied, isLight, setProgress, setAberra
       />
 
       {/* Labels */}
-      <Html position={[0, radius + 0.35, 0]} center><div style={{ color: isLight ? '#334155' : '#cbd5e1', fontSize: '14px' }}><InlineMath math={String.raw`|0\rangle`} /></div></Html>
-      <Html position={[0, -radius - 0.35, 0]} center><div style={{ color: isLight ? '#334155' : '#cbd5e1', fontSize: '14px' }}><InlineMath math={String.raw`|1\rangle`} /></div></Html>
-      <Html position={[0, 0, radius + 0.35]} center><div style={{ color: isLight ? '#334155' : '#cbd5e1', fontSize: '14px' }}><InlineMath math={String.raw`|+\rangle`} /></div></Html>
-      <Html position={[radius + 0.35, 0, 0]} center><div style={{ color: isLight ? '#334155' : '#cbd5e1', fontSize: '14px' }}><InlineMath math={String.raw`|i\rangle`} /></div></Html>
+      <Html position={[0, radius + 0.35, 0]} center><div className="gates-extra" style={{ color: isLight ? '#334155' : '#cbd5e1', fontSize: '14px' }}><InlineMath math={String.raw`|0\rangle`} /></div></Html>
+      <Html position={[0, -radius - 0.35, 0]} center><div className="gates-extra" style={{ color: isLight ? '#334155' : '#cbd5e1', fontSize: '14px' }}><InlineMath math={String.raw`|1\rangle`} /></div></Html>
+      <Html position={[0, 0, radius + 0.35]} center><div className="gates-extra" style={{ color: isLight ? '#334155' : '#cbd5e1', fontSize: '14px' }}><InlineMath math={String.raw`|+\rangle`} /></div></Html>
+      <Html position={[radius + 0.35, 0, 0]} center><div className="gates-extra" style={{ color: isLight ? '#334155' : '#cbd5e1', fontSize: '14px' }}><InlineMath math={String.raw`|i\rangle`} /></div></Html>
 
       {/* Rotation Axis Line */}
-      <Line points={[axisStart, axisEnd]} position={[0, 0, 0]} color={stepData.color} lineWidth={2} transparent opacity={0.6} dashed dashScale={5} />
+      <Line ref={axisLineRef} points={[axisStart, axisEnd]} position={[0, 0, 0]} color={stepData.color} lineWidth={2} transparent opacity={0} dashed dashScale={5} />
 
       {/* Arc Trail */}
       <line ref={trailRef} position={[0, 0, 0]}>
@@ -486,7 +497,7 @@ export function GatesScene({ step, applied, theme, setProgress }) {
         <ClassicalPipeStage stepData={stepData} applied={applied} isLight={isLight} />
         
         <Html position={[0, 0, 0]} center zIndexRange={[100, 0]} style={{ opacity: applied ? 0 : 1, transition: 'opacity 0.5s' }}>
-          <div className="vs-badge" style={{
+          <div className="gates-extra"><div className="vs-badge" style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             background: 'var(--glass-bg-base)',
             backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)',
@@ -498,7 +509,7 @@ export function GatesScene({ step, applied, theme, setProgress }) {
             animation: 'pulseVS 3s infinite alternate'
           }}>
             <span style={{ fontSize: '30px', fontWeight: '900', background: 'linear-gradient(to right, #00f2fe, #f093fb)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontFamily: "'Inter', sans-serif" }}>VS</span>
-          </div>
+          </div></div>
           <style>
             {`
               @keyframes pulseVS {

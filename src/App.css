@@ -6037,3 +6037,8 @@ div:has(> canvas) {
 @media (prefers-reduced-motion: reduce) {
   .canvas-container[data-jelly-state="out"] :is([data-gl], .glass-tooltip, .glass-interactive, .lg-pane, .section-title, .vs-badge) { animation: none !important; }
 }
+
+/* The parts the Classical Gates scene adds to the hub's two bits (labels, the VS
+   badge) fade in as the module takes over, and out as it hands back. */
+.gates-extra { animation: moduleFade 0.9s ease-out 0.1s both; }
+.canvas-container[data-jelly-state="out"] .gates-extra { opacity: 0 !important; transition: opacity 0.45s ease; animation: none !important; }
