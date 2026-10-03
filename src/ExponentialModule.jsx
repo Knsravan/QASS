@@ -96,7 +96,8 @@ function AnimatedQubitItem({
 
       {/* 3D Floating Name Badge */}
       <Html position={[0, 2.25, 0]} center zIndexRange={[60, 0]}>
-        <div style={{
+        <div data-jelly style={{
+          '--j': 1,
           padding: '4px 12px',
           borderRadius: '20px',
           background: 'rgba(15, 23, 42, 0.85)',
@@ -364,17 +365,69 @@ function StateSpaceConstellation({
   isSuperposed,
   targetStateIndex = 2,
   isInterferenceActive = false,
-  cosmicMilestone = 50
+  cosmicMilestone = 50,
+  fromHub = false,
+  closing = false
 }) {
   const groupRef = useRef();
   const torusMeshRef = useRef();
   const curRadiusRef = useRef(4.5);
   const numStates = Math.pow(2, qubitCount);
 
+  // The ring is drawn on from one point round to a full circle when the module opens from the
+  // hub (the state nodes and photons appear as the drawing passes them), and drawn back off again
+  // when it closes. `p` is the drawn fraction; with no hub hand-over the ring is simply whole.
+  const ringRef = useRef();
+  const headRef = useRef();
+  const nodeRefs = useRef({});
+  const labelRefs = useRef({});
+  const ringGeo = useMemo(() => {
+    class Circle extends THREE.Curve {
+      getPoint(t, target = new THREE.Vector3()) { const a = t * Math.PI * 2; return target.set(Math.cos(a) * 4.5, 0, Math.sin(a) * 4.5); }
+    }
+    return new THREE.TubeGeometry(new Circle(), 128, 0.028, 16, true);
+  }, []);
+  const reveal = useRef({ p: fromHub ? 0 : 1, wait: fromHub ? 0.25 : 0, done: !fromHub });
+  useEffect(() => {
+    if (closing) { reveal.current.wait = 0.35; reveal.current.done = false; }
+  }, [closing]);
+
   // Slow majestic rotation of the Hilbert Space constellation
   useFrame((_, delta) => {
     if (groupRef.current) {
       groupRef.current.rotation.y += delta * 0.1;
+    }
+    const R = reveal.current;
+    if (!R.done) {
+      const d = Math.min(delta, 0.1);
+      if (R.wait > 0) R.wait -= d;
+      else R.p = Math.min(1, Math.max(0, R.p + (closing ? -d / 1.0 : d / 1.5)));
+      const e = R.p * R.p * (3 - 2 * R.p); // eased fraction of the circle drawn
+      const ring = ringRef.current;
+      if (ring) ring.geometry.setDrawRange(0, Math.floor((e * ringGeo.index.count) / 6) * 6);
+      const head = headRef.current;
+      if (head) {
+        const a = e * Math.PI * 2;
+        head.position.set(Math.cos(a) * 4.5, 0, Math.sin(a) * 4.5);
+        head.scale.setScalar(e <= 0 || e >= 1 ? 0.0001 : Math.min(1, e / 0.03) * Math.min(1, (1 - e) / 0.05));
+      }
+      const nNodes = Math.min(numStates, 64);
+      for (const key of Object.keys(nodeRefs.current)) {
+        const g = nodeRefs.current[key];
+        if (!g) continue;
+        const x = Math.min(1, Math.max(0, (e - Number(key) / nNodes) / 0.1));
+        const pop = x <= 0 ? 0.0001 : 1 + 2.70158 * Math.pow(x - 1, 3) + 1.70158 * Math.pow(x - 1, 2); // springy pop
+        g.scale.setScalar(pop);
+        const l = labelRefs.current[key];
+        if (l) { l.style.opacity = String(Math.min(1, x * 1.5)); l.style.transform = `scale(${Math.max(0, pop)})`; }
+      }
+      if (closing && R.p <= 0 && !R.gone) { R.gone = true; window.dispatchEvent(new Event('qass-ring-gone')); }
+      if (!closing && R.p >= 1) {
+        R.done = true;
+        window.dispatchEvent(new Event('qass-ring-done'));
+        for (const key of Object.keys(labelRefs.current)) { const l = labelRefs.current[key]; if (l) { l.style.opacity = ''; l.style.transform = ''; } }
+        if (ring) ring.geometry.setDrawRange(0, Infinity);
+      }
     }
     const targetRadius =
       stage === 3 ? (cosmicMilestone === 300 ? 14.5 : 8.6) :
@@ -436,6 +489,8 @@ function StateSpaceConstellation({
         const p = ringPhotons[i];
         const angle = t * p.speed + p.offset;
         pMesh.position.set(Math.cos(angle) * r, 0, Math.sin(angle) * r);
+        const e = reveal.current.p;
+        pMesh.scale.setScalar(reveal.current.done ? 1 : Math.max(0.0001, Math.min(1, (e - 0.9) / 0.1)));
       });
     }
   });
@@ -444,8 +499,7 @@ function StateSpaceConstellation({
     <group ref={groupRef} position={[0, 0.6, 0]}>
       {/* ── REFINED RADIANT QUANTUM ORBITAL RING & SYNCHRONIZED STARDUST ── */}
       <group ref={torusMeshRef}>
-        <mesh rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[4.5, 0.028, 16, 128]} />
+        <mesh ref={ringRef} geometry={ringGeo}>
           <meshStandardMaterial
             color={stage === 3 ? (cosmicMilestone === 300 ? '#f43f5e' : '#c084fc') : '#c084fc'}
             emissive={stage === 3 ? (cosmicMilestone === 300 ? '#f43f5e' : '#c084fc') : '#c084fc'}
@@ -455,6 +509,14 @@ function StateSpaceConstellation({
             opacity={0.92}
           />
         </mesh>
+
+        {/* The point that draws the ring on (and back off) */}
+        {fromHub && (
+          <mesh ref={headRef} scale={0.0001}>
+            <sphereGeometry args={[0.085, 16, 16]} />
+            <meshStandardMaterial color="#ffffff" emissive="#a5f3fc" emissiveIntensity={6} toneMapped={false} />
+          </mesh>
+        )}
 
         {/* Stage 3 Synchronized Accretion Stardust (Locked to the ring at all times) */}
         {stage === 3 && <CosmicStarDustDisk cosmicMilestone={cosmicMilestone} />}
@@ -515,7 +577,7 @@ function StateSpaceConstellation({
         const emissiveIntensity = isTarget ? 5.0 : isDimmed ? 0.25 : isSuperposed ? 3.5 : 2.2;
 
         return (
-          <group key={`state-${node.index}`} position={node.pos}>
+          <group key={`state-${node.index}`} position={node.pos} ref={(g) => { if (g) nodeRefs.current[node.index] = g; else delete nodeRefs.current[node.index]; }} scale={reveal.current.done ? 1 : 0.0001}>
             {/* Glowing State Orb */}
             <mesh>
               <sphereGeometry args={[isTarget ? 0.16 : qubitCount === 5 ? 0.08 : 0.11, 16, 16]} />
@@ -536,7 +598,7 @@ function StateSpaceConstellation({
 
             {/* Billboard KaTeX Ket Label */}
             <Html position={[0, node.pos[1] > 0 ? 0.28 : -0.28, 0]} center zIndexRange={[70, 0]}>
-              <div style={{
+              <div ref={(d) => { if (d) labelRefs.current[node.index] = d; else delete labelRefs.current[node.index]; }} style={{
                 color: isTarget ? '#4ade80' : isDimmed ? '#64748b' : '#c084fc',
                 fontFamily: "'Inter', sans-serif",
                 fontSize: qubitCount <= 3 ? '11px' : qubitCount === 4 ? '9px' : '8px',
@@ -549,7 +611,8 @@ function StateSpaceConstellation({
                 boxShadow: isTarget ? '0 0 15px rgba(34, 197, 94, 0.6)' : 'none',
                 pointerEvents: 'none',
                 whiteSpace: 'nowrap',
-                transition: 'all 0.3s ease'
+                transition: 'all 0.3s ease',
+                ...(reveal.current.done ? {} : { opacity: 0, transform: 'scale(0)' })
               }}>
                 <InlineMath math={String.raw`|${node.binaryString}\rangle`} />
               </div>
@@ -643,7 +706,9 @@ function ExponentialScene({
   targetStateIndex,
   isInterferenceActive,
   cosmicMilestone,
-  theme
+  theme,
+  fromHub,
+  closing
 }) {
   return (
     <>
@@ -656,6 +721,7 @@ function ExponentialScene({
 
       {/* Orbit Controls */}
       <OrbitControls
+        makeDefault
         enablePan={false}
         minDistance={6}
         maxDistance={28}
@@ -679,6 +745,8 @@ function ExponentialScene({
         targetStateIndex={targetStateIndex}
         isInterferenceActive={isInterferenceActive}
         cosmicMilestone={cosmicMilestone}
+        fromHub={fromHub}
+        closing={closing}
       />
 
       {/* Post-Processing Neon Bloom (Optimized for 60 FPS on any laptop) */}
@@ -696,7 +764,7 @@ function ExponentialScene({
 // ==========================================
 // 7. 2D INTERACTIVE OVERLAY & FROSTED GLASS HUD
 // ==========================================
-export default function ExponentialModule({ theme = 'dark', isSidebarOpen = true, isGlobalMuted = false }) {
+export default function ExponentialModule({ theme = 'dark', isSidebarOpen = true, isGlobalMuted = false, fromHub = false, closing = false }) {
   const [stage, setStage] = useState(1);
   const [qubitCount, setQubitCount] = useState(1);
   const [isSuperposed, setIsSuperposed] = useState(false);
@@ -791,8 +859,10 @@ export default function ExponentialModule({ theme = 'dark', isSidebarOpen = true
       {/* ── 3D CANVAS VIEWPORT ── */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'auto' }}>
         <SharedCanvas
+          sceneId="bit-scene"
           camera={{ position: [0, 1.4, 14.8], fov: 45 }}
           gl={SCENE_GL}
+          style={{ position: 'absolute', inset: 0, zIndex: 1, willChange: 'transform', transform: 'translateZ(0)' }}
         >
           <CameraShifter isSidebarOpen={isSidebarOpen} />
           <ExponentialScene
@@ -803,6 +873,8 @@ export default function ExponentialModule({ theme = 'dark', isSidebarOpen = true
             isInterferenceActive={isInterferenceActive}
             cosmicMilestone={cosmicMilestone}
             theme={theme}
+            fromHub={fromHub}
+            closing={closing}
           />
         </SharedCanvas>
       </div>
@@ -899,7 +971,9 @@ export default function ExponentialModule({ theme = 'dark', isSidebarOpen = true
         `}</style>
 
         {/* ── TOP CENTER: STAGE STEPPER PILLS (SINGLE LINE & SPACIOUS) ── */}
-        <div style={{
+        <div data-jelly style={{
+          '--tx': '-50%',
+          '--j': 0,
           position: 'absolute',
           top: '72px',
           left: '50%',
@@ -934,7 +1008,7 @@ export default function ExponentialModule({ theme = 'dark', isSidebarOpen = true
         </div>
 
       {/* ── TOP RIGHT: LIVE HILBERT SPACE COUNTER METER (COMPACT & COMPLETE) ── */}
-      <div className="compact-hud-card" style={{
+      <div className="compact-hud-card" data-jelly style={{ '--j': 2,
         position: 'absolute',
         top: '72px',
         right: '12px',
@@ -981,7 +1055,7 @@ export default function ExponentialModule({ theme = 'dark', isSidebarOpen = true
 
       {/* ── STAGE 1: LINEAR HARDWARE VS EXPONENTIAL SPACE (COMPACT DESIGN) ── */}
       {stage === 1 && (
-        <div className="compact-hud-card" style={{
+        <div className="compact-hud-card" data-jelly style={{ '--tx': '-50%', '--j': 2,
           position: 'absolute',
           bottom: '25px',
           left: '50%',
@@ -1055,7 +1129,7 @@ export default function ExponentialModule({ theme = 'dark', isSidebarOpen = true
 
       {/* ── STAGE 2: HADAMARD SUPERPOSITION EXPLOSION ── */}
       {stage === 2 && (
-        <div className="compact-hud-card" style={{
+        <div className="compact-hud-card" data-jelly style={{ '--tx': '-50%', '--j': 2,
           position: 'absolute',
           bottom: '25px',
           left: '50%',
@@ -1110,7 +1184,7 @@ export default function ExponentialModule({ theme = 'dark', isSidebarOpen = true
 
       {/* ── STAGE 3: COSMIC SCALE & OBSERVABLE UNIVERSE (INTERACTIVE MILESTONES) ── */}
       {stage === 3 && (
-        <div className="compact-hud-card" style={{
+        <div className="compact-hud-card" data-jelly style={{ '--tx': '-50%', '--j': 2,
           position: 'absolute',
           bottom: '25px',
           left: '50%',
@@ -1194,7 +1268,7 @@ export default function ExponentialModule({ theme = 'dark', isSidebarOpen = true
 
       {/* ── STAGE 4: QUANTUM PARALLELISM MYTH DEBUNKED ── */}
       {stage === 4 && (
-        <div className="compact-hud-card" style={{
+        <div className="compact-hud-card" data-jelly style={{ '--tx': '-50%', '--j': 2,
           position: 'absolute',
           bottom: '25px',
           left: '50%',
