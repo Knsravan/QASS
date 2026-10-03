@@ -1,6 +1,6 @@
 import React, { Component, Fragment, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { createRoot } from 'react-dom/client';
-import { useThree } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { QualityCanvas, useQuality } from './QualityScene';
 import { SCENE_GL } from './sceneGl';
 
@@ -61,6 +61,29 @@ function CameraRig({ camera }) {
   return null;
 }
 
+// The canvas keeps its last picture while a new module builds its scene, and
+// shows a blank frame when it is first resized. Hide it on every swap and fade
+// it in once the new scene has drawn a few frames.
+function hideHost() {
+  if (!host) return;
+  clearTimeout(host.reveal);
+  host.el.style.transition = 'none';
+  host.el.style.opacity = '0';
+  host.reveal = setTimeout(showHost, 2500); // never stay hidden if frames stall
+}
+function showHost() {
+  if (!host) return;
+  clearTimeout(host.reveal);
+  host.el.style.transition = 'opacity 0.22s ease-out';
+  host.el.style.opacity = '1';
+  host.reveal = setTimeout(() => { host.el.style.transition = ''; host.el.style.opacity = ''; }, 260);
+}
+function Reveal() {
+  const frames = useRef(0);
+  useFrame(() => { if (++frames.current === 4) showHost(); });
+  return null;
+}
+
 function Stage() {
   const s = useSyncExternalStore(subscribe, snapshot, snapshot);
   const here = useSyncExternalStore(subscribe, attachedSnapshot, attachedSnapshot);
@@ -73,6 +96,7 @@ function Stage() {
           {/* Keyed: a new module's scene must mount fresh, not reuse the last one's. */}
           <Fragment key={s.id}>
             <CameraRig camera={s.camera} />
+            <Reveal />
             {s.children}
           </Fragment>
         </SceneBoundary>
@@ -121,6 +145,7 @@ export function SharedCanvas({ children, camera, style, className }) {
 
   // Hand the current scene over after every render (its props change).
   useLayoutEffect(() => {
+    if (scene?.id !== id) hideHost();
     scene = { id, camera, children, fail: setFailure };
     emit();
   });
