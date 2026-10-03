@@ -1580,8 +1580,10 @@ function App() {
     }
     if (stagePhase === 'multi-unsplit') {
       // The zoom-out: the models shrink to the hub's size while the camera eases back.
-      settleSharedCamera([0, 0, 13], [0, 0, 0], 1500);
-      const t = setTimeout(() => { setHubTarget([0, 0, 0]); setStagePhase('multi-merge'); }, 1500);
+      // (A lone qubit has no second one to merge in, so it goes straight on to its hub place.)
+      const lone = pairModule === 'exponential';
+      settleSharedCamera([0, 0, 13], [0, 0, 0], lone ? 1100 : 1500);
+      const t = setTimeout(() => { setHubTarget([0, 0, 0]); setStagePhase(lone ? 'morph' : 'multi-merge'); }, lone ? 1100 : 1500);
       return () => clearTimeout(t);
     }
     if (stagePhase === 'multi-merge') {
