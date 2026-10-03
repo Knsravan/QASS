@@ -1475,7 +1475,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
         <>
           <group ref={ctlLabel}>
             <Html position={[0, -2.6, 0]} center>
-              <div className="mq-extra" style={{ color: '#eab308', fontWeight: 'bold', fontSize: '15px', textShadow: '0 0 10px #eab30880', whiteSpace: 'nowrap', letterSpacing: '1px' }}>Control</div>
+              <div className="mq-extra" style={{ color: '#eab308', fontWeight: 'bold', fontSize: '15px', textShadow: '0 0 10px #eab30880', whiteSpace: 'nowrap', letterSpacing: '1px', opacity: multi === 'merge' ? 0 : 1, transition: 'opacity 0.35s' }}>Control</div>
             </Html>
           </group>
           {targetOn && (
@@ -1494,7 +1494,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
               </group>
               <group ref={tgtLabel} position={[targetX.current, 1.2, 0]}>
                 <Html position={[0, -2.6, 0]} center>
-                  <div className="mq-extra" style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '15px', textShadow: '0 0 10px #38bdf880', whiteSpace: 'nowrap', letterSpacing: '1px' }}>Target</div>
+                  <div className="mq-extra" style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '15px', textShadow: '0 0 10px #38bdf880', whiteSpace: 'nowrap', letterSpacing: '1px', opacity: multi === 'split' ? 1 : 0, transition: 'opacity 0.35s' }}>Target</div>
                 </Html>
               </group>
             </>
