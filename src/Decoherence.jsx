@@ -230,7 +230,7 @@ function BlochSphereUnit({ posArr, color, label, isPure, noiseLevel, activeNoise
       _target.set(Math.sin(fP) * Math.cos(fT), Math.cos(fP), Math.sin(fP) * Math.sin(fT));
       _quat.setFromUnitVectors(_up, _target);
       vectorGrpRef.current.quaternion.copy(_quat);
-      vectorGrpRef.current.scale.setScalar(lenRef.current * (0.55 + 0.45 * arrowGrow.p));
+      vectorGrpRef.current.scale.setScalar(lenRef.current * (0.75 + 0.25 * arrowGrow.p));
       handoff.decQ[posKey].copy(_quat);
     }
 
