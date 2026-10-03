@@ -5967,3 +5967,12 @@ div:has(> canvas) {
 @keyframes moduleAppear { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes moduleFade { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .idle-hud, .module-appear { transition: none; animation: none; } }
+
+/* The logo and name are the way back to the start (no module open). */
+.sidebar-home {
+  display: flex; align-items: center; gap: 12px; min-width: 0;
+  padding: 0; margin: 0; border: 0; background: none; color: inherit;
+  font: inherit; text-align: left; cursor: pointer; border-radius: 12px;
+  -webkit-tap-highlight-color: transparent;
+}
+.sidebar-home:focus-visible { outline: 2px solid rgba(56, 189, 248, 0.8); outline-offset: 4px; }
