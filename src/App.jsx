@@ -1282,6 +1282,7 @@ const GatesModuleView = ({ step, applied, theme, isSidebarOpen, uiBoundsStyle, o
   return (
     <>
       <SharedCanvas
+        sceneId="bit-scene"
         camera={{ position: [0, 0, 13], fov: 45 }}
         gl={SCENE_GL}
         style={{ position: 'absolute', inset: 0, zIndex: 1, willChange: 'transform', transform: 'translateZ(0)' }}
@@ -1352,9 +1353,8 @@ function App() {
       setStagePhase('grow');
       const t = setTimeout(() => {
         done = true;
-        seamlessNextSwap();
         setJellyState('wait');
-        setStagePhase('enter');
+        setStagePhase('morph');
         setStageSeq((n) => n + 1);
         setStageId(activeModuleId);
       }, 1000);
@@ -1368,12 +1368,11 @@ function App() {
       setJellyState('out');
       const t = setTimeout(() => {
         done = true;
-        seamlessNextSwap();
         setJellyState('wait');
         setStagePhase('shrink');
         setStageSeq((n) => n + 1);
         setStageId(null);
-      }, 600);
+      }, 700);
       return () => { clearTimeout(t); if (!done) { setStagePhase('idle'); setJellyState(''); } };
     }
     if (stageId !== null && activeModuleId === null) {
@@ -1420,12 +1419,9 @@ function App() {
       return () => clearTimeout(t);
     }
     if (stagePhase === 'shrink') {
-      // Shrink only once the hub's scene has faded in over the module's (so the
-      // two are never seen at different sizes).
-      let t2 = 0;
-      const off = onSharedCanvasRevealed(() => { t2 = setTimeout(() => setStagePhase('morph'), 420); });
-      const t3 = setTimeout(() => setStagePhase('morph'), 3000);
-      return () => { off(); clearTimeout(t2); clearTimeout(t3); };
+      // The hub's bits take over in place (same scene) at the module's size, then shrink.
+      const t = setTimeout(() => setStagePhase('morph'), 150);
+      return () => clearTimeout(t);
     }
     return undefined;
   }, [stagePhase, stageSeq]);
@@ -2201,7 +2197,7 @@ function App() {
           <ModuleErrorBoundary
             // The hub, the first module and superposition share one scene (the
             // bit and the qubit), so moving between them morphs it in place.
-            key={!stageId || stageId === 'bit-vs-qubit' || stageId === 'superposition' ? 'bit-scene' : stageId}
+            key={!stageId || stageId === 'bit-vs-qubit' || stageId === 'superposition' || stageId === 'gates' ? 'bit-scene' : stageId}
             moduleTitle={curriculumData.find(m => m.id === stageId)?.title}
             boundsStyle={uiBoundsStyle}
             onRetry={() => window.location.reload()}
@@ -2341,6 +2337,7 @@ function App() {
             <QuantumErrorCorrectionModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} />
           ) : (
             <SharedCanvas
+              sceneId="bit-scene"
               camera={{ position: [0, 0, 13], fov: 45 }}
               gl={SCENE_GL}
               style={{ position: 'absolute', inset: 0, zIndex: 1, willChange: 'transform', transform: 'translateZ(0)' }}

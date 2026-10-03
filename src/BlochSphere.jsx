@@ -22,13 +22,16 @@ export const ClassicalBit = ({ position, scale = 1, theme, activeModule, flipMod
   const [hovered, setHovered] = useState(false);
   const gridColor = customGridColor || (isLight ? "#0d9488" : "#14b8a6");
 
+  const born = useRef(null);
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
+    if (born.current === null) born.current = t;
+    const ft = t - born.current; // flips count from when this bit appeared (so it starts at 0)
     if (groupRef.current) groupRef.current.rotation.y = Math.sin(t * 0.5) * 0.1;
     if (activeModule !== 'bit-vs-qubit') {
-      if (flipMode === 'slow') setValue(Math.floor(t * 0.8) % 2);
-      else if (flipMode === 'fast') setValue(Math.floor(t * 2) % 2);
-      else if (flipMode === 'async') setValue(Math.floor(t * 1.8) % 2);
+      if (flipMode === 'slow') setValue(Math.floor(ft * 0.8) % 2);
+      else if (flipMode === 'fast') setValue(Math.floor(ft * 2) % 2);
+      else if (flipMode === 'async') setValue(Math.floor(ft * 1.8) % 2);
       else if (flipMode === 'static') setValue(0);
       else if (flipMode === 'controlled') { /* handled via prop if we want, or externally */ }
     }
@@ -1358,7 +1361,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
   return (
     <>
       <QualityComposer disableNormalPass>
-        <Bloom luminanceThreshold={0.3} mipmapBlur intensity={0.6} />
+        <Bloom luminanceThreshold={0.3} mipmapBlur intensity={activeModule === 'gates' ? 0.4 : 0.6} />
       </QualityComposer>
       <ambientLight intensity={isLight ? 0.8 : 0.5} />
       <pointLight ref={light1Ref} position={[8, 8, 8]} color="#00f2fe" intensity={isLight ? 12 : 8} distance={30} />

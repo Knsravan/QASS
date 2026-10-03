@@ -216,8 +216,24 @@ export function prepareSharedCanvas() {
  * shared canvas, which sits where this component is. `style` and `className`
  * apply to the slot, as they did to the canvas's own wrapper.
  */
-export function SharedCanvas({ children, camera, style, className }) {
-  const id = useId();
+let parkedId = null; // the scene id of a SharedCanvas that just unmounted (a same-id one may mount in the same commit)
+function hideSnapNow() {
+  const c = host?.snap;
+  if (!c) return;
+  c.getAnimations().forEach((a) => a.cancel());
+  c.style.display = 'none';
+}
+
+/**
+ * `sceneId`: two <SharedCanvas> elements with the same sceneId are one scene to
+ * the canvas. When one replaces the other in a commit, the canvas just swaps
+ * its children in the same frame: nothing is hidden, no picture is taken, no
+ * fade runs. That is how the hub's two bits become a module's scene.
+ */
+export function SharedCanvas({ children, camera, style, className, sceneId }) {
+  const auto = useId();
+  const id = sceneId || auto;
+  const continuing = useRef(false);
   const slot = useRef(null);
   const [failure, setFailure] = useState(null);
   if (failure) throw failure;
@@ -226,12 +242,17 @@ export function SharedCanvas({ children, camera, style, className }) {
     const h = ensureHost();
     h.el.style.pointerEvents = '';
     slot.current.appendChild(h.el);
+    continuing.current = parkedId === id;
+    parkedId = null;
+    if (continuing.current) { hideSnapNow(); clearTimeout(h.reveal); }
     attached = true;
     emit();
     return () => {
       if (scene?.id === id) {
         if (h.skipSnap) h.skipSnap = false; else h.capture?.();
         scene = null;
+        parkedId = id;
+        setTimeout(() => { if (parkedId === id) parkedId = null; }, 0);
       }
       // Park it in the page's stage while the next module loads, so the
       // picture holds instead of the canvas going away.
@@ -246,7 +267,8 @@ export function SharedCanvas({ children, camera, style, className }) {
 
   // Hand the current scene over after every render (its props change).
   useLayoutEffect(() => {
-    if (scene?.id !== id) hideHost();
+    if (scene?.id !== id && !continuing.current) hideHost();
+    continuing.current = false;
     scene = { id, camera, children, fail: setFailure };
     emit();
   });
