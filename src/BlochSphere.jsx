@@ -1150,7 +1150,7 @@ const ExponentialStateOrbit = ({ qubitCount, theme, onDomainHover, onDomainUnhov
     </group>
   );
 };
-export default function BlochSphere({ theme, activeModule, qubitCount, isDecohering, attemptCopy, isSidebarOpen, setIsSidebarOpen, interferenceStep, interferencePhase, isGlobalMuted = false, vanishing = false, multi = null, handoverTarget }) {
+export default function BlochSphere({ theme, activeModule, qubitCount, isDecohering, attemptCopy, isSidebarOpen, setIsSidebarOpen, interferenceStep, interferencePhase, isGlobalMuted = false, vanishing = false, multi = null, handoverTarget, centerOnly = false }) {
   const isLight = theme === 'light';
   const tetherRef = useRef();
   const controlsRef = useRef();
@@ -1207,7 +1207,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
       rig.scale.setScalar(!activeModule ? 0.7 : activeModule === 'multi-qubit-gates' ? (zoomed ? 1 : 0.7) : 1);
       rig.position.y = !activeModule ? -0.8 : activeModule === 'multi-qubit-gates' ? (zoomed ? -0.5 : -0.8) : activeModule === 'gates' ? -0.5 : 0;
     }
-    const solo = activeModule === 'superposition' || activeModule === 'interference' || activeModule === 'multi-qubit-gates';
+    const solo = activeModule === 'superposition' || activeModule === 'interference' || activeModule === 'multi-qubit-gates' || centerOnly;
     if (leftRig.current) leftRig.current.scale.setScalar(solo ? 0.0001 : 1);
     if (solo) setBitOn(false);
     if (rightRig.current) {
@@ -1260,12 +1260,13 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
     if (activeModule !== 'superposition' && activeModule !== 'interference') setBitOn(true);
   }, [activeModule]);
   useEffect(() => { if (mSplit) setTargetOn(true); }, [mSplit]);
+  useEffect(() => { if (centerOnly) settleCam.current = 1.6; }, [centerOnly]);
   const camReady = useRef(false);
   useEffect(() => {
     const first = !camReady.current;
     camReady.current = true;
     if (!activeModule || !controlsRef.current || !camera) return;
-    if (first && (activeModule === 'gates' || activeModule === 'multi-qubit-gates')) {
+    if (first && (activeModule === 'gates' || activeModule === 'multi-qubit-gates' || activeModule === 'interference')) {
       // Standing in for a module's scene: the camera is where that module left it.
     } else if (first) {
       camera.position.set(0, 0, 13);
@@ -1323,7 +1324,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
     }
     // Superposition is the qubit alone: the classical bit shrinks away and the qubit slides to the middle.
     {
-      const solo = activeModule === 'superposition' || activeModule === 'interference' || activeModule === 'multi-qubit-gates';
+      const solo = activeModule === 'superposition' || activeModule === 'interference' || activeModule === 'multi-qubit-gates' || centerOnly;
       const k = 1 - Math.exp(-(solo ? 4.2 : 2.5) * Math.min(delta, 0.1));
       const l = leftRig.current;
       if (l) {
@@ -1429,7 +1430,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
           enablePan={false}
           minDistance={5}
           maxDistance={20}
-          autoRotate={!activeModule}
+          autoRotate={!activeModule && !centerOnly}
           autoRotateSpeed={0.5}
         />
       )}
@@ -1592,7 +1593,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
                 onDomainUnhover={() => handleUnhoverDomain('right')} 
               />
             ) : (
-              <QubitCore position={[0, 0, 0]} scale={1.2} theme={theme} activeModule={activeModule} isDecohering={isDecohering} customVectorQuat={isMulti ? _Q_UP : undefined} showCustomVector={isMulti || undefined} emissiveColor={isMulti ? '#eab308' : undefined} fadeExtras={isMulti} onDomainHover={() => handleHoverDomain('right')} onDomainUnhover={() => handleUnhoverDomain('right')} />
+              <QubitCore position={[0, 0, 0]} scale={1.2} theme={theme} activeModule={activeModule} isDecohering={isDecohering} customVectorQuat={isMulti || centerOnly ? _Q_UP : undefined} showCustomVector={isMulti || centerOnly || undefined} emissiveColor={isMulti ? '#eab308' : undefined} fadeExtras={isMulti} onDomainHover={() => handleHoverDomain('right')} onDomainUnhover={() => handleUnhoverDomain('right')} />
             )}
           </group>
         </PresentationControls>
