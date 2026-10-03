@@ -1188,21 +1188,32 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
   const targetRig = useRef();
   const ctlLabel = useRef();
   const tgtLabel = useRef();
-  const targetX = useRef(multi === 'split' ? 2 : 0);
-  const [targetOn, setTargetOn] = useState(multi === 'split');
+  const targetX = useRef(multi === 'zoom' ? 2 : multi === 'split' ? 2.4 : 0);
+  const targetY = useRef(multi === 'zoom' ? 1.2 : 0);
+  const targetS = useRef(multi === 'zoom' ? 1 : 1.2);
+  const [targetOn, setTargetOn] = useState(multi === 'split' || multi === 'zoom');
   const isMulti = activeModule === 'multi-qubit-gates'; // the hub's scene standing in for Multi Qubit Gates
+  // The pair's poses: 'center' (one qubit, hub size), 'split' (two, hub size), 'zoom' (two, the
+  // module's size and places). Positions are in the rig's units: spheres touch at 2.4 (hub) / 2 (module).
+  const mz = isMulti && multi === 'zoom';
+  const mSplit = isMulti && (multi === 'split' || multi === 'zoom');
+  const pairX = mz ? 2 : 2.4;
   const settleCam = useRef(0);
   useLayoutEffect(() => {
     // First paint at the right size (no growth on a direct load).
     const rig = rigRef.current;
-    if (rig) { rig.scale.setScalar(!activeModule ? 0.7 : 1); rig.position.y = !activeModule ? -0.8 : (activeModule === 'gates' || activeModule === 'multi-qubit-gates') ? -0.5 : 0; }
+    const zoomed = activeModule === 'multi-qubit-gates' && multi === 'zoom';
+    if (rig) {
+      rig.scale.setScalar(!activeModule ? 0.7 : activeModule === 'multi-qubit-gates' ? (zoomed ? 1 : 0.7) : 1);
+      rig.position.y = !activeModule ? -0.8 : activeModule === 'multi-qubit-gates' ? (zoomed ? -0.5 : -0.8) : activeModule === 'gates' ? -0.5 : 0;
+    }
     const solo = activeModule === 'superposition' || activeModule === 'interference' || activeModule === 'multi-qubit-gates';
     if (leftRig.current) leftRig.current.scale.setScalar(solo ? 0.0001 : 1);
     if (solo) setBitOn(false);
     if (rightRig.current) {
-      rightRig.current.position.x = activeModule === 'multi-qubit-gates' ? (multi === 'split' ? -2 : 0) : solo ? 0 : 4.2;
-      rightRig.current.position.y = activeModule === 'multi-qubit-gates' ? 1.2 : 0;
-      rightRig.current.scale.setScalar(activeModule === 'multi-qubit-gates' ? 1 / 1.2 : 1);
+      rightRig.current.position.x = activeModule === 'multi-qubit-gates' ? (zoomed ? -2 : multi === 'split' ? -2.4 : 0) : solo ? 0 : 4.2;
+      rightRig.current.position.y = zoomed ? 1.2 : 0;
+      rightRig.current.scale.setScalar(zoomed ? 1 / 1.2 : 1);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1248,7 +1259,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
   useEffect(() => {
     if (activeModule !== 'superposition' && activeModule !== 'interference') setBitOn(true);
   }, [activeModule]);
-  useEffect(() => { if (isMulti && multi === 'split') setTargetOn(true); }, [isMulti, multi]);
+  useEffect(() => { if (mSplit) setTargetOn(true); }, [mSplit]);
   const camReady = useRef(false);
   useEffect(() => {
     const first = !camReady.current;
@@ -1303,8 +1314,8 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
     if (rigRef.current) {
       const rig = rigRef.current;
       const k = 1 - Math.exp(-(vanishing ? 7 : 2.5) * Math.min(delta, 0.1));
-      const ts = vanishing ? 0.0001 : !activeModule ? 0.7 : 1;
-      const ty = !activeModule ? -0.8 : (activeModule === 'gates' || activeModule === 'multi-qubit-gates') ? -0.5 : 0;
+      const ts = vanishing ? 0.0001 : !activeModule ? 0.7 : isMulti ? (mz ? 1 : 0.7) : 1;
+      const ty = !activeModule ? -0.8 : isMulti ? (mz ? -0.5 : -0.8) : activeModule === 'gates' ? -0.5 : 0;
       rig.scale.setScalar(rig.scale.x + (ts - rig.scale.x) * k);
       rig.position.y += (ty - rig.position.y) * k;
     }
@@ -1321,19 +1332,21 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
         if (solo && s < 0.06) setBitOn(false);
       }
       const r = rightRig.current;
-      const km = 1 - Math.exp(-2.6 * Math.min(delta, 0.1)); // the split / merge glide
+      const km = 1 - Math.exp(-2.6 * Math.min(delta, 0.1)); // the move / split / zoom glide
       if (r) {
-        const goalX = isMulti ? (multi === 'split' ? -2 : 0) : solo ? 0 : 4.2;
+        const goalX = isMulti ? (mSplit ? -pairX : 0) : solo ? 0 : 4.2;
         r.position.x += (goalX - r.position.x) * (isMulti ? km : k);
-        r.position.y += ((isMulti ? 1.2 : 0) - r.position.y) * km;
-        r.scale.setScalar(r.scale.x + ((isMulti ? 1 / 1.2 : 1) - r.scale.x) * km);
+        r.position.y += ((mz ? 1.2 : 0) - r.position.y) * km;
+        r.scale.setScalar(r.scale.x + ((mz ? 1 / 1.2 : 1) - r.scale.x) * km);
       }
       // The second qubit of the pair splits off the first and glides to its place.
-      targetX.current += ((isMulti && multi === 'split' ? 2 : 0) - targetX.current) * km;
-      if (targetRig.current) targetRig.current.position.set(targetX.current, 1.2, 0);
-      if (r && ctlLabel.current) ctlLabel.current.position.set(r.position.x, r.position.y, 0);
-      if (tgtLabel.current) tgtLabel.current.position.set(targetX.current, 1.2, 0);
-      if (targetOn && !(isMulti && multi === 'split') && targetX.current < 0.04) setTargetOn(false);
+      targetX.current += ((mSplit ? pairX : 0) - targetX.current) * km;
+      targetY.current += ((mz ? 1.2 : 0) - targetY.current) * km;
+      targetS.current += ((mz ? 1 : 1.2) - targetS.current) * km;
+      if (targetRig.current) { targetRig.current.position.set(targetX.current, targetY.current, 0); targetRig.current.scale.setScalar(targetS.current); }
+      if (r && ctlLabel.current) { ctlLabel.current.position.set(r.position.x, r.position.y, 0); ctlLabel.current.scale.setScalar(r.scale.x * 1.2); }
+      if (tgtLabel.current) { tgtLabel.current.position.set(targetX.current, targetY.current, 0); tgtLabel.current.scale.setScalar(targetS.current); }
+      if (targetOn && !mSplit && targetX.current < 0.04) setTargetOn(false);
     }
     // The hub's slow orbit leaves the camera anywhere; ease it back to the module's view.
     if (settleCam.current > 0 && controlsRef.current) {
@@ -1480,7 +1493,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
           </group>
           {targetOn && (
             <>
-              <group ref={targetRig} position={[targetX.current, 1.2, 0]}>
+              <group ref={targetRig} position={[targetX.current, targetY.current, 0]} scale={targetS.current}>
                 <QubitCore
                   activeModule="multi-qubit-gates"
                   theme={theme}
@@ -1492,9 +1505,9 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
                   fadeExtras
                 />
               </group>
-              <group ref={tgtLabel} position={[targetX.current, 1.2, 0]}>
+              <group ref={tgtLabel} position={[targetX.current, targetY.current, 0]} scale={targetS.current}>
                 <Html position={[0, -2.6, 0]} center>
-                  <div className="mq-extra" style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '15px', textShadow: '0 0 10px #38bdf880', whiteSpace: 'nowrap', letterSpacing: '1px', opacity: multi === 'split' ? 1 : 0, transition: 'opacity 0.35s' }}>Target</div>
+                  <div className="mq-extra" style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '15px', textShadow: '0 0 10px #38bdf880', whiteSpace: 'nowrap', letterSpacing: '1px', opacity: mSplit ? 1 : 0, transition: 'opacity 0.35s' }}>Target</div>
                 </Html>
               </group>
             </>
