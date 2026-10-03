@@ -169,7 +169,7 @@ export function BlochSphereUnit({ posArr, color, label, isPure, noiseLevel, acti
       _quat.setFromUnitVectors(_up, _target);
       vectorGrpRef.current.quaternion.copy(_quat);
       vectorGrpRef.current.scale.setScalar(lenRef.current * (0.75 + 0.25 * arrowGrow.p));
-      handoff.decQ[posKey].copy(_quat);
+      if (!dirOverride) handoff.decQ[posKey].copy(_quat); // (the hub's copy, holding the arrow still, must not overwrite the module's)
     }
 
     if (shellRef.current && !isPure) {
