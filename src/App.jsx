@@ -1333,7 +1333,8 @@ function App() {
   // the hub's, right after a module closes (it then eases back to the middle).
   const [InterferenceLoaded, setInterferenceLoaded] = useState(null); // Quantum Interference, once its code is in
   const [EntanglementLoaded, setEntanglementLoaded] = useState(null); // Entanglement, once its code is in (same reason)
-  const [hubEnter, setHubEnter] = useState(false); // the hub's text slides back in (after a plain close)
+  const [NoCloningLoaded, setNoCloningLoaded] = useState(null); // No-Cloning, once its code is in
+  const [ncFromHub, setNcFromHub] = useState(false); // No-Cloning opens from the hub (its models bounce in after the hub's have gone)
   const [ExponentialLoaded, setExponentialLoaded] = useState(null);   // Exponential State Space, likewise
   const [expFromHub, setExpFromHub] = useState(false); // Exponential State Space opens from the hub's lone qubit (its ring draws on)
   const [interferenceFromHub, setInterferenceFromHub] = useState(false); // Quantum Interference opens from the hub's lone qubit
@@ -1520,21 +1521,43 @@ function App() {
       }, 700);
       return () => { clearTimeout(t); if (!done) { setStagePhase('idle'); setJellyState(''); } };
     }
-    if (stageId === 'nocloning' && activeModuleId === null) {
-      // No-Cloning -> hub (the opening in reverse): its panels fade out, its scene dissolves into
-      // the hub's, and the hub's text slides back in.
+    if (stageId === null && activeModuleId === 'nocloning') {
+      // Hub -> No-Cloning: the hub's models and text vanish completely first; then the module's
+      // scene comes in empty, its models bounce in, and its cards and buttons pop.
       let done = false;
-      setStagePhase('closing');
-      setJellyState('fade');
+      setStagePhase('vanish');
+      fadeOutSharedCanvas(520);
+      MODULE_LOADERS.nocloning().then((mod) => setNoCloningLoaded(() => mod.default));
       const t = setTimeout(() => {
         done = true;
-        setJellyState('');
-        setStagePhase('idle');
-        setHubEnter(true);
+        skipNextSnapshot();
+        setNcFromHub(true);
+        setJellyState('wait');
+        setStagePhase('bounce');
+        setStageSeq((n) => n + 1);
+        setStageId(activeModuleId);
+      }, 650);
+      return () => { clearTimeout(t); if (!done) { setStagePhase('idle'); showSharedCanvas(); } };
+    }
+    if (stageId === 'nocloning' && activeModuleId === null) {
+      // No-Cloning -> hub (the opening in reverse): cards spring out, the models bounce back down
+      // and shrink away, and then the hub's scene comes in and its text pops.
+      let done = false;
+      setStagePhase('closing');
+      setJellyState('out');
+      const go = () => {
+        if (done) return;
+        done = true;
+        skipNextSnapshot();
+        setNcFromHub(false);
+        setJellyState('wait');
+        setStagePhase('enter');
+        setStageSeq((n) => n + 1);
         setStageId(null);
-        setTimeout(() => setHubEnter(false), 1500);
-      }, 550);
-      return () => { clearTimeout(t); if (!done) { setStagePhase('idle'); setJellyState(''); } };
+      };
+      window.addEventListener('qass-nc-gone', go);
+      const tMax = setTimeout(go, 4500); // never hang
+      return () => { clearTimeout(tMax); window.removeEventListener('qass-nc-gone', go); if (!done) { setStagePhase('idle'); setJellyState(''); } };
     }
     if (stageId !== null && activeModuleId === null) {
       // Closing, any module: the opening in reverse. Its cards spring out; then
@@ -1568,6 +1591,7 @@ function App() {
     return undefined;
   }, [activeModuleId, stageId]);
   useEffect(() => { if (stageId !== 'exponential') setExpFromHub(false); }, [stageId]);
+  useEffect(() => { if (stageId !== 'nocloning') setNcFromHub(false); }, [stageId]);
   // The pop starts once the new scene is in: after it has faded in, or after the morph.
   useEffect(() => {
     if (stagePhase === 'enter') {
@@ -1579,6 +1603,13 @@ function App() {
     if (stagePhase === 'morph') {
       const t = setTimeout(() => setJellyState('run'), 1000);
       return () => clearTimeout(t);
+    }
+    if (stagePhase === 'bounce') {
+      // Cards pop once the models have bounced in (the module starts them when its scene shows).
+      let t2 = 0;
+      const off = onSharedCanvasRevealed(() => { off(); t2 = setTimeout(() => setJellyState('run'), 1400); });
+      const t3 = setTimeout(() => setJellyState('run'), 6000); // never leave the cards hidden
+      return () => { off(); clearTimeout(t2); clearTimeout(t3); };
     }
     if (stagePhase === 'ring') {
       // The module's ring draws on first; its cards pop as it closes (it says when).
@@ -2526,7 +2557,9 @@ function App() {
               ? <ExponentialLoaded theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={expFromHub} closing={stagePhase === 'closing'} />
               : <ExponentialModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={expFromHub} closing={stagePhase === 'closing'} />)
           ) : stageId === 'nocloning' ? (
-            <NoCloningModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} />
+            (NoCloningLoaded
+              ? <NoCloningLoaded theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={ncFromHub} closing={stagePhase === 'closing'} />
+              : <NoCloningModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={ncFromHub} closing={stagePhase === 'closing'} />)
           ) : stageId === 'decoherence' ? (
             <DecoherenceModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} onNavigateToModule={(moduleId) => setActiveModuleId(moduleId)} />
           ) : stageId === 'error-correction' ? (
@@ -2559,7 +2592,7 @@ function App() {
           </ModuleErrorBoundary>
 
           {hubShown && (
-            <div style={uiBoundsStyle} className={`idle-hud ${activeModuleId ? 'idle-hud-leaving' : ''} ${hubEnter ? 'idle-hud-enter' : ''}`}>
+            <div style={uiBoundsStyle} className={`idle-hud ${activeModuleId ? 'idle-hud-leaving' : ''}`}>
               {/* Welcoming Headline + Call-to-Action */}
               <div style={{
                 position: 'absolute', top: '130px', left: '0', right: '0',
