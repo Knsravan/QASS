@@ -1264,7 +1264,6 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
     if (activeModule !== 'superposition' && activeModule !== 'interference') setBitOn(true);
   }, [activeModule]);
   useEffect(() => { if (mSplit) setTargetOn(true); }, [mSplit]);
-  useEffect(() => { if (centerOnly) settleCam.current = 1.6; }, [centerOnly]);
   const camReady = useRef(false);
   useEffect(() => {
     const first = !camReady.current;
@@ -1317,6 +1316,15 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
   useFrame((state, delta) => {
     const time = state.clock.getElapsedTime();
 
+    // The lone qubit's depth at the moment it starts coming to the middle (before it has
+    // moved at all this frame): the size it will hold is measured against this.
+    if (centerOnly && centerD0.current === null && rightRig.current) {
+      rightRig.current.getWorldPosition(_tmpV);
+      state.camera.updateMatrixWorld();
+      _tmpM.copy(state.camera.matrixWorld).invert();
+      centerD0.current = -_tmpV.applyMatrix4(_tmpM).z;
+    }
+
     // ── Hub <-> module: the two bits stay and grow to the module's size ──
     if (rigRef.current) {
       const rig = rigRef.current;
@@ -1329,7 +1337,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
     // Superposition is the qubit alone: the classical bit shrinks away and the qubit slides to the middle.
     {
       const solo = activeModule === 'superposition' || activeModule === 'interference' || activeModule === 'multi-qubit-gates' || centerOnly;
-      const k = 1 - Math.exp(-(solo ? 4.2 : 2.5) * Math.min(delta, 0.1));
+      const k = 1 - Math.exp(-(centerOnly ? 7 : solo ? 4.2 : 2.5) * Math.min(delta, 0.1));
       const l = leftRig.current;
       if (l) {
         const s = Math.max(0.0001, l.scale.x + ((solo ? 0 : 1) - l.scale.x) * k);
@@ -1377,7 +1385,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
       _tmpM.copy(state.camera.matrixWorld).invert();
       const d = -_tmpV.applyMatrix4(_tmpM).z; // depth along the view axis
       if (centerD0.current === null) centerD0.current = d;
-      const sc = Math.min(1.3, Math.max(0.75, d / centerD0.current));
+      const sc = Math.min(2, Math.max(0.5, d / centerD0.current));
       r.scale.setScalar(sc);
       handoff.qubitScale = sc;
     }
