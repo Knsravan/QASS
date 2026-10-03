@@ -6047,3 +6047,11 @@ div:has(> canvas) {
    (and out again on the way back). */
 .mq-extra { animation: moduleFade 0.9s ease-out 0.1s backwards; }
 .canvas-container[data-jelly-state="out"] .mq-extra { opacity: 0 !important; transition: opacity 0.45s ease; animation: none !important; }
+
+/* A module that opens plainly (a dissolve, no pop) closes plainly: its panels fade out, the scene
+   dissolves into the hub's, and the hub's text slides back in (the reverse of how it left). */
+[data-jelly-state="fade"] [data-module-ui] { opacity: 0 !important; transition: opacity 0.5s ease !important; }
+[data-jelly-state="fade"] [data-module-ui] * { pointer-events: none !important; }
+.idle-hud-enter { animation: hubIn 0.65s cubic-bezier(0.4, 0, 0.2, 1) 0.3s backwards; }
+@keyframes hubIn { from { opacity: 0; transform: translateY(-14px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .idle-hud-enter { animation: none; } }

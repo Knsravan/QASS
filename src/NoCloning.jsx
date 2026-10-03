@@ -889,7 +889,7 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted })
       {/* ========================================================== */}
       {/* 2D HTML INTERACTIVE STORY POP-UP TOOLTIPS */}
       {/* ========================================================== */}
-      <div style={uiBoundsStyle}>
+      <div data-module-ui style={uiBoundsStyle}>
         {/* Classical Physics & Quantum Physics Section Headers (Smooth fade-out when clicking "Let's see how it works", reappears on Restart) */}
         <div style={{
           position: 'absolute',
