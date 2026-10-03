@@ -9,5 +9,7 @@ export const handoff = {
   // the hub's pair starts a close from there.
   entPairX: 4.6,
   // Decoherence's two arrows (pure, noisy) as the scene last drew them; the hub's pair takes them over on a close.
+  // Where the hub's pair held its arrows when Decoherence took over (the module starts them there).
+  decStart: { pure: new THREE.Vector3(1, 0, 0), noisy: new THREE.Vector3(1, 0, 0) },
   decQ: { pure: new THREE.Quaternion(), noisy: new THREE.Quaternion() },
 };

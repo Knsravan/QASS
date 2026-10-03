@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, Suspense, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
 import { Bloom } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import gsap from 'gsap';
@@ -14,34 +13,14 @@ import { SCENE_GL } from './sceneGl';
 import GlassSlider from './GlassSlider';
 import { QualityComposer } from './QualityScene';
 import { SharedCanvas } from './SharedCanvas';
+
+
 import { handoff } from './handoff';
-
-
-// ============================================================
-// COLORS
-// ============================================================
-const CT = '#14b8a6'; // Teal - Pure
-const CA = '#f59e0b'; // Amber - Noisy / Thermal
-const CR = '#ef4444'; // Red - Bit Flip / Mixed
-const CP = '#a855f7'; // Purple - Phase Flip
-const CB = '#38bdf8'; // Blue - Cryogenic / Cold
-const CG = '#22c55e'; // Green - Pure Purity
-const CW = '#f8fafc'; // White
+import { CT, CA, CR, CP, CB, CG, CW, SPHERE_R, MODEL_Y, PURE_POS, NOISY_POS, arrowGrow, BlochSphereUnit } from './DecoSphereUnit';
 
 // How visible the noise particles are. Opened from the hub they start unseen and fade in
 // with the cards (the App announces `qass-jelly-run`), and fade out with them on the way back.
 const particleFade = { p: 1, target: 1 };
-// The arrows' reach: opened from the hub they start at the hub qubit's shorter arrow and grow to full as the cards pop.
-const arrowGrow = { p: 1, target: 1 };
-
-// ============================================================
-// CONSTANTS
-// ============================================================
-const SPHERE_R  = 2.75;
-const MODEL_Y   = 1.65;
-const PURE_POS  = [-5.8, MODEL_Y, 0];
-const NOISY_POS = [ 5.8, MODEL_Y, 0];
-const GHOST_N   = 12;
 
 const DECO_STEPS = ['intro', 'what_is_decoherence', 'density_matrix', 'noise_types', 'coherence_time', 'lindblad', 'why_hard'];
 
@@ -101,255 +80,6 @@ function DroneCameraController({ step, audio }) {
   });
 
   return null;
-}
-
-// ============================================================
-// 3D EXPONENTIAL DECAY RIBBON (Step 5 Coherence Trail)
-// ============================================================
-function DecayRibbon3D({ isVisible, noiseLevel }) {
-  const lineRef = useRef();
-  const points = useMemo(() => {
-    const pts = [];
-    const N = 80;
-    for (let i = 0; i <= N; i++) {
-      const u = i / N;
-      const angle = u * Math.PI * 4;
-      const radius = SPHERE_R * Math.exp(-u * 2.2);
-      const x = Math.cos(angle) * radius;
-      const z = Math.sin(angle) * radius;
-      const y = (1.0 - u * 2.0) * 0.6;
-      pts.push(new THREE.Vector3(x, y, z));
-    }
-    return pts;
-  }, []);
-
-  const geometry = useMemo(() => {
-    const geom = new THREE.BufferGeometry().setFromPoints(points);
-    return geom;
-  }, [points]);
-
-  useFrame(({ clock }) => {
-    if (!lineRef.current) return;
-    const t = clock.getElapsedTime();
-    if (isVisible) {
-      lineRef.current.rotation.y = t * 0.35;
-      lineRef.current.material.opacity = 0.45 + Math.sin(t * 2.0) * 0.15;
-    } else {
-      lineRef.current.material.opacity = 0;
-    }
-  });
-
-  return (
-    <line ref={lineRef} geometry={geometry} position={[0, 0, 0]}>
-      <lineBasicMaterial color={CT} transparent opacity={0} linewidth={2} />
-    </line>
-  );
-}
-
-// ============================================================
-// BLOCH SPHERE UNIT
-// ============================================================
-function BlochSphereUnit({ posArr, color, label, isPure, noiseLevel, activeNoise, noiseBurstId, entranceRef, posKey, step, tempK }) {
-  const outerRef     = useRef();
-  const shellRef     = useRef();
-  const vectorGrpRef = useRef();
-  const ghostRefs    = useRef([]);
-
-  const phiRef   = useRef(Math.PI / 2);
-  const thetaRef = useRef(isPure ? 0.2 : 0.8);
-  const lenRef   = useRef(SPHERE_R);
-
-  const activeNoiseRef = useRef(null);
-  const noiseTimerRef  = useRef(0);
-
-  const _up     = useMemo(() => new THREE.Vector3(0, 1, 0), []);
-  const _target = useMemo(() => new THREE.Vector3(),         []);
-  const _quat   = useMemo(() => new THREE.Quaternion(),      []);
-
-  // Cryogenic color transition when temperature drops to 15 mK in Step 7
-  const isCryo = !isPure && (tempK != null && tempK < 1.0);
-  const activeUnitColor = isCryo ? CB : color;
-
-  const ghostOffsets = useMemo(() =>
-    Array.from({ length: GHOST_N }, (_, i) => ({
-      ao: (i / GHOST_N) * Math.PI * 2,
-      rs: 0.72 + (i % 3) * 0.12,
-      ph: (i * 1.618) % (Math.PI * 2),
-    })), []);
-
-  useEffect(() => {
-    if (!isPure && activeNoise) {
-      activeNoiseRef.current = activeNoise;
-      noiseTimerRef.current  = 0;
-    }
-  }, [activeNoise, noiseBurstId, isPure]);
-
-  useFrame(({ clock }, delta) => {
-    const t  = clock.getElapsedTime();
-    const nl = noiseLevel;
-
-    if (outerRef.current) {
-      const sc = Math.max(0.0001, entranceRef.current[posKey] != null ? entranceRef.current[posKey] : 0);
-      outerRef.current.scale.setScalar(sc);
-      outerRef.current.position.x = posArr[0];
-      outerRef.current.position.y = (posArr[1] || MODEL_Y) + (entranceRef.current.yRise != null ? entranceRef.current.yRise : 0);
-      outerRef.current.position.z = posArr[2] || 0;
-    }
-
-    if (isPure) {
-      thetaRef.current += delta * 0.38;
-      phiRef.current = Math.PI / 2;
-    } else {
-      thetaRef.current += delta * (0.38 + Math.sin(t * 1.8) * nl * 0.55);
-      phiRef.current    = Math.PI / 2 + Math.sin(t * 1.6) * nl * 0.65 + Math.cos(t * 2.2) * nl * 0.35;
-    }
-
-    let phiExtra = 0, thetaExtra = 0;
-    if (activeNoiseRef.current && !isPure) {
-      const tn    = noiseTimerRef.current;
-      const decay = Math.exp(-tn * 1.2);
-      if (activeNoiseRef.current === 'bitflip') {
-        phiExtra = Math.sin(tn * 10) * decay * Math.PI * 0.95;
-      }
-      if (activeNoiseRef.current === 'phaseflip') {
-        thetaExtra = Math.sin(tn * 12) * decay * Math.PI * 1.25;
-      }
-      if (activeNoiseRef.current === 'damping') {
-        phiExtra = -Math.min(tn * 1.0, 1.4) * decay;
-      }
-      noiseTimerRef.current += delta;
-      if (noiseTimerRef.current > 3.2) activeNoiseRef.current = null;
-    }
-
-    const targetLen = SPHERE_R * (1.0 - nl * 0.48);
-    lenRef.current += (targetLen - lenRef.current) * 0.08;
-
-    if (vectorGrpRef.current) {
-      const fP = phiRef.current + phiExtra;
-      const fT = thetaRef.current + thetaExtra;
-      _target.set(Math.sin(fP) * Math.cos(fT), Math.cos(fP), Math.sin(fP) * Math.sin(fT));
-      _quat.setFromUnitVectors(_up, _target);
-      vectorGrpRef.current.quaternion.copy(_quat);
-      vectorGrpRef.current.scale.setScalar(lenRef.current * (0.75 + 0.25 * arrowGrow.p));
-      handoff.decQ[posKey].copy(_quat);
-    }
-
-    if (shellRef.current && !isPure) {
-      const activePulse = activeNoiseRef.current ? 0.35 : 0.0;
-      shellRef.current.material.opacity = 0.12 + Math.sin(t * (3.0 + nl * 8.0)) * nl * 0.22 + activePulse;
-    }
-
-    if (!isPure && nl > 0.04) {
-      const fP = phiRef.current + phiExtra;
-      const fT = thetaRef.current + thetaExtra;
-      ghostRefs.current.forEach((ref, i) => {
-        if (!ref) return;
-        const { ao, rs, ph } = ghostOffsets[i];
-        const spr = nl * 0.75 + (activeNoiseRef.current ? 0.35 : 0);
-        const gP  = fP + Math.sin(t * 1.2  + ph) * spr;
-        const gT  = fT + Math.cos(t * 0.95 + ph * 1.4 + ao) * spr;
-        const gL  = lenRef.current * rs;
-        ref.position.set(Math.sin(gP) * Math.cos(gT) * gL, Math.cos(gP) * gL, Math.sin(gP) * Math.sin(gT) * gL);
-        if (ref.material) ref.material.opacity = nl * 0.42 * rs + (activeNoiseRef.current ? 0.3 : 0);
-      });
-    } else if (!isPure) {
-      ghostRefs.current.forEach(r => { if (r && r.material) r.material.opacity = 0; });
-    }
-  });
-
-  return (
-    <group ref={outerRef}>
-      {/* Outer Wireframe Sphere */}
-      <mesh ref={shellRef}>
-        <sphereGeometry args={[SPHERE_R, 30, 22]} />
-        <meshBasicMaterial color={activeUnitColor} wireframe transparent opacity={0.16} depthWrite={false} />
-      </mesh>
-
-      {/* Equatorial Ring */}
-      <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[SPHERE_R, 0.016, 12, 90]} />
-        <meshBasicMaterial color={activeUnitColor} transparent opacity={0.35} depthWrite={false} />
-      </mesh>
-
-      {/* Latitudinal Rings */}
-      <mesh position={[0, SPHERE_R * 0.5, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[SPHERE_R * 0.866, 0.008, 8, 60]} />
-        <meshBasicMaterial color={activeUnitColor} transparent opacity={0.15} depthWrite={false} />
-      </mesh>
-      <mesh position={[0, -SPHERE_R * 0.5, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[SPHERE_R * 0.866, 0.008, 8, 60]} />
-        <meshBasicMaterial color={activeUnitColor} transparent opacity={0.15} depthWrite={false} />
-      </mesh>
-
-      {/* Vertical Meridian Ring */}
-      <mesh rotation={[0, Math.PI / 2, 0]}>
-        <torusGeometry args={[SPHERE_R, 0.010, 8, 80]} />
-        <meshBasicMaterial color={activeUnitColor} transparent opacity={0.18} depthWrite={false} />
-      </mesh>
-
-      {/* Z Axis (Green, Vertical) */}
-      <mesh>
-        <cylinderGeometry args={[0.016, 0.016, SPHERE_R * 2.25, 8]} />
-        <meshBasicMaterial color="#22c55e" transparent opacity={0.32} />
-      </mesh>
-
-      {/* X Axis (Red, Horizontal) */}
-      <mesh rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.016, 0.016, SPHERE_R * 2.25, 8]} />
-        <meshBasicMaterial color="#ef4444" transparent opacity={0.32} />
-      </mesh>
-
-      {/* Top Status Chip (Above 3D Model) */}
-      <Html position={[0, SPHERE_R + 0.88, 0]} center style={{ pointerEvents: 'none' }}>
-        <div data-jelly style={{ '--j': 1,
-          background: activeUnitColor + '1a', border: '1.5px solid ' + activeUnitColor + '55',
-          borderRadius: '16px', padding: '5px 16px',
-          fontSize: '11px', fontWeight: '800', color: activeUnitColor,
-          fontFamily: "'Inter', sans-serif", letterSpacing: '1.8px',
-          whiteSpace: 'nowrap', textTransform: 'uppercase',
-          backdropFilter: 'blur(10px)',
-          boxShadow: '0 4px 20px ' + activeUnitColor + '22',
-          transition: 'all 0.4s ease',
-        }}>
-          {isCryo ? 'CRYOGENIC QUBIT (15 mK)' : label}
-        </div>
-      </Html>
-
-      {/* |0⟩ Pole Label */}
-      <Html position={[0, SPHERE_R + 0.32, 0]} center style={{ pointerEvents: 'none' }}>
-        <span data-jelly style={{ '--j': 1, display: 'inline-block', color: '#64748b', fontSize: '11px', fontWeight: '700', fontFamily: 'Inter, sans-serif' }}>|0⟩</span>
-      </Html>
-      {/* |1⟩ Pole Label */}
-      <Html position={[0, -SPHERE_R - 0.38, 0]} center style={{ pointerEvents: 'none' }}>
-        <span data-jelly style={{ '--j': 1, display: 'inline-block', color: '#64748b', fontSize: '11px', fontWeight: '700', fontFamily: 'Inter, sans-serif' }}>|1⟩</span>
-      </Html>
-
-      {/* 3D Coherence Decay Ribbon (Step 5 on Noisy Qubit) */}
-      {!isPure && <DecayRibbon3D isVisible={step === 'coherence_time'} noiseLevel={noiseLevel} />}
-
-      {/* State Vector Arrow (Shaft + Pointed Cone Arrowhead) */}
-      <group ref={vectorGrpRef}>
-        {/* Vector Shaft */}
-        <mesh position={[0, 0.44, 0]}>
-          <cylinderGeometry args={[0.034, 0.034, 0.88, 12]} />
-          <meshStandardMaterial color={activeUnitColor} emissive={activeUnitColor} emissiveIntensity={0.85} />
-        </mesh>
-        {/* Pointed Arrowhead */}
-        <mesh position={[0, 0.98, 0]}>
-          <coneGeometry args={[0.15, 0.34, 16]} />
-          <meshStandardMaterial color={activeUnitColor} emissive={activeUnitColor} emissiveIntensity={2.2} />
-        </mesh>
-      </group>
-
-      {/* Ghost Tips (Noisy Sphere Only) */}
-      {!isPure && ghostOffsets.map((_, i) => (
-        <mesh key={i} ref={el => { ghostRefs.current[i] = el; }}>
-          <coneGeometry args={[0.10, 0.24, 10]} />
-          <meshStandardMaterial color={CA} emissive={CA} emissiveIntensity={1.8} transparent opacity={0} depthWrite={false} />
-        </mesh>
-      ))}
-    </group>
-  );
 }
 
 // ============================================================
@@ -546,7 +276,7 @@ function ParticleFader() {
   return null;
 }
 
-function DecoherenceScene({ step, noiseLevel, activeNoise, noiseBurstId, entranceRef, audio, tempK }) {
+function DecoherenceScene({ step, noiseLevel, activeNoise, noiseBurstId, entranceRef, audio, tempK, startDirs }) {
   return (
     <>
       <ParticleFader />
@@ -555,8 +285,8 @@ function DecoherenceScene({ step, noiseLevel, activeNoise, noiseBurstId, entranc
       <pointLight position={[-6, MODEL_Y + 5, 7]} intensity={0.95} color={CT} />
       <pointLight position={[ 6, MODEL_Y + 5, 7]} intensity={0.95} color={tempK < 1 ? CB : CA} />
       <pointLight position={[ 0, MODEL_Y + 7, 9]} intensity={0.38} color="#ffffff" />
-      <BlochSphereUnit posArr={PURE_POS}  color={CT} label="Pure Qubit"  isPure={true}  noiseLevel={0}          activeNoise={null}        entranceRef={entranceRef} posKey="pure"  step={step} tempK={tempK} />
-      <BlochSphereUnit posArr={NOISY_POS} color={CA} label="Noisy Qubit" isPure={false} noiseLevel={noiseLevel} activeNoise={activeNoise} noiseBurstId={noiseBurstId} entranceRef={entranceRef} posKey="noisy" step={step} tempK={tempK} />
+      <BlochSphereUnit posArr={PURE_POS}  color={CT} label="Pure Qubit"  isPure={true}  noiseLevel={0}          activeNoise={null}        entranceRef={entranceRef} posKey="pure"  step={step} tempK={tempK} startDir={startDirs?.pure} />
+      <BlochSphereUnit posArr={NOISY_POS} color={CA} label="Noisy Qubit" isPure={false} noiseLevel={noiseLevel} activeNoise={activeNoise} noiseBurstId={noiseBurstId} entranceRef={entranceRef} posKey="noisy" step={step} tempK={tempK} startDir={startDirs?.noisy} />
       <NoiseParticleField noiseLevel={noiseLevel} activeNoise={activeNoise} tempK={tempK} />
       <QualityComposer>
         <Bloom intensity={0.65} luminanceThreshold={0.16} luminanceSmoothing={0.88} />
@@ -736,13 +466,20 @@ export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted,
   // Opened from the hub, the two qubits arrive already in place (the hub's pair zoomed into them).
   const entranceAnim        = useRef(fromHub ? { pure: 1, noisy: 1, yRise: 0 } : { pure: 0, noisy: 0, yRise: -2.5 });
   const fadeInit            = useRef(false);
-  if (!fadeInit.current) { fadeInit.current = true; particleFade.p = particleFade.target = arrowGrow.p = arrowGrow.target = fromHub ? 0 : 1; }
+  // (Opened from the hub, the arrows start where the hub's pair held them.)
+  const startDirs = useRef(null);
+  if (!fadeInit.current) {
+    fadeInit.current = true;
+    particleFade.p = particleFade.target = fromHub ? 0 : 1;
+    arrowGrow.p = arrowGrow.target = 1;
+    if (fromHub) startDirs.current = { pure: handoff.decStart.pure.clone(), noisy: handoff.decStart.noisy.clone() };
+  }
   useEffect(() => {
-    const run = () => { particleFade.target = 1; arrowGrow.target = 1; };
+    const run = () => { particleFade.target = 1; };
     const out = () => { particleFade.target = 0; arrowGrow.target = 0; };
     window.addEventListener('qass-jelly-run', run);
     window.addEventListener('qass-jelly-out', out);
-    return () => { window.removeEventListener('qass-jelly-run', run); window.removeEventListener('qass-jelly-out', out); particleFade.p = particleFade.target = arrowGrow.p = arrowGrow.target = 1; };
+    return () => { window.removeEventListener('qass-jelly-run', run); window.removeEventListener('qass-jelly-out', out); particleFade.p = particleFade.target = 1; };
   }, []);
   const noiseTimerRef       = useRef(null);
   const bloomTimerRef       = useRef(null);
@@ -945,7 +682,7 @@ export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted,
       >
         <Suspense fallback={null}>
           <CameraShifter isSidebarOpen={isSidebarOpen} />
-          <DecoherenceScene step={step} noiseLevel={noiseLevel} activeNoise={activeNoise} noiseBurstId={noiseBurstId} entranceRef={entranceAnim} audio={audio} tempK={tempK} />
+          <DecoherenceScene step={step} noiseLevel={noiseLevel} activeNoise={activeNoise} noiseBurstId={noiseBurstId} entranceRef={entranceAnim} audio={audio} tempK={tempK} startDirs={startDirs.current} />
         </Suspense>
       </SharedCanvas>
 
