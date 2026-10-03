@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef } from 'react';
 import * as THREE from 'three';
 import gsap from 'gsap';
+import { handoff } from './handoff';
 
 export default function useInterferenceCinematic({ stage, subStage, camera, sceneRefs, audio, fromHub = false }) {
   const lookTarget = useRef(new THREE.Vector3(0, 0, 0));
@@ -41,7 +42,9 @@ export default function useInterferenceCinematic({ stage, subStage, camera, scen
       onUpdate: () => camera.lookAt(lookTarget.current)
     });
     if (intro) {
-      intro.scale.setScalar(0.7);
+      // 0.7 (the hub's size) times how much bigger or smaller the hub's lone qubit was holding itself.
+      intro.scale.setScalar(0.7 * handoff.qubitScale);
+      handoff.qubitScale = 1;
       intro.position.y = -0.8;
       tl.to(intro.scale, { x: 1, y: 1, z: 1, duration: 2.5, ease: 'power2.inOut' }, 0);
       tl.to(intro.position, { y: 0, duration: 2.5, ease: 'power2.inOut' }, 0);
