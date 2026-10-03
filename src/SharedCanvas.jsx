@@ -4,6 +4,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { QualityCanvas, useQuality } from './QualityScene';
 import { SCENE_GL } from './sceneGl';
 import gsap from 'gsap';
+import * as THREE from 'three';
 import { glassHold } from './glassGL';
 
 /*
@@ -174,13 +175,24 @@ function Intro() {
       if (controls) gsap.killTweensOf(controls.target);
       const t = { k: 0 };
       const p0 = cam.position.clone();
-      const t0 = controls ? controls.target.clone() : null;
+      // Without orbit controls the scene aims the camera itself: take the point it is
+      // looking at now (along its view direction, at about the distance to the new aim)
+      // and glide that to the new target, so the view eases instead of jumping.
+      let t0 = controls ? controls.target.clone() : null;
+      if (!controls) {
+        const dir = new THREE.Vector3();
+        cam.getWorldDirection(dir);
+        t0 = p0.clone().addScaledVector(dir, p0.distanceTo(new THREE.Vector3(target[0], target[1], target[2])));
+      }
       gsap.to(t, {
         k: 1, duration: ms / 1000, ease: 'power2.inOut',
         onUpdate: () => {
           cam.position.set(p0.x + (pos[0] - p0.x) * t.k, p0.y + (pos[1] - p0.y) * t.k, p0.z + (pos[2] - p0.z) * t.k);
-          if (controls && t0) { controls.target.set(t0.x + (target[0] - t0.x) * t.k, t0.y + (target[1] - t0.y) * t.k, t0.z + (target[2] - t0.z) * t.k); controls.update(); }
-          else cam.lookAt(target[0], target[1], target[2]);
+          const lx = t0.x + (target[0] - t0.x) * t.k;
+          const ly = t0.y + (target[1] - t0.y) * t.k;
+          const lz = t0.z + (target[2] - t0.z) * t.k;
+          if (controls) { controls.target.set(lx, ly, lz); controls.update(); }
+          else cam.lookAt(lx, ly, lz);
         },
       });
     };

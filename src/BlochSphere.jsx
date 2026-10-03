@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect, useLayoutEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Html, PresentationControls } from '@react-three/drei';
 import { useSpring, a } from '@react-spring/three';
+import { handoff } from './handoff';
 import * as THREE from 'three';
 import { Bloom } from '@react-three/postprocessing';
 import { BlockMath, InlineMath } from 'react-katex';
@@ -146,6 +147,8 @@ const _CAM_TARGETS_BS = [
 ];
 const _DEFAULT_CAM_BS = new THREE.Vector3(0, 0, 13);
 const _tmpGoal = new THREE.Color();
+const _tmpV = new THREE.Vector3();
+const _tmpM = new THREE.Matrix4();
 const _Q_UP = new THREE.Quaternion(); // |0>: the arrow straight up
 const _ORIGIN_BS = new THREE.Vector3(0, 0, 0);
 const _tempColor1_BS = new THREE.Color();
@@ -1199,6 +1202,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
   const mSplit = isMulti && (multi === 'split' || multi === 'zoom');
   const pairX = mz ? 2 : 2.4;
   const settleCam = useRef(0);
+  const centerD0 = useRef(null);
   useLayoutEffect(() => {
     // First paint at the right size (no growth on a direct load).
     const rig = rigRef.current;
@@ -1350,6 +1354,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
       if (r && ctlLabel.current) { ctlLabel.current.position.set(r.position.x, r.position.y, 0); ctlLabel.current.scale.setScalar(r.scale.x * 1.2); }
       if (tgtLabel.current) { tgtLabel.current.position.set(targetX.current, targetY.current, 0); tgtLabel.current.scale.setScalar(targetS.current); }
       if (targetOn && !mSplit && targetX.current < 0.04) setTargetOn(false);
+
     }
     // The hub's slow orbit leaves the camera anywhere; ease it back to the module's view.
     if (settleCam.current > 0 && controlsRef.current) {
@@ -1358,6 +1363,23 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
       controlsRef.current.object.position.lerp(_DEFAULT_CAM_BS, k);
       controlsRef.current.target.lerp(_ORIGIN_BS, k);
       controlsRef.current.update();
+    }
+
+    // The hub's camera has been slowly orbiting, so the qubit may be nearer or farther than
+    // it will be once the camera settles. While it comes to the middle alone, scale it with
+    // its depth from the camera (measured after the camera has moved this frame) so it holds
+    // the size it had when you clicked (no shrink before the module's zoom); the module's
+    // intro starts from that same size.
+    if (centerOnly && rightRig.current) {
+      const r = rightRig.current;
+      r.getWorldPosition(_tmpV);
+      state.camera.updateMatrixWorld();
+      _tmpM.copy(state.camera.matrixWorld).invert();
+      const d = -_tmpV.applyMatrix4(_tmpM).z; // depth along the view axis
+      if (centerD0.current === null) centerD0.current = d;
+      const sc = Math.min(1.3, Math.max(0.75, d / centerD0.current));
+      r.scale.setScalar(sc);
+      handoff.qubitScale = sc;
     }
 
     // ── Dynamic lights per superposition step ──
