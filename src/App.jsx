@@ -73,6 +73,10 @@ const writeStorage = (key, value) => {
   try { localStorage.setItem(key, value); } catch { /* not persisted */ }
 };
 
+// An ease for the camera that follows the pair's own glide (the models close 1 - e^(-2.6 t) of the way),
+// so a camera that retreats or approaches while the pair scales stays in step with it (no swelling).
+const pairEase = (seconds) => (p) => (1 - Math.exp(-2.6 * seconds * p)) / (1 - Math.exp(-2.6 * seconds));
+
 // Each module has its own URL (#entanglement, ...) so it can be shared,
 // bookmarked and reloaded, and the browser's Back button moves between
 // modules instead of leaving the site.
@@ -1429,7 +1433,7 @@ function App() {
         // The camera goes to the module's resting view as the pair zooms in, so the
         // models land exactly where the module has them (and its own camera move
         // has nowhere left to go).
-        settleSharedCamera(pose.cam, pose.target, 1500);
+        settleSharedCamera(pose.cam, pose.target, activeModuleId === 'decoherence' ? 1800 : 1500, activeModuleId === 'decoherence' ? pairEase(1.8) : undefined);
       }, 2700);
       const t2 = setTimeout(() => {
         done = true;
@@ -1439,7 +1443,7 @@ function App() {
         setStagePhase('morph');
         setStageSeq((n) => n + 1);
         setStageId(activeModuleId);
-      }, 4300);
+      }, activeModuleId === 'decoherence' ? 4700 : 4300);
       return () => { clearTimeout(t1); clearTimeout(t1b); clearTimeout(t2); if (!done) setStagePhase('idle'); };
     }
     if ((stageId === 'multi-qubit-gates' || stageId === 'entanglement' || stageId === 'decoherence') && activeModuleId === null) {
@@ -1642,7 +1646,7 @@ function App() {
       // The zoom-out: the models shrink to the hub's size while the camera eases back.
       // (A lone qubit has no second one to merge in, so it goes straight on to its hub place.)
       const lone = pairModule === 'exponential';
-      settleSharedCamera([0, 0, 13], [0, 0, 0], lone ? 1100 : 1500);
+      settleSharedCamera([0, 0, 13], [0, 0, 0], lone ? 1100 : 1500, pairModule === 'decoherence' ? pairEase(1.5) : undefined);
       const t = setTimeout(() => { setHubTarget([0, 0, 0]); setStagePhase(lone ? 'morph' : 'multi-merge'); }, lone ? 1100 : 1500);
       return () => clearTimeout(t);
     }

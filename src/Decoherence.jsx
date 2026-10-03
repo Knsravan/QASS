@@ -14,6 +14,7 @@ import { SCENE_GL } from './sceneGl';
 import GlassSlider from './GlassSlider';
 import { QualityComposer } from './QualityScene';
 import { SharedCanvas } from './SharedCanvas';
+import { handoff } from './handoff';
 
 
 // ============================================================
@@ -30,6 +31,8 @@ const CW = '#f8fafc'; // White
 // How visible the noise particles are. Opened from the hub they start unseen and fade in
 // with the cards (the App announces `qass-jelly-run`), and fade out with them on the way back.
 const particleFade = { p: 1, target: 1 };
+// The arrows' reach: opened from the hub they start at the hub qubit's shorter arrow and grow to full as the cards pop.
+const arrowGrow = { p: 1, target: 1 };
 
 // ============================================================
 // CONSTANTS
@@ -227,7 +230,8 @@ function BlochSphereUnit({ posArr, color, label, isPure, noiseLevel, activeNoise
       _target.set(Math.sin(fP) * Math.cos(fT), Math.cos(fP), Math.sin(fP) * Math.sin(fT));
       _quat.setFromUnitVectors(_up, _target);
       vectorGrpRef.current.quaternion.copy(_quat);
-      vectorGrpRef.current.scale.setScalar(lenRef.current);
+      vectorGrpRef.current.scale.setScalar(lenRef.current * (0.55 + 0.45 * arrowGrow.p));
+      handoff.decQ[posKey].copy(_quat);
     }
 
     if (shellRef.current && !isPure) {
@@ -533,8 +537,11 @@ function NoiseParticleField({ noiseLevel, activeNoise, tempK }) {
 // ============================================================
 function ParticleFader() {
   useFrame((_, delta) => {
-    particleFade.p += (particleFade.target - particleFade.p) * (1 - Math.exp(-3.2 * Math.min(delta, 0.1)));
+    const k = 1 - Math.exp(-3.2 * Math.min(delta, 0.1));
+    particleFade.p += (particleFade.target - particleFade.p) * k;
     if (Math.abs(particleFade.target - particleFade.p) < 0.004) particleFade.p = particleFade.target;
+    arrowGrow.p += (arrowGrow.target - arrowGrow.p) * k;
+    if (Math.abs(arrowGrow.target - arrowGrow.p) < 0.004) arrowGrow.p = arrowGrow.target;
   });
   return null;
 }
@@ -729,13 +736,13 @@ export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted,
   // Opened from the hub, the two qubits arrive already in place (the hub's pair zoomed into them).
   const entranceAnim        = useRef(fromHub ? { pure: 1, noisy: 1, yRise: 0 } : { pure: 0, noisy: 0, yRise: -2.5 });
   const fadeInit            = useRef(false);
-  if (!fadeInit.current) { fadeInit.current = true; particleFade.p = fromHub ? 0 : 1; particleFade.target = fromHub ? 0 : 1; }
+  if (!fadeInit.current) { fadeInit.current = true; particleFade.p = particleFade.target = arrowGrow.p = arrowGrow.target = fromHub ? 0 : 1; }
   useEffect(() => {
-    const run = () => { particleFade.target = 1; };
-    const out = () => { particleFade.target = 0; };
+    const run = () => { particleFade.target = 1; arrowGrow.target = 1; };
+    const out = () => { particleFade.target = 0; arrowGrow.target = 0; };
     window.addEventListener('qass-jelly-run', run);
     window.addEventListener('qass-jelly-out', out);
-    return () => { window.removeEventListener('qass-jelly-run', run); window.removeEventListener('qass-jelly-out', out); particleFade.p = 1; particleFade.target = 1; };
+    return () => { window.removeEventListener('qass-jelly-run', run); window.removeEventListener('qass-jelly-out', out); particleFade.p = particleFade.target = arrowGrow.p = arrowGrow.target = 1; };
   }, []);
   const noiseTimerRef       = useRef(null);
   const bloomTimerRef       = useRef(null);
