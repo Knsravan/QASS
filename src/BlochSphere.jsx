@@ -164,6 +164,7 @@ const _Q_DEC_B = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 
 const _EXP_LIGHT = { amb: 0.6, c1: new THREE.Color('#ffffff'), i1: 2.0, c2: new THREE.Color('#a855f7'), i2: 1.5, dist: 1000 };
 const _HUB_LIGHT = { amb: 0.5, c1: new THREE.Color('#00f2fe'), i1: 8, c2: new THREE.Color('#f093fb'), i2: 8, dist: 30 };
 const _ORIGIN_BS = new THREE.Vector3(0, 0, 0);
+const _AXIS_Y = new THREE.Vector3(0, 1, 0);
 const _tempColor1_BS = new THREE.Color();
 const _tempColor2_BS = new THREE.Color();
 const _STEP_COLORS_BS = {
@@ -1145,7 +1146,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
   const prevCameraStep = useRef(-1);
   const light1Ref = useRef();
   const light2Ref = useRef();
-  const { size, camera } = useThree();
+  const { size, camera, clock } = useThree();
   const { initAudio, stopCurrentAudio, toggleMute, playGroundState, playHadamard, playInfinitePossibilities, playCollapseAnticipation, playMeasurement } = useQuantumAudio();
 
   const currentSidebarWidth = isSidebarOpen ? 420 : 112;
@@ -1203,6 +1204,17 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
   const ambRef = useRef();
   // Closing Decoherence: the pair takes the scene's arrows over as they were (not the opening's start state).
   const decClosing = useRef(isDec && multi === 'zoom').current;
+  // A QubitCore turns its whole sphere (arrow included) slowly about Y with the clock; Decoherence's scene
+  // does not. So the pair's arrows are given the opposite turn, to point where that scene points them.
+  const decArrows = useRef(null);
+  if (!decArrows.current) decArrows.current = { a: new THREE.Quaternion(), b: new THREE.Quaternion(), turn: new THREE.Quaternion() };
+  const setDecArrows = (t) => {
+    const d = decArrows.current;
+    d.turn.setFromAxisAngle(_AXIS_Y, -t * 0.04);
+    d.a.copy(d.turn).multiply(decClosing ? handoff.decQ.pure : _Q_DEC_A);
+    d.b.copy(d.turn).multiply(decClosing ? handoff.decQ.noisy : _Q_DEC_B);
+  };
+  if (isDec && decArrows.current.a.w === 1 && decArrows.current.a.x === 0) setDecArrows(clock.getElapsedTime());
   useLayoutEffect(() => {
     // First paint at the right size (no growth on a direct load).
     const rig = rigRef.current;
@@ -1315,6 +1327,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
 
   useFrame((state, delta) => {
     const time = state.clock.getElapsedTime();
+    if (isDec) setDecArrows(time);
 
     // The lone qubit's depth at the moment it starts coming to the middle (before it has
     // moved at all this frame): the size it will hold is measured against this.
@@ -1547,7 +1560,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
                 {isEnt ? (
                   <QubitCore activeModule="entanglement" theme={theme} customVectorQuat={_Q_UP} showCustomVector={true} emissiveColor="#00f2fe" />
                 ) : isDec ? (
-                  <QubitCore activeModule="decoherence" theme={theme} customVectorQuat={decClosing ? handoff.decQ.noisy : _Q_DEC_B} showCustomVector={true} customGridColor="#f59e0b" customRingColor="#f59e0b" emissiveColor="#f59e0b" />
+                  <QubitCore activeModule="decoherence" theme={theme} customVectorQuat={decArrows.current.b} showCustomVector={true} customGridColor="#f59e0b" customRingColor="#f59e0b" emissiveColor="#f59e0b" />
                 ) : (
                   <QubitCore
                     activeModule="multi-qubit-gates"
@@ -1638,7 +1651,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
                 onDomainUnhover={() => handleUnhoverDomain('right')} 
               />
             ) : (
-              <QubitCore position={[0, 0, 0]} scale={1.2} theme={theme} activeModule={activeModule} isDecohering={isDecohering} customVectorQuat={isDec ? (decClosing ? handoff.decQ.pure : _Q_DEC_A) : isRig || centerOnly ? _Q_UP : undefined} showCustomVector={isRig || centerOnly || undefined} emissiveColor={isMulti ? '#eab308' : isEnt || isExp ? '#00f2fe' : isDec ? '#14b8a6' : undefined} fadeExtras={isMulti} onDomainHover={() => handleHoverDomain('right')} onDomainUnhover={() => handleUnhoverDomain('right')} />
+              <QubitCore position={[0, 0, 0]} scale={1.2} theme={theme} activeModule={activeModule} isDecohering={isDecohering} customVectorQuat={isDec ? decArrows.current.a : isRig || centerOnly ? _Q_UP : undefined} showCustomVector={isRig || centerOnly || undefined} emissiveColor={isMulti ? '#eab308' : isEnt || isExp ? '#00f2fe' : isDec ? '#14b8a6' : undefined} fadeExtras={isMulti} onDomainHover={() => handleHoverDomain('right')} onDomainUnhover={() => handleUnhoverDomain('right')} />
             )}
           </group>
         </PresentationControls>
