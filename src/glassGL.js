@@ -24,11 +24,13 @@
  * the Frosted glass setting.
  */
 
-import { LIQUID_GLASS_TARGETS } from './LiquidGlass';
+import * as THREE from 'three';
+import { LIQUID_GLASS_TARGETS, canBendBackdrop, clearLens } from './LiquidGlass';
 import { getQuality, motionReduced } from './quality';
 import { lightTilt } from './glassLight';
 
 export const MAX_GLASS = 16;
+export const MAX_EDGE = 24;   // pieces the edge layer lights, over all canvases
 // .lg-lensed too: LiquidGlass.js sets the lensed element's own
 // backdrop-filter to none (the lens is its ::before), which takes glass
 // styled inline in a module out of its target selector.
@@ -70,10 +72,95 @@ export function glassEnabled(q = getQuality()) {
 export function registerGlassCanvas(canvas) {
   canvases.add(canvas);
   watchPress();
+  startEdges();
   return () => {
     canvases.delete(canvas);
-    if (!canvases.size) clearMarks();
+    if (!canvases.size) { clearMarks(); stopEdges(); }
   };
+}
+
+// ─── The edge layer ─────────────────────────────────────────────────────────
+// One transparent canvas over the whole page, below only the app's modal
+// layers, that draws the rim light of every piece of glass (GLASS_EDGE_FRAGMENT).
+
+const EDGE_PAD = 8;           // px around a piece the edge layer may draw in
+let edges = null;
+function startEdges() {
+  if (edges) return;
+  const canvas = document.createElement('canvas');
+  canvas.className = 'gl-edges';
+  canvas.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(canvas);
+  let renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({ canvas, alpha: true, premultipliedAlpha: true, antialias: false, powerPreference: 'low-power' });
+  } catch {
+    canvas.remove();
+    return;
+  }
+  renderer.setClearColor(0x000000, 0);
+  renderer.autoClear = false;
+  const vec4s = () => Array.from({ length: MAX_EDGE }, () => new THREE.Vector4());
+  const uniforms = {
+    uSize: { value: new THREE.Vector2() }, uScale: { value: 1 }, uMorph: { value: 0 },
+    uLight: { value: new THREE.Vector2(-0.7, 0.7) }, uN: { value: 0 },
+    uBox: { value: vec4s() }, uRad: { value: vec4s() }, uA: { value: vec4s() }, uB: { value: vec4s() }, uC: { value: vec4s() },
+  };
+  const material = new THREE.ShaderMaterial({
+    uniforms, vertexShader: GLASS_VERTEX, fragmentShader: GLASS_EDGE_FRAGMENT,
+    depthTest: false, depthWrite: false, blending: THREE.NoBlending, toneMapped: false,
+  });
+  const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
+  quad.frustumCulled = false;
+  const scene = new THREE.Scene();
+  scene.add(quad);
+  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  const state = { raf: 0, blank: false, w: 0, h: 0, dpr: 0 };
+
+  const tick = () => {
+    state.raf = requestAnimationFrame(tick);
+    const f = glassFrame();
+    const list = f?.all;
+    if (!list?.length) {
+      if (!state.blank) { renderer.clear(); state.blank = true; }
+      return;
+    }
+    state.blank = false;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (w !== state.w || h !== state.h || dpr !== state.dpr) {
+      state.w = w; state.h = h; state.dpr = dpr;
+      renderer.setPixelRatio(dpr);
+      renderer.setSize(w, h, false);
+    }
+    const bufW = renderer.domElement.width;
+    const bufH = renderer.domElement.height;
+    fillGlassUniforms(uniforms, list, { left: 0, top: 0, width: w, height: h }, bufW, bufH, f.lens);
+    uniforms.uLight.value.set(f.light[0], -f.light[1]); // the shader's y runs up
+    // Each piece's own box only (every box draws the whole glass field, so
+    // where boxes overlap they draw the same pixels twice, identically).
+    renderer.setScissorTest(false);
+    renderer.clear();
+    renderer.setScissorTest(true);
+    for (const g of list) {
+      const r = g.r;
+      renderer.setScissor(r.left - EDGE_PAD, h - r.bottom - EDGE_PAD, r.width + 2 * EDGE_PAD, r.height + 2 * EDGE_PAD);
+      renderer.render(scene, camera);
+    }
+  };
+  state.raf = requestAnimationFrame(tick);
+  edges = { canvas, renderer, material, quad, state };
+}
+
+function stopEdges() {
+  if (!edges) return;
+  cancelAnimationFrame(edges.state.raf);
+  edges.material.dispose();
+  edges.quad.geometry.dispose();
+  edges.renderer.dispose();
+  edges.canvas.remove();
+  edges = null;
 }
 
 function clearMarks() {
@@ -280,31 +367,42 @@ export function glassFrame() {
     list.push({ el, r, s, opacity, radii: radiiOf(el, s, r.width, r.height), z: stackKey(el, s, now), group: el.closest(MORPH_GROUP) ? 1 : 0 });
     byCanvas.set(best.c, list);
   }
-  // Glass over other glass that carries content (the Display panel over a
-  // card): the WebGL glass is drawn under every page element, so the card's
-  // text would show through it unbent. That piece keeps its CSS glass, which
-  // sees the page under it, until it no longer overlaps.
-  for (const [c, list] of byCanvas) {
-    list.sort(paintOrder);
-    const drawn = list.filter((g, i) => !list.slice(0, i).some((u) => !u.el.contains(g.el) && overlaps(u.r, g.r)) && !hasContentBehind(g, now));
-    byCanvas.set(c, drawn);
-    drawn.forEach((g) => keep.add(g.el));
-  }
+  // Glass with other glass or plain page content under it (a label, text, a
+  // card): the scene's bend can't reach those, so such a piece gets the CSS
+  // lens on top, which bends everything behind it, and the WebGL glass only
+  // draws its body without a bend. The edge light is the same either way.
+  for (const list of byCanvas.values()) list.sort(paintOrder);
+  const all = [...byCanvas.values()].flat().sort(paintOrder);
+  const canBend = canBendBackdrop();
+  all.forEach((g, i) => {
+    g.lens = canBend && (hasContentBehind(g, now) || all.slice(0, i).some((u) => !u.el.contains(g.el) && overlaps(u.r, g.r)));
+    keep.add(g.el);
+  });
   for (const el of marked) {
     if (keep.has(el)) continue;
     el.removeAttribute('data-gl');
     el.removeAttribute('data-gl-big');
+    el.removeAttribute('data-gl-lens');
   }
   for (const el of keep) if (!marked.has(el)) el.setAttribute('data-gl', '');
-  // Big glass: the soft inner blur, its corners following the glass's.
-  for (const list of byCanvas.values()) {
-    for (const g of list) {
-      const big = Math.min(g.r.width, g.r.height) > TEXT_GLASS;
-      if (big !== g.el.hasAttribute('data-gl-big')) g.el.toggleAttribute('data-gl-big', big);
-      if (big) {
-        const ir = `${Math.max(0, g.radii[2] - BIG_EDGE).toFixed(1)}px`;
-        if (g.s.ir !== ir) { g.el.style.setProperty('--gl-ir', ir); g.s.ir = ir; }
+  for (const g of all) {
+    if (g.lens !== g.el.hasAttribute('data-gl-lens')) g.el.toggleAttribute('data-gl-lens', g.lens);
+    if (g.lens) {
+      const key = `${Math.round(g.r.width)}x${Math.round(g.r.height)}`;
+      if (g.s.lensKey !== key) {
+        const lens = clearLens(g.el);
+        if (lens) g.el.style.setProperty('--gl-lens', lens); else g.el.style.removeProperty('--gl-lens');
+        g.s.lensKey = key;
       }
+    }
+  }
+  // Big glass: the soft inner blur, its corners following the glass's.
+  for (const g of all) {
+    const big = Math.min(g.r.width, g.r.height) > TEXT_GLASS;
+    if (big !== g.el.hasAttribute('data-gl-big')) g.el.toggleAttribute('data-gl-big', big);
+    if (big) {
+      const ir = `${Math.max(0, g.radii[2] - BIG_EDGE).toFixed(1)}px`;
+      if (g.s.ir !== ir) { g.el.style.setProperty('--gl-ir', ir); g.s.ir = ir; }
     }
   }
   marked.clear();
@@ -313,24 +411,23 @@ export function glassFrame() {
   let deg = LIGHT_DEG + lightTilt() * 1.5;
   if (!motionReduced()) deg += Math.sin(now / 1000 * 1.1) * SWAY_DEG;
   const a = (deg * Math.PI) / 180;
-  frame = { byCanvas, light: [Math.cos(a), Math.sin(a)], lens: q.lens };
+  frame = { byCanvas, all: all.slice(0, MAX_EDGE), light: [Math.cos(a), Math.sin(a)], lens: q.lens };
   return frame;
 }
 
-// ─── The shader ─────────────────────────────────────────────────────────────
+// ─── The shaders ────────────────────────────────────────────────────────────
 
 export const GLASS_VERTEX = /* glsl */`
 void main() { gl_Position = vec4(position.xy, 0.0, 1.0); }
 `;
 
-// Works in drawing-buffer pixels, origin bottom-left (gl_FragCoord).
-export const GLASS_FRAGMENT = /* glsl */`
-#define MAX ${MAX_GLASS}
-uniform sampler2D uFrame;
+// The glass shapes, shared by both passes. Works in drawing-buffer pixels,
+// origin bottom-left (gl_FragCoord).
+const shapes = (max) => /* glsl */`
+#define MAX ${max}
 uniform vec2 uSize;        // drawing buffer, px
 uniform float uScale;      // drawing-buffer px per CSS px
 uniform float uMorph;
-uniform float uDisperse;
 uniform vec2 uLight;       // toward the light, y up
 uniform int uN;
 uniform vec4 uBox[MAX];    // centre x, y, half width, half height
@@ -370,6 +467,21 @@ float sdTop(vec2 p, int top) {
   for (int i = 0; i < MAX; i++) { if (i == top) return piece(p, i); }
   return 1e5;
 }
+// The rim's outward normal at p (of the uppermost piece where pieces overlap).
+vec2 rimNormal(vec2 p, bool own, int top, float e) {
+  return own
+    ? normalize(vec2(sdTop(p + vec2(e, 0.0), top) - sdTop(p - vec2(e, 0.0), top), sdTop(p + vec2(0.0, e), top) - sdTop(p - vec2(0.0, e), top)) + 1e-6)
+    : normalize(vec2(sd(p + vec2(e, 0.0)) - sd(p - vec2(e, 0.0)), sd(p + vec2(0.0, e)) - sd(p - vec2(0.0, e))) + 1e-6);
+}
+`;
+
+// The glass body, drawn into the scene canvas over the finished frame: the
+// bend of whatever the scene draws behind it, Clear frost, the veil, the
+// shadow. The edge light is not here: it is drawn above the page (below).
+export const GLASS_FRAGMENT = /* glsl */`
+uniform sampler2D uFrame;
+uniform float uDisperse;
+${shapes(MAX_GLASS)}
 vec4 at(vec2 p) { return texture2D(uFrame, clamp(p / uSize, vec2(0.0), vec2(1.0))); }
 vec4 frost(vec2 p, float px) {
   if (px < 0.6) return at(p);
@@ -399,10 +511,7 @@ void main() {
 
   if (d < 1.0) {
     vec4 A = uA[idx]; vec4 B = uB[idx]; vec4 C = uC[idx];
-    float e = 0.7 * s;
-    vec2 n = own
-      ? normalize(vec2(sdTop(p + vec2(e, 0.0), top) - sdTop(p - vec2(e, 0.0), top), sdTop(p + vec2(0.0, e), top) - sdTop(p - vec2(0.0, e), top)) + 1e-6)
-      : normalize(vec2(sd(p + vec2(e, 0.0)) - sd(p - vec2(e, 0.0)), sd(p + vec2(0.0, e)) - sd(p - vec2(0.0, e))) + 1e-6);
+    vec2 n = rimNormal(p, own, top, 0.7 * s);
     float din = max(-d, 0.0);
     float bev = A.x * s;
     float t = clamp(din / bev, 0.0, 1.0);
@@ -427,24 +536,47 @@ void main() {
     vec3 veil = mix(vec3(0.11, 0.12, 0.14), vec3(1.0), m);
     float va = mix(0.16, 0.22, m);
     g = vec4(g.rgb * (1.0 - va) + veil * va, g.a * (1.0 - va) + va);
-    // Specular: a crisp line and a soft glow along the rim, brightest where
-    // the edge faces the light and again on the far edge.
-    float facing = pow(max(dot(n, uLight), 0.0), 1.4);
-    float back = pow(max(dot(n, -uLight), 0.0), 1.4);
-    float rim = exp(-din / (0.9 * s)) * 0.9 + exp(-din / (5.0 * s)) * 0.3;
-    float spec = rim * (facing + 0.55 * back) + 0.05 * pow(1.0 - t, 3.0);
-    // Touch light from the finger.
-    if (B.z > 0.001) {
-      float r = length(p - B.xy) / s;
-      spec += B.z * (0.32 * exp(-r * r / 5000.0) + 0.06);
-    }
-    g.rgb += vec3(spec);
-    g.a = max(g.a, min(1.0, spec));
     // Edge antialiasing, and the element's own opacity.
     float cover = clamp(0.5 - d / s, 0.0, 1.0) * B.w;
     col = mix(col, g, cover);
   }
   gl_FragColor = col;
+}
+`;
+
+// The edge light, drawn on a transparent canvas ABOVE the page, so nothing
+// the page puts between the scene and the glass (labels, other cards) can
+// hide a rim: a crisp line and a soft glow along the edge, brightest where it
+// faces the light and again on the far side; touch light from the finger; and
+// a faint dark line just inside, so the edge still reads over a bright scene.
+// Premultiplied alpha.
+export const GLASS_EDGE_FRAGMENT = /* glsl */`
+${shapes(MAX_EDGE)}
+void main() {
+  vec2 p = gl_FragCoord.xy;
+  int idx; int top; int inside;
+  float d = scene(p, idx, top, inside);
+  bool own = inside > 1;
+  if (own) { idx = top; d = sdTop(p, top); }
+  float s = uScale;
+  if (d > 1.0 * s) { gl_FragColor = vec4(0.0); return; }
+  vec4 A = uA[idx]; vec4 B = uB[idx];
+  vec2 n = rimNormal(p, own, top, 0.7 * s);
+  float din = max(-d, 0.0);
+  float bev = A.x * s;
+  float t = clamp(din / bev, 0.0, 1.0);
+  float facing = pow(max(dot(n, uLight), 0.0), 1.4);
+  float back = pow(max(dot(n, -uLight), 0.0), 1.4);
+  float rim = exp(-din / (0.9 * s)) * 0.9 + exp(-din / (5.0 * s)) * 0.3;
+  float spec = rim * (facing + 0.55 * back) + 0.05 * pow(1.0 - t, 3.0);
+  if (B.z > 0.001) {
+    float r = length(p - B.xy) / s;
+    spec += B.z * (0.32 * exp(-r * r / 5000.0) + 0.06);
+  }
+  float cover = clamp(0.5 - d / s, 0.0, 1.0) * B.w;
+  float light = clamp(spec, 0.0, 1.0);
+  float dark = 0.12 * exp(-din / (1.1 * s)) * (1.0 - light);
+  gl_FragColor = vec4(vec3(light), light + dark * (1.0 - light)) * cover;
 }
 `;
 
@@ -454,6 +586,7 @@ export function fillGlassUniforms(u, pieces, canvasRect, bufW, bufH, lens) {
   const box = u.uBox.value; const rad = u.uRad.value; const A = u.uA.value; const B = u.uB.value; const C = u.uC.value;
   let n = 0;
   for (const g of pieces) {
+    if (n >= box.length) break;
     const { r, radii, s: st, el } = g;
     const cx = (r.left + r.width / 2 - canvasRect.left) * s;
     const cy = bufH - (r.top + r.height / 2 - canvasRect.top) * s;
@@ -465,13 +598,13 @@ export function fillGlassUniforms(u, pieces, canvasRect, bufW, bufH, lens) {
     // Touch light only on glass that is pressed.
     B[n].set((st.gx - canvasRect.left) * s, bufH - (st.gy - canvasRect.top) * s, st.glow, g.opacity);
     // "Small lens": big glass bends less on the medium level.
-    C[n].set(lens === 'small' && big ? 0.6 : 1, g.group, 0, 0);
+    C[n].set(g.lens ? 0 : lens === 'small' && big ? 0.6 : 1, g.group, 0, 0);
     n++;
   }
   u.uN.value = n;
   u.uScale.value = s;
   u.uMorph.value = MORPH_PX * s;
-  u.uDisperse.value = lens === 'all' ? 0.07 : 0;
+  if (u.uDisperse) u.uDisperse.value = lens === 'all' ? 0.07 : 0;
   u.uSize.value.set(bufW, bufH);
   return n;
 }

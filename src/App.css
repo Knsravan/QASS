@@ -5878,9 +5878,16 @@ div:has(> canvas) {
    CSS glass (lens, tint, rim, shadow) steps aside while [data-gl] is set.
    ============================================================================= */
 [data-gl],
-.lg-lensed[data-gl]::before {
+.lg-lensed[data-gl]:not([data-gl-lens])::before {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
+}
+
+/* Glass with page content behind it: the CSS lens bends that content (the
+   scene's bend can't); the WebGL glass draws the body and the edge light. */
+.lg-lensed[data-gl][data-gl-lens]::before {
+  -webkit-backdrop-filter: var(--gl-lens, none) !important;
+  backdrop-filter: var(--gl-lens, none) !important;
 }
 
 [data-gl] {
@@ -5907,7 +5914,7 @@ div:has(> canvas) {
    frosts page elements under the glass too (labels, the VS badge), which
    the scene can't. The rim keeps the WebGL bend and light. Buttons and
    pills stay Clear. */
-.lg-lensed[data-gl][data-gl-big]::before {
+.lg-lensed[data-gl][data-gl-big]:not([data-gl-lens])::before {
   inset: 10px;
   border-radius: var(--gl-ir, 14px);
   -webkit-backdrop-filter: blur(7px) saturate(1.2) !important;
@@ -5923,7 +5930,7 @@ div:has(> canvas) {
 }
 
 /* Tooltips float over labels and the scene: a little more body. */
-.glass-tooltip.lg-lensed[data-gl][data-gl-big]::before {
+.glass-tooltip.lg-lensed[data-gl][data-gl-big]:not([data-gl-lens])::before {
   background: rgba(6, 8, 12, 0.32) !important;
 }
 
@@ -5938,4 +5945,14 @@ div:has(> canvas) {
   color: #0b0d12 !important;
   text-shadow: none !important;
   transition: color 0.3s ease;
+}
+
+/* The glass's edge light (glassGL.js): one transparent canvas over the page. */
+.gl-edges {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 500;
 }

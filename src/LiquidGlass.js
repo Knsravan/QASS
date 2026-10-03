@@ -191,6 +191,22 @@ function supportsRefraction() {
   return refractionSupported;
 }
 
+/** Whether this browser's backdrop-filter can bend what is behind glass. */
+export const canBendBackdrop = supportsRefraction;
+
+/**
+ * A Clear-frost lens for this element's size, as a backdrop-filter value, or
+ * null where the browser can't bend or the lens is off. The WebGL glass uses
+ * it for glass with page content behind it (a label, text): the scene's bend
+ * can't reach the page, this one can.
+ */
+export function clearLens(node) {
+  const w = Math.round(node.offsetWidth);
+  const h = Math.round(node.offsetHeight);
+  if (!lensOn || w < 4 || h < 4 || !lensAllowed(w, h) || !supportsRefraction()) return null;
+  return `url(#${lensFilterId(w, h, GLASS_VARIANTS.clear.blur * 2, Math.round(cornerRadius(node, w, h)))})`;
+}
+
 const reducedTransparency = () =>
   window.matchMedia?.('(prefers-reduced-transparency: reduce)').matches;
 
