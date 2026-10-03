@@ -291,7 +291,26 @@ function DraggableGate({ type, initialPosition, onDrop, visible, topDown = false
 }
 
 // --- Master 3D Scene ---
-function InterferenceScene({ theme, stage, subStage, setSubStage, interferencePhase, isSidebarOpen, audio }) {
+// The module's own lights. Coming from the hub (whose scene already has its lights),
+// they fade up instead of switching on, so the hand-over doesn't brighten the qubit.
+function IntroLights({ ramp }) {
+  const amb = useRef();
+  const pt = useRef();
+  const k = useRef(ramp ? 0 : 1);
+  useFrame((_, dt) => {
+    if (k.current < 1) k.current = Math.min(1, k.current + dt / 1.6);
+    if (amb.current) amb.current.intensity = 0.5 * k.current;
+    if (pt.current) pt.current.intensity = 1 * k.current;
+  });
+  return (
+    <>
+      <ambientLight ref={amb} intensity={ramp ? 0 : 0.5} />
+      <pointLight ref={pt} position={[10, 10, 10]} intensity={ramp ? 0 : 1} />
+    </>
+  );
+}
+
+function InterferenceScene({ theme, stage, subStage, setSubStage, interferencePhase, isSidebarOpen, audio, fromHub = false }) {
   const { camera } = useThree();
   const groupRef = useRef();
   const cyanWaveRef = useRef();
@@ -310,14 +329,16 @@ function InterferenceScene({ theme, stage, subStage, setSubStage, interferencePh
     }
   }, [stage, subStage]);
 
-  const sceneRefs = useMemo(() => ({ magentaWave: magentaWaveRef, group: groupRef }), []);
+  const introRef = useRef();
+  const sceneRefs = useMemo(() => ({ magentaWave: magentaWaveRef, group: groupRef, intro: introRef }), []);
 
   useInterferenceCinematic({
     stage,
     subStage,
     camera,
     sceneRefs,
-    audio
+    audio,
+    fromHub
   });
 
   // Calculate Wave amplitudes based on phase in Stage 3
@@ -411,6 +432,7 @@ function InterferenceScene({ theme, stage, subStage, setSubStage, interferencePh
   return (
     <group ref={groupRef}>
       {/* Bloch Sphere Group (waves remain outside so their orbital plane is un-tilted) */}
+      <group ref={introRef}>
       <group ref={sphereGroupRef}>
         <BlochSphere
           theme={theme}
@@ -423,6 +445,7 @@ function InterferenceScene({ theme, stage, subStage, setSubStage, interferencePh
           interferencePhase={interferencePhase}
           interferenceStep={interferenceStep}
         />
+      </group>
       </group>
         
       {/* Orbiting Waves (Visible after H-Gate drop in Stage 2, and throughout Stage 3) */}
@@ -649,7 +672,7 @@ function InterferenceOverlay({ theme, stage, setStage, subStage, setSubStage, in
           flexDirection: 'column',
           animation: 'lgSlideIn 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards',
           zIndex: 20,
-        }}>
+        }} data-jelly-host>
           <style>{`
             @keyframes lgSlideIn {
               from { opacity: 0; transform: translateX(24px); }
@@ -673,7 +696,7 @@ function InterferenceOverlay({ theme, stage, setStage, subStage, setSubStage, in
           `}</style>
 
           {/* Outer shell — specular top edge + ambient glow */}
-          <div className="glass-interactive" style={{
+          <div className="glass-interactive" data-jelly style={{
             flex: 1,
             minHeight: 0,
             display: 'flex',
@@ -1349,7 +1372,7 @@ function InterferenceOverlay({ theme, stage, setStage, subStage, setSubStage, in
 }
 
 // --- Main Module Component ---
-export default function InterferenceModule({ theme, isSidebarOpen, isGlobalMuted }) {
+export default function InterferenceModule({ theme, isSidebarOpen, isGlobalMuted, fromHub = false }) {
   const [stage, setStage] = useState(1);
   const [subStage, setSubStage] = useState(0); 
   const [interferencePhase, setInterferencePhase] = useState(0); 
@@ -1410,11 +1433,11 @@ export default function InterferenceModule({ theme, isSidebarOpen, isGlobalMuted
     <>
       <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }}>
         <SharedCanvas
+          sceneId="bit-scene"
           gl={SCENE_GL}
         >
           <CameraShifter isSidebarOpen={isSidebarOpen} />
-          <ambientLight intensity={0.5} />
-          <pointLight position={[10, 10, 10]} intensity={1} />
+          <IntroLights ramp={fromHub} />
           {stage === 3 && (
             <OrbitControls 
               enablePan={false} 
@@ -1431,6 +1454,7 @@ export default function InterferenceModule({ theme, isSidebarOpen, isGlobalMuted
               interferencePhase={interferencePhase}
               isSidebarOpen={isSidebarOpen}
               audio={audio}
+              fromHub={fromHub}
             />
           </Suspense>
         </SharedCanvas>

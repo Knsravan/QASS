@@ -1331,6 +1331,8 @@ function App() {
   const [jellyState, setJellyState] = useState('');     // '' | 'wait' | 'run' | 'out'
   // The orbit target a scene takes over with: the module's, after the pair has zoomed in;
   // the hub's, right after a module closes (it then eases back to the middle).
+  const [InterferenceLoaded, setInterferenceLoaded] = useState(null); // Quantum Interference, once its code is in
+  const [interferenceFromHub, setInterferenceFromHub] = useState(false); // Quantum Interference opens from the hub's lone qubit
   const [moduleTarget, setModuleTarget] = useState([0, 0, 0]);
   const [hubTarget, setHubTarget] = useState([0, 0, 0]);
   const [stageSeq, setStageSeq] = useState(0);           // counts the choreographed moves (so a repeat phase restarts its timers)
@@ -1390,6 +1392,43 @@ function App() {
         setStageSeq((n) => n + 1);
         setStageId(null);
       }, 700);
+      return () => { clearTimeout(t); if (!done) { setStagePhase('idle'); setJellyState(''); } };
+    }
+    if (stageId === null && activeModuleId === 'interference') {
+      // Hub -> Quantum Interference: all but the qubit vanishes (the camera settles, the
+      // qubit rests at |0>); then the module's intro plays from exactly that view: the
+      // qubit zooms in and the camera strafes right.
+      let done = false;
+      // Load its code during the vanish and render it directly (not through React.lazy,
+      // which would suspend for a tick and drop the canvas), so the hand-over is one commit.
+      MODULE_LOADERS.interference().then((mod) => setInterferenceLoaded(() => mod.default));
+      setStagePhase('solo-center');
+      const t = setTimeout(() => {
+        done = true;
+        setInterferenceFromHub(true);
+        setJellyState('wait');
+        setStagePhase('morph');
+        setStageSeq((n) => n + 1);
+        setStageId(activeModuleId);
+      }, 1700);
+      return () => { clearTimeout(t); if (!done) setStagePhase('idle'); };
+    }
+    if (stageId === 'interference' && activeModuleId === null) {
+      // Quantum Interference -> hub: cards out while the camera eases back to the hub's
+      // view; the hub's scene takes over with the lone qubit where it is, then the qubit
+      // shrinks and slides to its hub place, the bit returns, and the hub's text pops.
+      let done = false;
+      setStagePhase('closing');
+      setJellyState('out');
+      settleSharedCamera([0, 0, 13], [0, 0, 0], 1100);
+      const t = setTimeout(() => {
+        done = true;
+        setInterferenceFromHub(false);
+        setJellyState('wait');
+        setStagePhase('solo-unsolo');
+        setStageSeq((n) => n + 1);
+        setStageId(null);
+      }, 1250);
       return () => { clearTimeout(t); if (!done) { setStagePhase('idle'); setJellyState(''); } };
     }
     if (stageId === null && activeModuleId === 'gates') {
@@ -1463,6 +1502,10 @@ function App() {
     }
     if (stagePhase === 'morph') {
       const t = setTimeout(() => setJellyState('run'), 1000);
+      return () => clearTimeout(t);
+    }
+    if (stagePhase === 'solo-unsolo') {
+      const t = setTimeout(() => setStagePhase('morph'), 250);
       return () => clearTimeout(t);
     }
     if (stagePhase === 'multi-unzoom') {
@@ -2258,7 +2301,7 @@ function App() {
           <ModuleErrorBoundary
             // The hub, the first module and superposition share one scene (the
             // bit and the qubit), so moving between them morphs it in place.
-            key={!stageId || stageId === 'bit-vs-qubit' || stageId === 'superposition' || stageId === 'gates' || stageId === 'multi-qubit-gates' ? 'bit-scene' : stageId}
+            key={!stageId || stageId === 'bit-vs-qubit' || stageId === 'superposition' || stageId === 'gates' || stageId === 'multi-qubit-gates' || stageId === 'interference' ? 'bit-scene' : stageId}
             moduleTitle={curriculumData.find(m => m.id === stageId)?.title}
             boundsStyle={uiBoundsStyle}
             onRetry={() => window.location.reload()}
@@ -2386,7 +2429,9 @@ function App() {
               </div>
             </>
           ) : stageId === 'interference' ? (
-            <InterferenceModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} />
+            (InterferenceLoaded
+              ? <InterferenceLoaded theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={interferenceFromHub} />
+              : <InterferenceModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={interferenceFromHub} />)
           ) : stageId === 'entanglement' ? (
             <EntanglementModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} />
           ) : stageId === 'exponential' ? (
@@ -2407,10 +2452,11 @@ function App() {
               <CameraShifter isSidebarOpen={isSidebarOpen} />
               <BlochSphere
                 theme={theme}
-                activeModule={stagePhase === 'grow' || stagePhase === 'shrink' ? 'gates' : stagePhase.startsWith('multi-') ? 'multi-qubit-gates' : stageId}
+                activeModule={stagePhase === 'grow' || stagePhase === 'shrink' ? 'gates' : stagePhase.startsWith('multi-') ? 'multi-qubit-gates' : stagePhase === 'solo-unsolo' ? 'interference' : stageId}
                 multi={stagePhase === 'multi-center' ? 'center' : stagePhase === 'multi-merge' ? 'merge' : stagePhase === 'multi-split' || stagePhase === 'multi-unsplit' ? 'split' : stagePhase === 'multi-zoom' || stagePhase === 'multi-unzoom' ? 'zoom' : null}
                 vanishing={stagePhase === 'vanish'}
                 handoverTarget={hubTarget}
+                centerOnly={stagePhase === 'solo-center'}
                 qubitCount={qubitCount}
                 isDecohering={isDecohering}
                 attemptCopy={attemptCopy}
