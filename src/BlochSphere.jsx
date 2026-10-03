@@ -95,10 +95,10 @@ export const ClassicalBit = ({ position, scale = 1, theme, activeModule, flipMod
       {!isBlank && (
         <>
           <Html position={[0.9, 1.1, 0]} center>
-            <div style={{ fontSize: '22px', fontFamily: "'Fira Code', monospace", fontWeight: '800', color: value === 0 ? "#00f2fe" : 'var(--text-secondary)', textShadow: value === 0 ? `0 0 15px #00f2fe` : 'none', transition: 'all 0.2s' }}>0</div>
+            <div style={{ fontSize: '22px', fontFamily: "'Fira Code', monospace", fontWeight: '800', color: value === 0 ? "#00f2fe" : 'var(--text-secondary)', textShadow: value === 0 ? `0 0 15px #00f2fe` : 'none', transition: 'all 0.2s', opacity: 'var(--bit-fade, 1)' }}>0</div>
           </Html>
           <Html position={[0.9, -1.1, 0]} center>
-            <div style={{ fontSize: '22px', fontFamily: "'Fira Code', monospace", fontWeight: '800', color: value === 1 ? "#f093fb" : 'var(--text-secondary)', textShadow: value === 1 ? `0 0 15px #f093fb` : 'none', transition: 'all 0.2s' }}>1</div>
+            <div style={{ fontSize: '22px', fontFamily: "'Fira Code', monospace", fontWeight: '800', color: value === 1 ? "#f093fb" : 'var(--text-secondary)', textShadow: value === 1 ? `0 0 15px #f093fb` : 'none', transition: 'all 0.2s', opacity: 'var(--bit-fade, 1)' }}>1</div>
           </Html>
 
           <mesh ref={orbRef} position={[0, 1.1, 0]}>
@@ -196,6 +196,8 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla,
 
   const [hoveredState, setHoveredState] = useState(null);
   const [measuredValue, setMeasuredValue] = useState(null);
+
+  useEffect(() => { setMeasuredValue(null); }, [activeModule]);
 
   useEffect(() => {
     if (onMeasuredValueChange) onMeasuredValueChange(measuredValue);
@@ -1158,18 +1160,20 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
   const [globalMeasuredValue, setGlobalMeasuredValue] = useState(null);
   const hoverTimeouts = useRef({});
   const rigRef = useRef();
+  const leftRig = useRef();
+  const [bitOn, setBitOn] = useState(true);
+  const rightRig = useRef();
   const settleCam = useRef(0);
-  const wasHub = useRef(!activeModule);
   useLayoutEffect(() => {
     // First paint at the right size (no growth on a direct load).
     const rig = rigRef.current;
     if (rig) { rig.scale.setScalar(!activeModule ? 0.7 : 1); rig.position.y = !activeModule ? -0.8 : 0; }
+    const solo = activeModule === 'superposition' || activeModule === 'interference';
+    if (leftRig.current) leftRig.current.scale.setScalar(solo ? 0.0001 : 1);
+    if (solo) setBitOn(false);
+    if (rightRig.current) rightRig.current.position.x = solo ? 0 : 4.2;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  useEffect(() => {
-    if (wasHub.current && activeModule === 'bit-vs-qubit') settleCam.current = 1.6;
-    wasHub.current = !activeModule;
-  }, [activeModule]);
 
   useEffect(() => {
     const timeouts = hoverTimeouts.current;
@@ -1206,13 +1210,24 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
     }
   }, [activeModule, initAudio, playGroundState, stopCurrentAudio, toggleMute]);
 
-  // Reset camera when opening a module
+  // Opening a module: a first load starts at the module's view; moving
+  // between the modules of this scene eases the camera there (superposition
+  // runs its own cinematic camera).
   useEffect(() => {
-    if (activeModule && controlsRef.current && camera) {
+    if (activeModule !== 'superposition' && activeModule !== 'interference') setBitOn(true);
+  }, [activeModule]);
+  const camReady = useRef(false);
+  useEffect(() => {
+    const first = !camReady.current;
+    camReady.current = true;
+    if (!activeModule || !controlsRef.current || !camera) return;
+    if (first) {
       camera.position.set(0, 0, 13);
       camera.rotation.set(0, 0, 0);
       controlsRef.current.target.set(0, 0, 0);
       controlsRef.current.update();
+    } else if (activeModule !== 'superposition') {
+      settleCam.current = 1.6;
     }
   }, [activeModule, camera]);
 
@@ -1259,6 +1274,21 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
       const ty = !activeModule ? -0.8 : 0;
       rig.scale.setScalar(rig.scale.x + (ts - rig.scale.x) * k);
       rig.position.y += (ty - rig.position.y) * k;
+    }
+    // Superposition is the qubit alone: the classical bit shrinks away and the qubit slides to the middle.
+    {
+      const solo = activeModule === 'superposition' || activeModule === 'interference';
+      const k = 1 - Math.exp(-3.4 * Math.min(delta, 0.1));
+      const l = leftRig.current;
+      if (l) {
+        const s = Math.max(0.0001, l.scale.x + ((solo ? 0 : 1) - l.scale.x) * k);
+        l.scale.setScalar(s);
+        const host = state.gl.domElement.parentElement;
+        if (host) host.style.setProperty('--bit-fade', String(Math.min(1, Math.max(0, (s - 0.15) / 0.6))));
+        if (solo && s < 0.02) setBitOn(false);
+      }
+      const r = rightRig.current;
+      if (r) r.position.x += ((solo ? 0 : 4.2) - r.position.x) * k;
     }
     // The hub's slow orbit leaves the camera anywhere; ease it back to the module's view.
     if (settleCam.current > 0 && controlsRef.current) {
@@ -1344,7 +1374,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
 
 
       <group ref={rigRef}>
-        <group position={[-4.2, 0, 0]} onWheel={handleWheelLeft}>
+        <group ref={leftRig} position={[-4.2, 0, 0]} onWheel={handleWheelLeft}>
 
         <mesh position={[0, 0, -2.5]} onPointerOver={(e) => { e.stopPropagation(); handleHoverDomain('left'); }} onPointerOut={() => handleUnhoverDomain('left')} visible={false}>
           <planeGeometry args={[6, 6]} />
@@ -1366,7 +1396,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
                 <ClassicalBit position={[0, 0, 0]} scale={0.6} theme={theme} onDomainHover={() => handleHoverDomain('left')} onDomainUnhover={() => handleUnhoverDomain('left')} />
                 <ClassicalBit position={[1.2, 0, 0]} scale={0.6} theme={theme} onDomainHover={() => handleHoverDomain('left')} onDomainUnhover={() => handleUnhoverDomain('left')} />
               </group>
-            ) : (activeModule === 'superposition' || activeModule === 'interference') ? null : (
+            ) : !bitOn ? null : (
                 <ClassicalBit position={[0, 0, 0]} scale={1.1} theme={theme} activeModule={activeModule} isDecohering={isDecohering} onDomainHover={() => handleHoverDomain('left')} onDomainUnhover={() => handleUnhoverDomain('left')} />
               )}
           </group>
@@ -1396,7 +1426,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
         </Html>
       )}
 
-      <group position={[(activeModule === 'superposition' || activeModule === 'interference') ? 0 : 4.2, 0, 0]} onWheel={handleWheelRight}>
+      <group ref={rightRig} onWheel={handleWheelRight}>
 
         <mesh position={[0, 0, -2.5]} onPointerOver={(e) => { e.stopPropagation(); handleHoverDomain('right'); }} onPointerOut={() => handleUnhoverDomain('right')} visible={false}>
           <planeGeometry args={[6, 6]} />

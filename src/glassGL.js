@@ -30,6 +30,8 @@ import { getQuality, motionReduced } from './quality';
 import { lightTilt } from './glassLight';
 
 export const MAX_GLASS = 16;
+/** While `off`, the glass pass draws nothing (a picture of the bare scene is being taken). */
+export const glassHold = { off: false };
 export const MAX_EDGE = 24;   // pieces the edge layer lights, over all canvases
 // .lg-lensed too: LiquidGlass.js sets the lensed element's own
 // backdrop-filter to none (the lens is its ::before), which takes glass

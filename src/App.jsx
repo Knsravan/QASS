@@ -2090,9 +2090,9 @@ function App() {
           </div>
 
           <ModuleErrorBoundary
-            // The hub and the first module share one scene (the two bits), so
-            // opening the module grows them in place instead of rebuilding.
-            key={!activeModuleId || activeModuleId === 'bit-vs-qubit' ? 'bit-scene' : activeModuleId}
+            // The hub, the first module and superposition share one scene (the
+            // bit and the qubit), so moving between them morphs it in place.
+            key={!activeModuleId || activeModuleId === 'bit-vs-qubit' || activeModuleId === 'superposition' ? 'bit-scene' : activeModuleId}
             moduleTitle={curriculumData.find(m => m.id === activeModuleId)?.title}
             boundsStyle={uiBoundsStyle}
             onRetry={() => window.location.reload()}
