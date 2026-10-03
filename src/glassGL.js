@@ -29,7 +29,10 @@ import { getQuality, motionReduced } from './quality';
 import { lightTilt } from './glassLight';
 
 export const MAX_GLASS = 16;
-const SELECTOR = LIQUID_GLASS_TARGETS.map((t) => t.selector).join(', ');
+// .lg-lensed too: LiquidGlass.js sets the lensed element's own
+// backdrop-filter to none (the lens is its ::before), which takes glass
+// styled inline in a module out of its target selector.
+const SELECTOR = [...LIQUID_GLASS_TARGETS.map((t) => t.selector), '.lg-lensed'].join(', ');
 const COVER = 0.8;            // a canvas must cover this share of the glass
 const FROST_PX = 1.2;         // Clear glass
 const BIG = 140;              // shorter side above this: big glass (Medium's small lens)
@@ -139,6 +142,8 @@ function opacityOf(el, s, now) {
   return o;
 }
 
+const overlaps = (a, b) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 2 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 2;
+
 const later = (a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? b : a);
 
 // Paint order, roughly as CSS stacks it: the z-index of every positioned
@@ -201,9 +206,17 @@ export function glassFrame() {
     if (list.length >= MAX_GLASS) continue;
     list.push({ el, r, s, opacity, radii: radiiOf(el, s, r.width, r.height), z: stackKey(el, s, now), group: el.closest(MORPH_GROUP) ? 1 : 0 });
     byCanvas.set(best.c, list);
-    keep.add(el);
   }
-  for (const list of byCanvas.values()) list.sort(paintOrder);
+  // Glass over other glass that carries content (the Display panel over a
+  // card): the WebGL glass is drawn under every page element, so the card's
+  // text would show through it unbent. That piece keeps its CSS glass, which
+  // sees the page under it, until it no longer overlaps.
+  for (const [c, list] of byCanvas) {
+    list.sort(paintOrder);
+    const drawn = list.filter((g, i) => !list.slice(0, i).some((u) => !u.el.contains(g.el) && overlaps(u.r, g.r)));
+    byCanvas.set(c, drawn);
+    drawn.forEach((g) => keep.add(g.el));
+  }
   for (const el of marked) {
     if (keep.has(el)) continue;
     el.removeAttribute('data-gl');
