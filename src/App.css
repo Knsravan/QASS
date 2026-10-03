@@ -5830,6 +5830,12 @@ div:has(> canvas) {
   border-color: transparent !important;
 }
 
+/* Cards and panels styled inline in a module: the WebGL bevel is their rim,
+   like every other piece of glass, so their own border steps aside too. */
+[data-gl][data-gl-big] {
+  border-color: transparent !important;
+}
+
 :is(.lg-pane, .lg-bar, .feature-card.lg, .start-btn.lg)[data-gl]::after {
   display: none !important;
 }
