@@ -1217,6 +1217,12 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
   const vecOut = useRef(null);
   const decDir = useRef({ a: new THREE.Vector3(0, 1, 0), b: new THREE.Vector3(0, 1, 0), closed: false });
   const wasDec = useRef(false);
+  if (decClosing && !decDir.current.closed) {
+    // (at the first render, so the spheres' first frame already has the module's arrows)
+    decDir.current.closed = true;
+    decDir.current.a.copy(_UPV).applyQuaternion(handoff.decQ.pure);
+    decDir.current.b.copy(_UPV).applyQuaternion(handoff.decQ.noisy);
+  }
   if (isDec) wasDec.current = true;
   useEffect(() => { if (isDec && !decClosing) { arrowGrow.p = 0; arrowGrow.target = 1; } }, [isDec]); // eslint-disable-line react-hooks/exhaustive-deps
   useLayoutEffect(() => {
