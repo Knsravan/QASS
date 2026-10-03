@@ -217,6 +217,8 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla,
 
   const [hoveredState, setHoveredState] = useState(null);
   const [measuredValue, setMeasuredValue] = useState(null);
+  // A qubit that arrives with its arrow already set (a hand-over) starts there, not swinging in from |0>.
+  useLayoutEffect(() => { if (customVectorQuat && vectorRef.current) vectorRef.current.quaternion.copy(customVectorQuat); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { setMeasuredValue(null); }, [activeModule]);
 
@@ -1199,6 +1201,8 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
   const lightStart = useMemo(() => (isEnt && multi === 'zoom' ? _LIGHTS_ENT : isExp && multi === 'zoom' ? _LIGHTS_EXP : isDec && multi === 'zoom' ? _LIGHTS_DEC : _LIGHTS_HUB), []); // eslint-disable-line react-hooks/exhaustive-deps
   const lightInit = useMemo(() => (isExp && multi === 'zoom' ? _EXP_LIGHT : isDec && multi === 'zoom' ? _DEC_LIGHT : _HUB_LIGHT), []); // eslint-disable-line react-hooks/exhaustive-deps
   const ambRef = useRef();
+  // Closing Decoherence: the pair takes the scene's arrows over as they were (not the opening's start state).
+  const decClosing = useRef(isDec && multi === 'zoom').current;
   useLayoutEffect(() => {
     // First paint at the right size (no growth on a direct load).
     const rig = rigRef.current;
@@ -1543,7 +1547,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
                 {isEnt ? (
                   <QubitCore activeModule="entanglement" theme={theme} customVectorQuat={_Q_UP} showCustomVector={true} emissiveColor="#00f2fe" />
                 ) : isDec ? (
-                  <QubitCore activeModule="decoherence" theme={theme} customVectorQuat={_Q_DEC_B} showCustomVector={true} customGridColor="#f59e0b" customRingColor="#f59e0b" emissiveColor="#f59e0b" />
+                  <QubitCore activeModule="decoherence" theme={theme} customVectorQuat={decClosing ? handoff.decQ.noisy : _Q_DEC_B} showCustomVector={true} customGridColor="#f59e0b" customRingColor="#f59e0b" emissiveColor="#f59e0b" />
                 ) : (
                   <QubitCore
                     activeModule="multi-qubit-gates"
@@ -1634,7 +1638,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
                 onDomainUnhover={() => handleUnhoverDomain('right')} 
               />
             ) : (
-              <QubitCore position={[0, 0, 0]} scale={1.2} theme={theme} activeModule={activeModule} isDecohering={isDecohering} customVectorQuat={isDec ? _Q_DEC_A : isRig || centerOnly ? _Q_UP : undefined} showCustomVector={isRig || centerOnly || undefined} emissiveColor={isMulti ? '#eab308' : isEnt || isExp ? '#00f2fe' : isDec ? '#14b8a6' : undefined} fadeExtras={isMulti} onDomainHover={() => handleHoverDomain('right')} onDomainUnhover={() => handleUnhoverDomain('right')} />
+              <QubitCore position={[0, 0, 0]} scale={1.2} theme={theme} activeModule={activeModule} isDecohering={isDecohering} customVectorQuat={isDec ? (decClosing ? handoff.decQ.pure : _Q_DEC_A) : isRig || centerOnly ? _Q_UP : undefined} showCustomVector={isRig || centerOnly || undefined} emissiveColor={isMulti ? '#eab308' : isEnt || isExp ? '#00f2fe' : isDec ? '#14b8a6' : undefined} fadeExtras={isMulti} onDomainHover={() => handleHoverDomain('right')} onDomainUnhover={() => handleUnhoverDomain('right')} />
             )}
           </group>
         </PresentationControls>

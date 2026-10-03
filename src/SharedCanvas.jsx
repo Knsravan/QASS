@@ -105,7 +105,7 @@ export const showSharedCanvas = () => showHost();
 /** The next scene swap is between two scenes that look the same: crossfade, no push-in or blur. */
 export function seamlessNextSwap() { if (host) host.seamless = true; }
 /** Eases the shared canvas's camera to a pose (position, orbit target) over `ms`. */
-export function settleSharedCamera(pos, target, ms) { host?.settleCamera?.(pos, target, ms); }
+export function settleSharedCamera(pos, target, ms, ease) { host?.settleCamera?.(pos, target, ms, ease); }
 /** The shared canvas's camera position and orbit target right now. */
 export function getSharedCameraPose() { return host?.getPose?.() || null; }
 export function skipNextSnapshot() { if (host) host.skipSnap = true; }
@@ -169,7 +169,7 @@ function Intro() {
     host.capture = () => captureSnap(gl, advance);
     // Eases the camera (and the orbit target) to a pose; used before a hand-over
     // so the scene taking over finds the camera where it expects it.
-    host.settleCamera = (pos, target, ms) => {
+    host.settleCamera = (pos, target, ms, ease) => {
       const controls = get().controls;
       gsap.killTweensOf(cam.position);
       if (controls) gsap.killTweensOf(controls.target);
@@ -185,7 +185,7 @@ function Intro() {
         t0 = p0.clone().addScaledVector(dir, p0.distanceTo(new THREE.Vector3(target[0], target[1], target[2])));
       }
       gsap.to(t, {
-        k: 1, duration: ms / 1000, ease: 'power2.inOut',
+        k: 1, duration: ms / 1000, ease: ease || 'power2.inOut',
         onUpdate: () => {
           cam.position.set(p0.x + (pos[0] - p0.x) * t.k, p0.y + (pos[1] - p0.y) * t.k, p0.z + (pos[2] - p0.z) * t.k);
           const lx = t0.x + (target[0] - t0.x) * t.k;
