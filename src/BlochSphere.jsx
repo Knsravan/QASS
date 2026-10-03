@@ -1625,7 +1625,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
                 onDomainUnhover={() => handleUnhoverDomain('right')} 
               />
             ) : (
-              <QubitCore position={[0, 0, 0]} scale={1.2} theme={theme} activeModule={activeModule} isDecohering={isDecohering} customVectorQuat={isPair || centerOnly ? _Q_UP : undefined} showCustomVector={isPair || centerOnly || undefined} emissiveColor={isMulti ? '#eab308' : isEnt ? '#00f2fe' : undefined} fadeExtras={isMulti} onDomainHover={() => handleHoverDomain('right')} onDomainUnhover={() => handleUnhoverDomain('right')} />
+              <QubitCore position={[0, 0, 0]} scale={1.2} theme={theme} activeModule={activeModule} isDecohering={isDecohering} customVectorQuat={isRig || centerOnly ? _Q_UP : undefined} showCustomVector={isRig || centerOnly || undefined} emissiveColor={isMulti ? '#eab308' : isEnt || isExp ? '#00f2fe' : undefined} fadeExtras={isMulti} onDomainHover={() => handleHoverDomain('right')} onDomainUnhover={() => handleUnhoverDomain('right')} />
             )}
           </group>
         </PresentationControls>
