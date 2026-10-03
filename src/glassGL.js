@@ -72,6 +72,7 @@ export function glassEnabled(q = getQuality()) {
 export function registerGlassCanvas(canvas) {
   canvases.add(canvas);
   watchPress();
+  watchContent();
   startEdges();
   return () => {
     canvases.delete(canvas);
@@ -243,14 +244,21 @@ const overlaps = (a, b) => Math.min(a.right, b.right) - Math.max(a.left, b.left)
 // is handled by the overlap rule.
 const CONTENT_PX = 6;
 const IN_GLASS = '.lg-lensed, .lg, .lg-pane, .lg-bar, [data-gl]';
-let contentAt = -1e9;
-let content = [];            // { el, r: DOMRect }
-function contentBehind(now) {
-  if (now - contentAt < 400) return content;
-  contentAt = now;
+// What is on the page is scanned when the DOM changes (at most every 80 ms)
+// and every 1.5 s; where each piece of it is, is read again every frame, so a
+// label moving under glass (or glass moving over a label) is seen at once.
+let content = [];            // { el, node, range, r }
+let contentDirty = true;
+let contentScanAt = -1e9;
+let contentWatched = false;
+function watchContent() {
+  if (contentWatched) return;
+  contentWatched = true;
+  new MutationObserver(() => { contentDirty = true; }).observe(document.body, { childList: true, subtree: true, characterData: true });
+}
+function scanContent() {
   content = [];
-  const range = document.createRange();
-  const add = (el, r) => { if (r.width > 2 && r.height > 2) content.push({ el, r }); };
+  const add = (el, node, range) => content.push({ el, node, range, r: null });
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, {
     acceptNode: (n) => {
       if (n.nodeType === 1) {
@@ -265,25 +273,51 @@ function contentBehind(now) {
     if (n.nodeType === 1) {
       if (n.closest(IN_GLASS) || n.closest('svg') !== n) continue;
       const r = n.getBoundingClientRect();
-      if (r.width <= 160 && r.height <= 160) { add(n, r); continue; }
+      if (r.width <= 160 && r.height <= 160) { add(n, n, null); continue; }
       // A big drawing layer: what it draws counts, not its box.
       let k = 0;
       for (const shape of n.querySelectorAll('path, line, circle, ellipse, rect, polyline, polygon')) {
         if (++k > 80) break;
         const cs = getComputedStyle(shape);
         if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) < 0.05) continue;
-        add(shape, shape.getBoundingClientRect());
+        add(shape, shape, null);
       }
     } else {
       const el = n.parentElement;
       if (!el || el.closest(IN_GLASS)) continue;
+      const range = document.createRange();
       range.selectNodeContents(n);
-      add(el, range.getBoundingClientRect());
+      add(el, n, range);
     }
   }
-  return content;
 }
+function contentBehind(now) {
+  if ((contentDirty && now - contentScanAt > 80) || now - contentScanAt > 1500) {
+    contentDirty = false;
+    contentScanAt = now;
+    scanContent();
+  }
+  const live = [];
+  for (const c of content) {
+    if (!c.el.isConnected) continue;
+    const r = c.range ? c.range.getBoundingClientRect() : c.node.getBoundingClientRect();
+    if (r.width <= 2 || r.height <= 2) continue;
+    c.r = r;
+    live.push(c);
+  }
+  content = live;
+  return live;
+}
+const zCache = new WeakMap(); // el -> { z, at }
 const zOf = (el) => {
+  const hit = zCache.get(el);
+  const now = performance.now();
+  if (hit && now - hit.at < 500) return hit.z;
+  const z = zChain(el);
+  zCache.set(el, { z, at: now });
+  return z;
+};
+const zChain = (el) => {
   const chain = [];
   for (let n = el; n && n !== document.body; n = n.parentElement) {
     const cs = getComputedStyle(n);

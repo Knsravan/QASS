@@ -867,7 +867,7 @@ export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted,
     borderRadius: '20px', padding: '18px 20px',
     boxShadow: 'var(--glass-highlight), var(--glass-shadow-base)',
     pointerEvents: 'auto',
-    animation: 'ncTooltipEnter 0.65s cubic-bezier(0.16,1,0.3,1) forwards',
+    animation: 'ncTooltipEnter 0.3s cubic-bezier(0.16,1,0.3,1) forwards',
     zIndex: 200,
   }), []);
 
@@ -990,7 +990,7 @@ export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted,
               WebkitBackdropFilter: 'var(--glass-blur)',
               border: '1.5px solid ' + CT + '44', borderRadius: '18px', padding: '14px 18px',
               boxShadow: 'var(--glass-highlight), var(--glass-shadow-base)',
-              animation: 'ncTooltipEnter 0.65s cubic-bezier(0.16,1,0.3,1) forwards',
+              animation: 'ncTooltipEnter 0.3s cubic-bezier(0.16,1,0.3,1) forwards',
               pointerEvents: 'auto',
             }}>
               <div style={{ fontSize: '9.5px', fontWeight: '800', letterSpacing: '1.8px', color: CT, textTransform: 'uppercase', marginBottom: '6px', fontFamily: "'Inter', sans-serif" }}>

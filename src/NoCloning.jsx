@@ -607,7 +607,7 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted })
     padding: '16px 20px',
     boxShadow: 'var(--glass-highlight), var(--glass-shadow-base)',
     pointerEvents: 'auto',
-    animation: 'ncTooltipEnter 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+    animation: 'ncTooltipEnter 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
     zIndex: 200,
     transition: 'all 0.35s ease'
   };
@@ -937,7 +937,7 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted })
               padding: '13px 18px',
               boxShadow: 'var(--glass-highlight), var(--glass-shadow-base)',
               pointerEvents: 'auto',
-              animation: 'ncTooltipEnter 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              animation: 'ncTooltipEnter 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
               textAlign: 'center'
             }}>
               <div style={{
@@ -1494,7 +1494,7 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted })
               padding: '13px 18px',
               boxShadow: 'var(--glass-highlight), var(--glass-shadow-base)',
               pointerEvents: 'auto',
-              animation: 'ncTooltipEnter 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              animation: 'ncTooltipEnter 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
               textAlign: 'center'
             }}>
               <div style={{

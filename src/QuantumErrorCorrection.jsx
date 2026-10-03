@@ -744,15 +744,14 @@ function QECStepPanel({ stepData, stepIndex, totalSteps, errorQubit, onErrorQubi
       position: 'absolute',
       bottom: '24px',
       left: 0,
-      // Clear of the Prev / Next buttons at the bottom right.
-      right: '300px',
+      right: 0,
       display: 'flex',
       justifyContent: 'center',
       pointerEvents: 'none',
       zIndex: 200,
     }}>
       <div className="glass-interactive" style={{
-        width: 'min(640px, calc(100% - 48px))',
+        width: 'min(640px, calc(100% - 240px))',
         background: 'var(--glass-bg-base)',
         backdropFilter: 'var(--glass-blur)',
         WebkitBackdropFilter: 'var(--glass-blur)',
@@ -919,8 +918,7 @@ function QECSyndromeTableCard({ isLight, step, errorQubit = 0, onErrorQubitChang
   return (
     <div className="glass-interactive" style={{
       position: 'absolute',
-      // Above the Prev / Next buttons, out of the spheres' row (Q3 sat under it).
-      bottom: '84px',
+      top: '24px',
       right: '24px',
       width: '240px',
       background: 'var(--glass-bg-base)',
