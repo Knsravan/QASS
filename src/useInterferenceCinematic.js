@@ -34,7 +34,9 @@ export default function useInterferenceCinematic({ stage, subStage, camera, scen
     // (its camera, and the sphere at the hub's size and place) instead of far away,
     // then plays the same zoom and strafe.
     const intro = fromHubRef.current ? sceneRefsRef.current?.intro?.current : null;
-    if (fromHubRef.current) camera.position.set(0, 0, 13); else camera.position.set(20, 10, 40);
+    // From the hub the camera stays exactly where it is (whatever the hub's slow orbit or a
+    // scroll-zoom left it at); the zoom below eases it from there.
+    if (!fromHubRef.current) camera.position.set(20, 10, 40);
     lookTarget.current.set(0, 0, 0);
     camera.lookAt(lookTarget.current);
 
@@ -46,17 +48,21 @@ export default function useInterferenceCinematic({ stage, subStage, camera, scen
       intro.scale.setScalar(0.7 * handoff.qubitScale);
       handoff.qubitScale = 1;
       intro.position.y = -0.8;
-      tl.to(intro.scale, { x: 1, y: 1, z: 1, duration: 2.5, ease: 'power2.inOut' }, 0);
-      tl.to(intro.position, { y: 0, duration: 2.5, ease: 'power2.inOut' }, 0);
+      tl.to(intro.scale, { x: 1, y: 1, z: 1, duration: 2.2, ease: 'sine.inOut' }, 0);
+      tl.to(intro.position, { y: 0, duration: 2.2, ease: 'sine.inOut' }, 0);
     }
 
     if (audioRef.current?.playCameraPan) audioRef.current.playCameraPan(2.5, 'zoom-in');
 
     // Step 1: Zoom in to center
+    // From the hub the move starts gently-but-immediately (the same ease would sit nearly still
+    // for the first half second).
+    const zoomEase = fromHubRef.current ? 'sine.inOut' : 'power2.inOut';
+    const zoomDur = fromHubRef.current ? 2.2 : 2.5;
     tl.to(camera.position, {
       x: 0, y: 1, z: 12,
-      duration: 2.5,
-      ease: 'power2.inOut'
+      duration: zoomDur,
+      ease: zoomEase
     });
 
     // Step 2: Strafe camera + lookAt target rightward simultaneously
