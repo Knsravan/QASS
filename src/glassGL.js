@@ -148,6 +148,75 @@ function opacityOf(el, s, now) {
 const OVERLAP_PX = 16;
 const overlaps = (a, b) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > OVERLAP_PX && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > OVERLAP_PX;
 
+// ─── Page content behind glass ──────────────────────────────────────────────
+// The WebGL glass bends what the scene draws; plain page content (a badge,
+// a label, loose text, an icon) is not in the scene. Glass with such content
+// behind it keeps its CSS glass instead, whose lens bends everything behind
+// it. Text and icons that are inside glass are left out here: glass over glass
+// is handled by the overlap rule.
+const CONTENT_PX = 6;
+const IN_GLASS = '.lg-lensed, .lg, .lg-pane, .lg-bar, [data-gl]';
+let contentAt = -1e9;
+let content = [];            // { el, r: DOMRect }
+function contentBehind(now) {
+  if (now - contentAt < 400) return content;
+  contentAt = now;
+  content = [];
+  const range = document.createRange();
+  const add = (el, r) => { if (r.width > 2 && r.height > 2) content.push({ el, r }); };
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, {
+    acceptNode: (n) => {
+      if (n.nodeType === 1) {
+        const t = n.tagName;
+        if (t === 'SCRIPT' || t === 'STYLE' || t === 'CANVAS' || n.classList.contains('visually-hidden')) return NodeFilter.FILTER_REJECT;
+        return t === 'svg' || t === 'IMG' ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
+      }
+      return n.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+    },
+  });
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (n.nodeType === 1) {
+      if (n.closest(IN_GLASS) || n.closest('svg') !== n) continue;
+      const r = n.getBoundingClientRect();
+      if (r.width <= 160 && r.height <= 160) { add(n, r); continue; }
+      // A big drawing layer: what it draws counts, not its box.
+      let k = 0;
+      for (const shape of n.querySelectorAll('path, line, circle, ellipse, rect, polyline, polygon')) {
+        if (++k > 80) break;
+        const cs = getComputedStyle(shape);
+        if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) < 0.05) continue;
+        add(shape, shape.getBoundingClientRect());
+      }
+    } else {
+      const el = n.parentElement;
+      if (!el || el.closest(IN_GLASS)) continue;
+      range.selectNodeContents(n);
+      add(el, range.getBoundingClientRect());
+    }
+  }
+  return content;
+}
+const zOf = (el) => {
+  const chain = [];
+  for (let n = el; n && n !== document.body; n = n.parentElement) {
+    const cs = getComputedStyle(n);
+    if (cs.position !== 'static' && cs.zIndex !== 'auto') chain.unshift(parseInt(cs.zIndex, 10) || 0);
+  }
+  return chain;
+};
+// Whether plain content sits under this glass piece (kept for a moment after
+// it was last seen, so a piece doesn't flip between the two looks).
+function hasContentBehind(g, now) {
+  const { r, s } = g;
+  for (const c of contentBehind(now)) {
+    if (g.el.contains(c.el)) continue;
+    if (Math.min(r.right, c.r.right) - Math.max(r.left, c.r.left) <= CONTENT_PX) continue;
+    if (Math.min(r.bottom, c.r.bottom) - Math.max(r.top, c.r.top) <= CONTENT_PX) continue;
+    if (paintOrder({ el: c.el, z: zOf(c.el) }, g) < 0) { s.behindAt = now; break; }
+  }
+  return !!s.behindAt && now - s.behindAt < 700;
+}
+
 const later = (a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? b : a);
 
 // Paint order, roughly as CSS stacks it: the z-index of every positioned
@@ -217,7 +286,7 @@ export function glassFrame() {
   // sees the page under it, until it no longer overlaps.
   for (const [c, list] of byCanvas) {
     list.sort(paintOrder);
-    const drawn = list.filter((g, i) => !list.slice(0, i).some((u) => !u.el.contains(g.el) && overlaps(u.r, g.r)));
+    const drawn = list.filter((g, i) => !list.slice(0, i).some((u) => !u.el.contains(g.el) && overlaps(u.r, g.r)) && !hasContentBehind(g, now));
     byCanvas.set(c, drawn);
     drawn.forEach((g) => keep.add(g.el));
   }
