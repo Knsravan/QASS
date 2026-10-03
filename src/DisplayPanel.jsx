@@ -1,5 +1,4 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useQuality } from './QualityScene';
 import { PARTS, qualityInfo, setDisplayLevel, setDisplayPart } from './quality';
 
@@ -81,58 +80,39 @@ export function DisplayPanelIcon() {
   );
 }
 
-export default function DisplayPanel({ open, anchor, onClose }) {
+export default function DisplayPanel({ open, onClose }) {
   const q = useQuality();
   const info = qualityInfo();
   const ref = useRef(null);
   const titleId = useId();
-  const [pos, setPos] = useState({ top: 76, left: 0 });
 
-  // Sits under its button, kept on screen.
-  useEffect(() => {
-    if (!open || !anchor) return undefined;
-    const place = () => {
-      const r = anchor.getBoundingClientRect();
-      const w = Math.min(380, window.innerWidth - 24);
-      setPos({ top: r.bottom + 12, left: Math.max(12, Math.min(window.innerWidth - w - 12, r.right - w + 24)), width: w });
-    };
-    place();
-    window.addEventListener('resize', place);
-    return () => window.removeEventListener('resize', place);
-  }, [open, anchor]);
-
-  // Escape or a click outside closes it; focus moves in when it opens.
+  // Escape closes it; focus moves in when it opens.
   useEffect(() => {
     if (!open) return undefined;
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
-    const onDown = (e) => { if (!ref.current?.contains(e.target) && !anchor?.contains(e.target)) onClose(); };
+    const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
     window.addEventListener('keydown', onKey);
-    document.addEventListener('pointerdown', onDown, true);
-    requestAnimationFrame(() => ref.current?.querySelector('button.is-on, button')?.focus());
-    return () => { window.removeEventListener('keydown', onKey); document.removeEventListener('pointerdown', onDown, true); };
-  }, [open, onClose, anchor]);
+    requestAnimationFrame(() => ref.current?.querySelector('button.is-on, button')?.focus({ preventScroll: true }));
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
 
-  if (!open) return null;
   const custom = Object.keys(info.parts).length > 0;
   const level = info.level;
   const recommended = LEVEL_NAME[info.deviceTier];
 
-  return createPortal(
-    <div
+  return (
+    <section
       ref={ref}
-      className="dp glass-panel"
-      role="dialog"
+      className={`sidebar-display dp${open ? ' is-open' : ''}`}
       aria-labelledby={titleId}
-      style={{ top: pos.top, left: pos.left, width: pos.width }}
+      aria-hidden={!open || undefined}
+      inert={!open || undefined}
     >
-      {/* The content scrolls inside the glass, so the glass (and its blur)
-          stays put. */}
       <div className="dp-scroll">
-      <div className="dp-head">
-        <h2 id={titleId}>Display &amp; accessibility</h2>
-        <Fps />
-        <button type="button" className="dp-close" aria-label="Close" onClick={onClose}>×</button>
-      </div>
+        <div className="dp-head">
+          <h2 id={titleId}>Display &amp; accessibility</h2>
+          {open && <Fps />}
+          <button type="button" className="dp-close" aria-label="Close" onClick={onClose}>×</button>
+        </div>
 
       <div className="dp-section">
         <Segmented
@@ -168,7 +148,6 @@ export default function DisplayPanel({ open, anchor, onClose }) {
         <span>Saved on this device</span>
       </div>
       </div>
-    </div>,
-    document.body,
+    </section>
   );
 }

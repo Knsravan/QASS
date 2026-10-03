@@ -1498,10 +1498,11 @@ function App() {
     });
   };
 
-  // Display & Accessibility panel (DisplayPanel.jsx), opened from the top bar.
+  // Display & Accessibility (DisplayPanel.jsx): a page of the sidebar, opened
+  // from the button in its header.
   const [displayOpen, setDisplayOpen] = useState(false);
-  const displayButtonRef = useRef(null);
   const closeDisplay = useCallback(() => setDisplayOpen(false), []);
+  useEffect(() => { if (!isSidebarOpen) setDisplayOpen(false); }, [isSidebarOpen]);
 
   // A returning visitor who skips the landing page but has never had the
   // device test gets the loading screen and the full test first.
@@ -1942,7 +1943,21 @@ function App() {
                 <span className="sidebar-branding-title">QASS</span>
                 <span className="sidebar-branding-tag">Interactive Suite</span>
               </div>
+              {isSidebarOpen && (
+                <button
+                  type="button"
+                  className={`sidebar-display-btn${displayOpen ? ' is-active' : ''}`}
+                  onClick={() => setDisplayOpen((o) => !o)}
+                  aria-label="Display & accessibility"
+                  aria-expanded={displayOpen}
+                  title="Display & accessibility"
+                >
+                  <DisplayPanelIcon />
+                </button>
+              )}
             </div>
+
+            <div className="sidebar-body">
 
             {learningMode === 'beginner' ? (
               <SidebarPages
@@ -2013,6 +2028,8 @@ function App() {
                 </div>
               </div>
             )}
+            <DisplayPanel open={displayOpen} onClose={closeDisplay} />
+            </div>
           </div>
 
           <button
@@ -2044,15 +2061,7 @@ function App() {
                 onClick: handleToggleGlobalAudio,
                 icon: <MorphAudioIcon isMuted={isGlobalMuted} size={22} color="currentColor" />,
               }}
-              extra={{
-                label: 'Display & accessibility',
-                active: displayOpen,
-                ref: displayButtonRef,
-                onClick: () => setDisplayOpen((o) => !o),
-                icon: <DisplayPanelIcon />,
-              }}
             />
-            <DisplayPanel open={displayOpen} anchor={displayButtonRef.current} onClose={closeDisplay} />
 
             {activeModuleId && activeModuleId !== 'superposition' && activeModuleId !== 'dirac-notation' && activeModuleId !== 'multi-qubit-gates' && activeModuleId !== 'interference' && activeModuleId !== 'entanglement' && activeModuleId !== 'exponential' && activeModuleId !== 'nocloning' && activeModuleId !== 'decoherence' && activeModuleId !== 'error-correction' && (
               <div style={{ position: 'absolute', top: '80px', left: '50%', width: '0px', display: 'flex', justifyContent: 'center', zIndex: 10, pointerEvents: 'none' }}>

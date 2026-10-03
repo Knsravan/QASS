@@ -5451,19 +5451,81 @@ div:has(> canvas) {
   color: #ffffff;
 }
 
+.sidebar-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Display & accessibility: a page of the sidebar, sliding in over the list
+   like a module's page (the sidebar's own glass is behind it). */
 .dp {
-  position: fixed;
-  z-index: 3000;
-  max-height: calc(100vh - 100px);
+  position: absolute;
+  inset: 0;
+  z-index: 5;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-radius: 22px;
   color: #e8eef8;
   font-family: 'Inter', system-ui, sans-serif;
+  transform: translateX(100%);
+  visibility: hidden;
+  transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s linear 0.5s;
+}
+
+.dp.is-open {
+  transform: none;
+  visibility: visible;
+  transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s;
+}
+
+/* The page under it steps back (and out of the tab order) while it is open. */
+.sidebar-body > .sidebar-nav,
+.sidebar-body > .sidebar-scrollable-content {
+  transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.5s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s;
+}
+.sidebar-body:has(> .dp.is-open) > .sidebar-nav,
+.sidebar-body:has(> .dp.is-open) > .sidebar-scrollable-content {
+  transform: translateX(-28%);
+  opacity: 0;
+  visibility: hidden;
+  transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.5s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s linear 0.5s;
+}
+
+[data-motion="reduced"] .dp,
+[data-motion="reduced"] .sidebar-body > * { transition-duration: 0.01ms !important; }
+
+.sidebar-display-btn {
+  all: unset;
+  margin-left: auto;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.sidebar-display-btn:hover,
+.sidebar-display-btn.is-active {
+  color: #fff;
+  background: rgba(62, 230, 255, 0.16);
+}
+
+.sidebar-display-btn:focus-visible {
+  outline: 2px solid #3ee6ff;
+  outline-offset: 2px;
 }
 
 .dp-scroll {
+  flex: 1;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
