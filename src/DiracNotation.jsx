@@ -322,7 +322,7 @@ export function DiracOverlay({ step, onNext, onPrev, theme, isMuted, onToggleMut
       <div style={{
         position: 'absolute', top: '64px', left: '50%', transform: 'translateX(-50%)',
         display: 'flex', gap: '6px', zIndex: 300, alignItems: 'center', pointerEvents: 'none',
-      }}>
+      }} data-jelly-fade>
         {STEPS.map((s, i) => (
           <div key={i} style={{
             width: i === step ? '24px' : '7px',

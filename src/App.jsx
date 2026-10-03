@@ -1321,11 +1321,13 @@ function App() {
   const [learningMode, setLearningMode] = useState(() => readStorage('quantumUI_learningMode') === 'advanced' ? 'advanced' : 'beginner');
   const [activeModuleId, setActiveModuleId] = useState(moduleFromHash); // the hub unless the URL names a module
   // What the stage (3D scene and its overlay) shows. It follows the open
-  // module, except that opening Dirac Notation from the hub first lets the
-  // hub's scene vanish, then brings Dirac's in, then pops its cards.
+  // module, except in the choreographed moves:
+  //  - hub -> Dirac Notation: the hub's scene vanishes, Dirac's comes in, its cards pop;
+  //  - Dirac Notation -> hub: the reverse (cards out, scene out, hub scene in, hub pops);
+  //  - hub -> Superposition: the shared scene morphs in place, then the cards pop.
   const [stageId, setStageId] = useState(activeModuleId);
-  const [stagePhase, setStagePhase] = useState('idle'); // 'vanish' | 'enter' | 'idle'
-  const [jellyReady, setJellyReady] = useState(false);
+  const [stagePhase, setStagePhase] = useState('idle'); // 'vanish' | 'enter' | 'morph' | 'idle'
+  const [jellyState, setJellyState] = useState('');     // '' | 'wait' | 'run' | 'out'
   useEffect(() => {
     if (activeModuleId === stageId) return undefined;
     if (stageId === null && activeModuleId === 'dirac-notation') {
@@ -1335,23 +1337,50 @@ function App() {
       const t = setTimeout(() => {
         done = true;
         skipNextSnapshot();
-        setJellyReady(false);
+        setJellyState('wait');
         setStagePhase('enter');
         setStageId(activeModuleId);
       }, 600);
       return () => { clearTimeout(t); if (!done) { setStagePhase('idle'); showSharedCanvas(); } };
     }
+    if (stageId === 'dirac-notation' && activeModuleId === null) {
+      let done = false;
+      setStagePhase('closing');
+      setJellyState('out');
+      const t1 = setTimeout(() => fadeOutSharedCanvas(450), 550);
+      const t2 = setTimeout(() => {
+        done = true;
+        skipNextSnapshot();
+        setJellyState('wait');
+        setStagePhase('enter');
+        setStageId(null);
+      }, 1050);
+      return () => { clearTimeout(t1); clearTimeout(t2); if (!done) { setStagePhase('idle'); setJellyState(''); showSharedCanvas(); } };
+    }
+    if (stageId === null && activeModuleId === 'superposition') {
+      setJellyState('wait');
+      setStagePhase('morph');
+      setStageId(activeModuleId);
+      return undefined;
+    }
     setStagePhase('idle');
+    setJellyState('');
     setStageId(activeModuleId);
     return undefined;
   }, [activeModuleId, stageId]);
-  // Cards pop once the scene has faded in.
+  // The pop starts once the new scene is in: after it has faded in, or after the morph.
   useEffect(() => {
-    if (stagePhase !== 'enter') return undefined;
-    let t2 = 0;
-    const off = onSharedCanvasRevealed(() => { t2 = setTimeout(() => setJellyReady(true), 420); });
-    const t3 = setTimeout(() => setJellyReady(true), 4000); // never leave the cards hidden
-    return () => { off(); clearTimeout(t2); clearTimeout(t3); };
+    if (stagePhase === 'enter') {
+      let t2 = 0;
+      const off = onSharedCanvasRevealed(() => { t2 = setTimeout(() => setJellyState('run'), 420); });
+      const t3 = setTimeout(() => setJellyState('run'), 4000); // never leave the cards hidden
+      return () => { off(); clearTimeout(t2); clearTimeout(t3); };
+    }
+    if (stagePhase === 'morph') {
+      const t = setTimeout(() => setJellyState('run'), 1000);
+      return () => clearTimeout(t);
+    }
+    return undefined;
   }, [stagePhase]);
   // The hub's text stays mounted while it fades out after a module opens.
   const hubShown = useExitPresence(!stageId, 650);
@@ -2089,7 +2118,7 @@ function App() {
         </div>
 
         {/* ── Right Content & 3D Canvas (flex-grow: 1, naturally centered) ── */}
-        <div className="canvas-container">
+        <div className="canvas-container" data-jelly-state={jellyState || undefined}>
 
           {/* Floating chrome sits above every module's overlay layer (those use
               uiBoundsStyle's z-index 10 too, and render later in the DOM). */}
@@ -2242,7 +2271,7 @@ function App() {
                 <CameraShifter isSidebarOpen={isSidebarOpen} />
                 <DiracScene step={diracStep} theme={theme} />
               </SharedCanvas>
-              <div style={uiBoundsStyle} className={stagePhase === 'enter' ? (jellyReady ? 'module-jelly' : 'module-jelly-wait') : undefined}>
+              <div style={uiBoundsStyle}>
                 <DiracOverlay
                   step={diracStep}
                   theme={theme}
@@ -2294,14 +2323,14 @@ function App() {
                 display: 'flex', flexDirection: 'column', alignItems: 'center',
                 animation: 'idleFadeIn 1s ease-out 0.4s both', pointerEvents: 'none',
                 zIndex: 100
-              }}>
-                <h1 style={{ fontSize: '36px', fontWeight: 700, color: 'var(--text-primary)', textShadow: theme === 'light' ? '0 2px 10px rgba(0,0,0,0.06)' : '0 4px 20px rgba(0,0,0,0.5)', margin: '0 0 16px 0', fontFamily: "'Deltha', 'Inter', sans-serif", letterSpacing: '0.8px' }}>Where do you want to start today?</h1>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0ea5e9', fontWeight: 600, fontSize: '16px', fontFamily: "'Space Grotesk', 'Plus Jakarta Sans', 'Inter', sans-serif" }}>
+              }} data-jelly-host>
+                <h1 data-jelly style={{ '--j': 0, fontSize: '36px', fontWeight: 700, color: 'var(--text-primary)', textShadow: theme === 'light' ? '0 2px 10px rgba(0,0,0,0.06)' : '0 4px 20px rgba(0,0,0,0.5)', margin: '0 0 16px 0', fontFamily: "'Deltha', 'Inter', sans-serif", letterSpacing: '0.8px' }}>Where do you want to start today?</h1>
+                <div data-jelly style={{ '--j': 1, display: 'flex', alignItems: 'center', gap: '8px', color: '#0ea5e9', fontWeight: 600, fontSize: '16px', fontFamily: "'Space Grotesk', 'Plus Jakarta Sans', 'Inter', sans-serif" }}>
                   <span style={{ animation: 'pulseHint 2s infinite ease-in-out' }}>◀</span>
                   <span>Pick a concept to explore</span>
                 </div>
                 {/* Contextual Smart Default CTA */}
-                <div style={{ marginTop: '24px', pointerEvents: 'auto' }}>
+                <div data-jelly style={{ '--j': 2, marginTop: '24px', pointerEvents: 'auto' }}>
                   <div
                     className="idle-hud-cta glass-interactive"
                     role="button"
@@ -2330,7 +2359,7 @@ function App() {
               </div>
 
               {/* Fact Ticker */}
-              <div className={`idle-fact-ticker glass-interactive ${isFactFading ? 'fading' : ''}`}>
+              <div className={`idle-fact-ticker glass-interactive ${isFactFading ? 'fading' : ''}`} data-jelly style={{ '--j': 3, '--tx': '-50%' }}>
                 <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1.4px', color: 'var(--text-tertiary)', marginBottom: '10px', fontWeight: 800, fontFamily: "'Deltha', 'Inter', sans-serif" }}>Did You Know?</div>
                 <div style={{ fontSize: '14px', color: 'var(--text-primary)', lineHeight: 1.55, marginBottom: '16px', minHeight: '42px', fontWeight: 500, fontFamily: "'Space Grotesk', 'Plus Jakarta Sans', 'Inter', sans-serif" }}>
                   {IDLE_FACTS[idleFactIdx].text}

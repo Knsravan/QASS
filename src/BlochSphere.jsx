@@ -1592,7 +1592,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
                   transition: 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
                   pointerEvents: 'none',
                 }}>
-                  <div className={`glass-tooltip glass-tooltip-corner ${hasMeasured && i === 3
+                  <div data-jelly className={`glass-tooltip glass-tooltip-corner ${hasMeasured && i === 3
                       ? (globalMeasuredValue === 0 ? 'cyan-glow' : 'purple-glow')
                       : (i === 0 ? 'cyan-glow' : i === 1 ? 'purple-glow' : i === 2 ? 'cyan-glow' : 'red-glow')
                     }`} style={{
