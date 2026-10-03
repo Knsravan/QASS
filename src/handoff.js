@@ -3,4 +3,7 @@ export const handoff = {
   // The hub's lone qubit's scale relative to the hub's own size, as it was when the
   // module took over (Quantum Interference starts its intro from this size).
   qubitScale: 1,
+  // Half the gap between Alice and Bob in the Entanglement scene (the distance slider moves it);
+  // the hub's pair starts a close from there.
+  entPairX: 4.6,
 };

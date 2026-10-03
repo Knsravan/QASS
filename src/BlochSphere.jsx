@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useLayoutEffect } from 'react';
+import React, { useRef, useState, useEffect, useLayoutEffect, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Html, PresentationControls } from '@react-three/drei';
 import { useSpring, a } from '@react-spring/three';
@@ -148,8 +148,11 @@ const _CAM_TARGETS_BS = [
 const _DEFAULT_CAM_BS = new THREE.Vector3(0, 0, 13);
 const _tmpGoal = new THREE.Color();
 const _tmpV = new THREE.Vector3();
+const _tmpL = new THREE.Vector3();
 const _tmpM = new THREE.Matrix4();
 const _Q_UP = new THREE.Quaternion(); // |0>: the arrow straight up
+const _LIGHTS_HUB = [[8, 8, 8], [-8, -8, -8]];
+const _LIGHTS_ENT = [[8, 12, 8], [-8, -12, -8]];
 const _ORIGIN_BS = new THREE.Vector3(0, 0, 0);
 const _tempColor1_BS = new THREE.Color();
 const _tempColor2_BS = new THREE.Color();
@@ -1191,33 +1194,42 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
   const targetRig = useRef();
   const ctlLabel = useRef();
   const tgtLabel = useRef();
-  const targetX = useRef(multi === 'zoom' ? 2 : multi === 'split' ? 2.4 : 0);
-  const targetY = useRef(multi === 'zoom' ? 1.2 : 0);
-  const targetS = useRef(multi === 'zoom' ? 1 : 1.2);
-  const [targetOn, setTargetOn] = useState(multi === 'split' || multi === 'zoom');
   const isMulti = activeModule === 'multi-qubit-gates'; // the hub's scene standing in for Multi Qubit Gates
+  const isEnt = activeModule === 'entanglement';        // ... or for Entanglement (Alice and Bob)
+  const isPair = isMulti || isEnt;
+  const entX0 = handoff.entPairX || 4.6;
+  const targetX = useRef(multi === 'zoom' ? (isEnt ? entX0 : 2) : multi === 'split' ? 2.4 : 0);
+  const targetY = useRef(multi === 'zoom' && !isEnt ? 1.2 : 0);
+  const targetS = useRef(multi === 'zoom' ? (isEnt ? 1.15 : 1) : 1.2);
+  const [targetOn, setTargetOn] = useState(multi === 'split' || multi === 'zoom');
   // The pair's poses: 'center' (one qubit, hub size), 'split' (two, hub size), 'zoom' (two, the
   // module's size and places). Positions are in the rig's units: spheres touch at 2.4 (hub) / 2 (module).
-  const mz = isMulti && multi === 'zoom';
-  const mSplit = isMulti && (multi === 'split' || multi === 'zoom');
-  const pairX = mz ? 2 : 2.4;
+  // (Entanglement's zoom: Alice and Bob stand 4.6 either side of the middle at 1.15 size, on the axis.)
+  const mz = isPair && multi === 'zoom';
+  const mSplit = isPair && (multi === 'split' || multi === 'zoom');
+  const zoomY = isEnt ? 0 : 1.2;                      // the pair's height in the zoomed pose (rig units)
+  const zoomS = isEnt ? 1.15 / 1.2 : 1 / 1.2;         // the first qubit's scale there (relative to its 1.2)
+  const zoomT = isEnt ? 1.15 : 1;                     // the second qubit's scale there
   const settleCam = useRef(0);
   const centerD0 = useRef(null);
+  // Entanglement lights its pair from a little higher; the lights glide there as the pair zooms in
+  // (and back as it zooms out). They start where the scene was handing over.
+  const lightStart = useMemo(() => (isEnt && multi === 'zoom' ? _LIGHTS_ENT : _LIGHTS_HUB), []); // eslint-disable-line react-hooks/exhaustive-deps
   useLayoutEffect(() => {
     // First paint at the right size (no growth on a direct load).
     const rig = rigRef.current;
-    const zoomed = activeModule === 'multi-qubit-gates' && multi === 'zoom';
+    const zoomed = isPair && multi === 'zoom';
     if (rig) {
-      rig.scale.setScalar(!activeModule ? 0.7 : activeModule === 'multi-qubit-gates' ? (zoomed ? 1 : 0.7) : 1);
-      rig.position.y = !activeModule ? -0.8 : activeModule === 'multi-qubit-gates' ? (zoomed ? -0.5 : -0.8) : activeModule === 'gates' ? -0.5 : 0;
+      rig.scale.setScalar(!activeModule ? 0.7 : isPair ? (zoomed ? 1 : 0.7) : 1);
+      rig.position.y = !activeModule ? -0.8 : isMulti ? (zoomed ? -0.5 : -0.8) : isEnt ? (zoomed ? 0 : -0.8) : activeModule === 'gates' ? -0.5 : 0;
     }
-    const solo = activeModule === 'superposition' || activeModule === 'interference' || activeModule === 'multi-qubit-gates' || centerOnly;
+    const solo = activeModule === 'superposition' || activeModule === 'interference' || isPair || centerOnly;
     if (leftRig.current) leftRig.current.scale.setScalar(solo ? 0.0001 : 1);
     if (solo) setBitOn(false);
     if (rightRig.current) {
-      rightRig.current.position.x = activeModule === 'multi-qubit-gates' ? (zoomed ? -2 : multi === 'split' ? -2.4 : 0) : solo ? 0 : 4.2;
-      rightRig.current.position.y = zoomed ? 1.2 : 0;
-      rightRig.current.scale.setScalar(zoomed ? 1 / 1.2 : 1);
+      rightRig.current.position.x = isPair ? (zoomed ? -(isEnt ? entX0 : 2) : multi === 'split' ? -2.4 : 0) : solo ? 0 : 4.2;
+      rightRig.current.position.y = zoomed ? zoomY : 0;
+      rightRig.current.scale.setScalar(zoomed ? zoomS : 1);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1269,7 +1281,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
     const first = !camReady.current;
     camReady.current = true;
     if (!activeModule || !controlsRef.current || !camera) return;
-    if (first && (activeModule === 'gates' || activeModule === 'multi-qubit-gates' || activeModule === 'interference')) {
+    if (first && (activeModule === 'gates' || activeModule === 'multi-qubit-gates' || activeModule === 'interference' || activeModule === 'entanglement')) {
       // Standing in for a module's scene: the camera is where that module left it.
     } else if (first) {
       camera.position.set(0, 0, 13);
@@ -1329,14 +1341,14 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
     if (rigRef.current) {
       const rig = rigRef.current;
       const k = 1 - Math.exp(-(vanishing ? 7 : 2.5) * Math.min(delta, 0.1));
-      const ts = vanishing ? 0.0001 : !activeModule ? 0.7 : isMulti ? (mz ? 1 : 0.7) : 1;
-      const ty = !activeModule ? -0.8 : isMulti ? (mz ? -0.5 : -0.8) : activeModule === 'gates' ? -0.5 : 0;
+      const ts = vanishing ? 0.0001 : !activeModule ? 0.7 : isPair ? (mz ? 1 : 0.7) : 1;
+      const ty = !activeModule ? -0.8 : isMulti ? (mz ? -0.5 : -0.8) : isEnt ? (mz ? 0 : -0.8) : activeModule === 'gates' ? -0.5 : 0;
       rig.scale.setScalar(rig.scale.x + (ts - rig.scale.x) * k);
       rig.position.y += (ty - rig.position.y) * k;
     }
     // Superposition is the qubit alone: the classical bit shrinks away and the qubit slides to the middle.
     {
-      const solo = activeModule === 'superposition' || activeModule === 'interference' || activeModule === 'multi-qubit-gates' || centerOnly;
+      const solo = activeModule === 'superposition' || activeModule === 'interference' || isPair || centerOnly;
       const k = 1 - Math.exp(-(centerOnly ? 7 : solo ? 4.2 : 2.5) * Math.min(delta, 0.1));
       const l = leftRig.current;
       if (l) {
@@ -1348,16 +1360,21 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
       }
       const r = rightRig.current;
       const km = 1 - Math.exp(-2.6 * Math.min(delta, 0.1)); // the move / split / zoom glide
+      const pairX = mz ? (isEnt ? (handoff.entPairX || 4.6) : 2) : 2.4; // half the gap between the pair
+      if (isEnt && !mz) handoff.entPairX = 4.6; // a fresh open starts from the module's default spacing
+      const lg = isEnt && mz ? _LIGHTS_ENT : _LIGHTS_HUB;
+      if (light1Ref.current) light1Ref.current.position.lerp(_tmpL.set(...lg[0]), km);
+      if (light2Ref.current) light2Ref.current.position.lerp(_tmpL.set(...lg[1]), km);
       if (r) {
-        const goalX = isMulti ? (mSplit ? -pairX : 0) : solo ? 0 : 4.2;
-        r.position.x += (goalX - r.position.x) * (isMulti ? km : k);
-        r.position.y += ((mz ? 1.2 : 0) - r.position.y) * km;
-        r.scale.setScalar(r.scale.x + ((mz ? 1 / 1.2 : 1) - r.scale.x) * km);
+        const goalX = isPair ? (mSplit ? -pairX : 0) : solo ? 0 : 4.2;
+        r.position.x += (goalX - r.position.x) * (isPair ? km : k);
+        r.position.y += ((mz ? zoomY : 0) - r.position.y) * km;
+        r.scale.setScalar(r.scale.x + ((mz ? zoomS : 1) - r.scale.x) * km);
       }
       // The second qubit of the pair splits off the first and glides to its place.
       targetX.current += ((mSplit ? pairX : 0) - targetX.current) * km;
-      targetY.current += ((mz ? 1.2 : 0) - targetY.current) * km;
-      targetS.current += ((mz ? 1 : 1.2) - targetS.current) * km;
+      targetY.current += ((mz ? zoomY : 0) - targetY.current) * km;
+      targetS.current += ((mz ? zoomT : 1.2) - targetS.current) * km;
       if (targetRig.current) { targetRig.current.position.set(targetX.current, targetY.current, 0); targetRig.current.scale.setScalar(targetS.current); }
       if (r && ctlLabel.current) { ctlLabel.current.position.set(r.position.x, r.position.y, 0); ctlLabel.current.scale.setScalar(r.scale.x * 1.2); }
       if (tgtLabel.current) { tgtLabel.current.position.set(targetX.current, targetY.current, 0); tgtLabel.current.scale.setScalar(targetS.current); }
@@ -1444,11 +1461,11 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
   return (
     <>
       <QualityComposer disableNormalPass>
-        <Bloom luminanceThreshold={0.3} mipmapBlur intensity={activeModule === 'gates' || activeModule === 'multi-qubit-gates' ? 0.4 : 0.6} />
+        <Bloom luminanceThreshold={0.3} mipmapBlur intensity={activeModule === 'gates' || activeModule === 'multi-qubit-gates' ? 0.4 : isEnt ? 0.45 : 0.6} />
       </QualityComposer>
       <ambientLight intensity={isLight ? 0.8 : 0.5} />
-      <pointLight ref={light1Ref} position={[8, 8, 8]} color="#00f2fe" intensity={isLight ? 12 : 8} distance={30} />
-      <pointLight ref={light2Ref} position={[-8, -8, -8]} color="#f093fb" intensity={isLight ? 12 : 8} distance={30} />
+      <pointLight ref={light1Ref} position={lightStart[0]} color="#00f2fe" intensity={isLight ? 12 : 8} distance={30} />
+      <pointLight ref={light2Ref} position={lightStart[1]} color="#f093fb" intensity={isLight ? 12 : 8} distance={30} />
 
       {activeModule !== 'interference' && (
         <OrbitControls
@@ -1519,32 +1536,40 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
         </Html>
       )}
 
-      {isMulti && (
+      {isPair && (
         <>
-          <group ref={ctlLabel}>
-            <Html position={[0, -2.6, 0]} center>
-              <div className="mq-extra" style={{ color: '#eab308', fontWeight: 'bold', fontSize: '15px', textShadow: '0 0 10px #eab30880', whiteSpace: 'nowrap', letterSpacing: '1px', opacity: multi === 'merge' ? 0 : 1, transition: 'opacity 0.35s' }}>Control</div>
-            </Html>
-          </group>
+          {isMulti && (
+            <group ref={ctlLabel}>
+              <Html position={[0, -2.6, 0]} center>
+                <div className="mq-extra" style={{ color: '#eab308', fontWeight: 'bold', fontSize: '15px', textShadow: '0 0 10px #eab30880', whiteSpace: 'nowrap', letterSpacing: '1px', opacity: multi === 'merge' ? 0 : 1, transition: 'opacity 0.35s' }}>Control</div>
+              </Html>
+            </group>
+          )}
           {targetOn && (
             <>
               <group ref={targetRig} position={[targetX.current, targetY.current, 0]} scale={targetS.current}>
-                <QubitCore
-                  activeModule="multi-qubit-gates"
-                  theme={theme}
-                  customVectorQuat={_Q_UP}
-                  showCustomVector={true}
-                  customGridColor="#0284c7"
-                  customRingColor="#38bdf8"
-                  emissiveColor="#0ea5e9"
-                  fadeExtras
-                />
+                {isEnt ? (
+                  <QubitCore activeModule="entanglement" theme={theme} customVectorQuat={_Q_UP} showCustomVector={true} emissiveColor="#00f2fe" />
+                ) : (
+                  <QubitCore
+                    activeModule="multi-qubit-gates"
+                    theme={theme}
+                    customVectorQuat={_Q_UP}
+                    showCustomVector={true}
+                    customGridColor="#0284c7"
+                    customRingColor="#38bdf8"
+                    emissiveColor="#0ea5e9"
+                    fadeExtras
+                  />
+                )}
               </group>
-              <group ref={tgtLabel} position={[targetX.current, targetY.current, 0]} scale={targetS.current}>
-                <Html position={[0, -2.6, 0]} center>
-                  <div className="mq-extra" style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '15px', textShadow: '0 0 10px #38bdf880', whiteSpace: 'nowrap', letterSpacing: '1px', opacity: mSplit ? 1 : 0, transition: 'opacity 0.35s' }}>Target</div>
-                </Html>
-              </group>
+              {isMulti && (
+                <group ref={tgtLabel} position={[targetX.current, targetY.current, 0]} scale={targetS.current}>
+                  <Html position={[0, -2.6, 0]} center>
+                    <div className="mq-extra" style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '15px', textShadow: '0 0 10px #38bdf880', whiteSpace: 'nowrap', letterSpacing: '1px', opacity: mSplit ? 1 : 0, transition: 'opacity 0.35s' }}>Target</div>
+                  </Html>
+                </group>
+              )}
             </>
           )}
         </>
@@ -1623,7 +1648,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
                 onDomainUnhover={() => handleUnhoverDomain('right')} 
               />
             ) : (
-              <QubitCore position={[0, 0, 0]} scale={1.2} theme={theme} activeModule={activeModule} isDecohering={isDecohering} customVectorQuat={isMulti || centerOnly ? _Q_UP : undefined} showCustomVector={isMulti || centerOnly || undefined} emissiveColor={isMulti ? '#eab308' : undefined} fadeExtras={isMulti} onDomainHover={() => handleHoverDomain('right')} onDomainUnhover={() => handleUnhoverDomain('right')} />
+              <QubitCore position={[0, 0, 0]} scale={1.2} theme={theme} activeModule={activeModule} isDecohering={isDecohering} customVectorQuat={isPair || centerOnly ? _Q_UP : undefined} showCustomVector={isPair || centerOnly || undefined} emissiveColor={isMulti ? '#eab308' : isEnt ? '#00f2fe' : undefined} fadeExtras={isMulti} onDomainHover={() => handleHoverDomain('right')} onDomainUnhover={() => handleUnhoverDomain('right')} />
             )}
           </group>
         </PresentationControls>
