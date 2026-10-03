@@ -1335,6 +1335,8 @@ function App() {
   const [EntanglementLoaded, setEntanglementLoaded] = useState(null); // Entanglement, once its code is in (same reason)
   const [NoCloningLoaded, setNoCloningLoaded] = useState(null); // No-Cloning, once its code is in
   const [ncFromHub, setNcFromHub] = useState(false); // No-Cloning opens from the hub (its models bounce in after the hub's have gone)
+  const [DecoherenceLoaded, setDecoherenceLoaded] = useState(null); // Decoherence, once its code is in
+  const [decFromHub, setDecFromHub] = useState(false); // Decoherence opens from the hub's qubit (its qubits arrive in place)
   const [ExponentialLoaded, setExponentialLoaded] = useState(null);   // Exponential State Space, likewise
   const [expFromHub, setExpFromHub] = useState(false); // Exponential State Space opens from the hub's lone qubit (its ring draws on)
   const [interferenceFromHub, setInterferenceFromHub] = useState(false); // Quantum Interference opens from the hub's lone qubit
@@ -1407,18 +1409,21 @@ function App() {
       const tMax = setTimeout(go, 4500); // never hang
       return () => { clearTimeout(t); clearTimeout(tMax); window.removeEventListener('qass-ring-gone', onGone); if (!done) { setStagePhase('idle'); setJellyState(''); } };
     }
-    if (stageId === null && (activeModuleId === 'multi-qubit-gates' || activeModuleId === 'entanglement')) {
+    if (stageId === null && (activeModuleId === 'multi-qubit-gates' || activeModuleId === 'entanglement' || activeModuleId === 'decoherence')) {
       // Hub -> Multi Qubit Gates / Entanglement: all but the qubit vanishes; the qubit moves to the
       // middle; it splits in two; the pair then zooms into the module's size and places; the
       // module's scene takes over in place and its cards pop.
       let done = false;
       setPairModule(activeModuleId);
       if (activeModuleId === 'entanglement') MODULE_LOADERS.entanglement().then((mod) => setEntanglementLoaded(() => mod.default));
+      if (activeModuleId === 'decoherence') MODULE_LOADERS.decoherence().then((mod) => setDecoherenceLoaded(() => mod.default));
       setStagePhase('multi-center');
       const t1 = setTimeout(() => setStagePhase('multi-split'), 1300);
       const pose = activeModuleId === 'entanglement'
         ? { cam: [isSidebarOpen ? 0.6 : 0, 0.2, 14.2], target: [0, 0, 0] } // where the Entanglement scene rests
-        : multiGatesPose(MULTI_GATES_STEPS[multiGatesStep]);
+        : activeModuleId === 'decoherence'
+          ? { cam: [0, 2.25, 20], target: [0, 1.65, 0] }                  // and Decoherence's
+          : multiGatesPose(MULTI_GATES_STEPS[multiGatesStep]);
       const t1b = setTimeout(() => {
         setStagePhase('multi-zoom');
         // The camera goes to the module's resting view as the pair zooms in, so the
@@ -1429,6 +1434,7 @@ function App() {
       const t2 = setTimeout(() => {
         done = true;
         setModuleTarget(pose.target);
+        if (activeModuleId === 'decoherence') setDecFromHub(true);
         setJellyState('wait');
         setStagePhase('morph');
         setStageSeq((n) => n + 1);
@@ -1436,7 +1442,7 @@ function App() {
       }, 4300);
       return () => { clearTimeout(t1); clearTimeout(t1b); clearTimeout(t2); if (!done) setStagePhase('idle'); };
     }
-    if ((stageId === 'multi-qubit-gates' || stageId === 'entanglement') && activeModuleId === null) {
+    if ((stageId === 'multi-qubit-gates' || stageId === 'entanglement' || stageId === 'decoherence') && activeModuleId === null) {
       // Multi Qubit Gates / Entanglement -> hub: cards out, the pair takes over in place (camera and
       // all), zooms out and merges into one qubit, which becomes the hub's; then the
       // hub's text pops.
@@ -1592,6 +1598,12 @@ function App() {
   }, [activeModuleId, stageId]);
   useEffect(() => { if (stageId !== 'exponential') setExpFromHub(false); }, [stageId]);
   useEffect(() => { if (stageId !== 'nocloning') setNcFromHub(false); }, [stageId]);
+  useEffect(() => { if (stageId !== 'decoherence') setDecFromHub(false); }, [stageId]);
+  // Things inside a scene that fade with the cards (Decoherence's particles) listen for these.
+  useEffect(() => {
+    if (jellyState === 'run') window.dispatchEvent(new Event('qass-jelly-run'));
+    else if (jellyState === 'out') window.dispatchEvent(new Event('qass-jelly-out'));
+  }, [jellyState]);
   // The pop starts once the new scene is in: after it has faded in, or after the morph.
   useEffect(() => {
     if (stagePhase === 'enter') {
@@ -2417,7 +2429,7 @@ function App() {
           <ModuleErrorBoundary
             // The hub, the first module and superposition share one scene (the
             // bit and the qubit), so moving between them morphs it in place.
-            key={!stageId || stageId === 'bit-vs-qubit' || stageId === 'superposition' || stageId === 'gates' || stageId === 'multi-qubit-gates' || stageId === 'interference' || stageId === 'entanglement' || stageId === 'exponential' ? 'bit-scene' : stageId}
+            key={!stageId || stageId === 'bit-vs-qubit' || stageId === 'superposition' || stageId === 'gates' || stageId === 'multi-qubit-gates' || stageId === 'interference' || stageId === 'entanglement' || stageId === 'exponential' || stageId === 'decoherence' ? 'bit-scene' : stageId}
             moduleTitle={curriculumData.find(m => m.id === stageId)?.title}
             boundsStyle={uiBoundsStyle}
             onRetry={() => window.location.reload()}
@@ -2561,7 +2573,9 @@ function App() {
               ? <NoCloningLoaded theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={ncFromHub} closing={stagePhase === 'closing'} />
               : <NoCloningModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={ncFromHub} closing={stagePhase === 'closing'} />)
           ) : stageId === 'decoherence' ? (
-            <DecoherenceModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} onNavigateToModule={(moduleId) => setActiveModuleId(moduleId)} />
+            (DecoherenceLoaded
+              ? <DecoherenceLoaded theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={decFromHub} onNavigateToModule={(moduleId) => setActiveModuleId(moduleId)} />
+              : <DecoherenceModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={decFromHub} onNavigateToModule={(moduleId) => setActiveModuleId(moduleId)} />)
           ) : stageId === 'error-correction' ? (
             <QuantumErrorCorrectionModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} />
           ) : (
