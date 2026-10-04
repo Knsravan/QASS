@@ -8,7 +8,7 @@ import { DiracScene, DiracOverlay } from './DiracNotation';
 import { GatesScene, GatesOverlay, GATES_STEPS } from './QuantumGates';
 import { MultiGatesScene, MultiGatesOverlay, MULTI_GATES_STEPS, isResultEntangled, multiGatesPose } from './MultiQubitGates';
 import CameraShifter from './CameraShifter';
-import { SharedCanvas, fadeOutSharedCanvas, showSharedCanvas, skipNextSnapshot, seamlessNextSwap, settleSharedCamera, getSharedCameraPose, onSharedCanvasRevealed } from './SharedCanvas';
+import { SharedCanvas, fadeOutSharedCanvas, showSharedCanvas, skipNextSnapshot, settleSharedCamera, getSharedCameraPose, onSharedCanvasRevealed } from './SharedCanvas';
 import { useExitPresence } from './useExitPresence';
 import LandingOrbitalCloud from './LandingOrbitalCloud';
 import GlassNavBar from './GlassNavBar';
@@ -1596,6 +1596,9 @@ function App() {
     setJellyState('');
     setStageId(activeModuleId);
     return undefined;
+    // Runs only when the module changes: the sidebar or step read above is where the move
+    // starts from, and re-running on them would cancel the move's timers halfway.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeModuleId, stageId]);
   useEffect(() => { if (stageId !== 'exponential') setExpFromHub(false); }, [stageId]);
   useEffect(() => { if (stageId !== 'nocloning') setNcFromHub(false); }, [stageId]);
@@ -1659,6 +1662,9 @@ function App() {
       return () => clearTimeout(t);
     }
     return undefined;
+    // Runs only when the phase changes: pairModule and stageId say which move is playing,
+    // and re-running on them would restart its timers.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stagePhase, stageSeq]);
   // The hub's text stays mounted while it fades out after a module opens.
   const hubShown = useExitPresence(!stageId, 650);

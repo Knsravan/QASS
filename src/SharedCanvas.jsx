@@ -285,8 +285,9 @@ export function SharedCanvas({ children, camera, style, className, sceneId }) {
 
   useLayoutEffect(() => {
     const h = ensureHost();
+    const el = slot.current;
     h.el.style.pointerEvents = '';
-    slot.current.appendChild(h.el);
+    el.appendChild(h.el);
     continuing.current = parkedId === id;
     parkedId = null;
     if (continuing.current) { hideSnapNow(); clearTimeout(h.reveal); }
@@ -301,7 +302,7 @@ export function SharedCanvas({ children, camera, style, className, sceneId }) {
       }
       // Park it in the page's stage while the next module loads, so the
       // picture holds instead of the canvas going away.
-      if (h.el.parentNode === slot.current) {
+      if (h.el.parentNode === el) {
         const stage = document.querySelector('.canvas-container');
         if (stage) { h.el.style.pointerEvents = 'none'; stage.prepend(h.el); } else h.el.remove();
       }
@@ -311,6 +312,8 @@ export function SharedCanvas({ children, camera, style, className, sceneId }) {
   }, [id]);
 
   // Hand the current scene over after every render (its props change).
+  // No dependency list on purpose; setFailure is only stored here, not called.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useLayoutEffect(() => {
     if (scene?.id !== id && !continuing.current) hideHost();
     continuing.current = false;
