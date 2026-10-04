@@ -16,6 +16,7 @@ import { SharedCanvas } from './SharedCanvas';
 
 
 import { handoff } from './handoff';
+import { densityMatrix } from './quantumMath';
 import { CT, CA, CR, CP, CB, CG, CW, SPHERE_R, MODEL_Y, PURE_POS, NOISY_POS, arrowGrow, BlochSphereUnit } from './DecoSphereUnit';
 
 // How visible the noise particles are. Opened from the hub they start unseen and fade in
@@ -299,10 +300,8 @@ function DecoherenceScene({ step, noiseLevel, activeNoise, noiseBurstId, entranc
 // LIVE DENSITY MATRIX DISPLAY
 // ============================================================
 function DensityMatrixDisplay({ noiseLevel, onSliderChange }) {
-  const r01  = 0.5 * Math.exp(-noiseLevel * 4.8);
-  const trSq = 0.5 + 2 * r01 * r01;
+  const { r01, trSq, purity } = densityMatrix(noiseLevel);
   const tColor = trSq > 0.82 ? CG : trSq > 0.62 ? CA : CR;
-  const purity = Math.round(Math.max(0, Math.min(100, (trSq - 0.5) * 200)));
   const pLabel = trSq > 0.82 ? 'PURE' : trSq > 0.62 ? 'MIXING' : 'MIXED';
 
   return (

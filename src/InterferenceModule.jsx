@@ -17,6 +17,7 @@ import { SCENE_GL } from './sceneGl';
 import GlassSlider from './GlassSlider';
 import { QualityCanvas } from './QualityScene';
 import { SharedCanvas } from './SharedCanvas';
+import { interferenceProbabilities } from './quantumMath';
 
 const COLORS = {
   primary: '#0ea5e9', // Cyan
@@ -1064,8 +1065,7 @@ function InterferenceOverlay({ theme, stage, setStage, subStage, setSubStage, in
         const isConstructive = normPhase < 0.15 || Math.abs(normPhase - 2 * Math.PI) < 0.15;
         const isDestructive = Math.abs(normPhase - Math.PI) < 0.15;
         const isSuperposition = Math.abs(normPhase - Math.PI / 2) < 0.15;
-        const prob0 = Math.pow(Math.cos(interferencePhase / 2), 2);
-        const prob1 = Math.pow(Math.sin(interferencePhase / 2), 2);
+        const { p0: prob0, p1: prob1 } = interferenceProbabilities(interferencePhase);
         const deg = Math.round((interferencePhase * 180) / Math.PI);
 
         return (

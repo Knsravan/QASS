@@ -16,6 +16,7 @@ import GlassSlider from './GlassSlider';
 import { QualityComposer } from './QualityScene';
 import { SharedCanvas } from './SharedCanvas';
 import { handoff } from './handoff';
+import { BELL_OUTCOMES } from './quantumMath';
 
 
 // ==========================================
@@ -30,7 +31,7 @@ export const BELL_STATES = [
     color: '#00f2fe',
     accentColor: '#38bdf8',
     description: 'When Alice measures |0⟩, Bob is guaranteed to be |0⟩. When Alice measures |1⟩, Bob is guaranteed to be |1⟩.',
-    outcomes: ['00', '11'],
+    outcomes: BELL_OUTCOMES.phi_plus,
     correlationText: '100% Identical Outcomes (|00⟩ or |11⟩)'
   },
   {
@@ -41,7 +42,7 @@ export const BELL_STATES = [
     color: '#a855f7',
     accentColor: '#c084fc',
     description: 'Identical measurement outcomes to |\\Phi^+\\rangle, but with a relative \\pi (180°) quantum phase shift between basis components.',
-    outcomes: ['00', '11'],
+    outcomes: BELL_OUTCOMES.phi_minus,
     correlationText: '100% Identical Outcomes with -1 Phase (|00⟩ or |11⟩)'
   },
   {
@@ -52,7 +53,7 @@ export const BELL_STATES = [
     color: '#ec4899',
     accentColor: '#f472b6',
     description: 'When Alice measures |0⟩, Bob is guaranteed to be |1⟩. When Alice measures |1⟩, Bob is guaranteed to be |0⟩.',
-    outcomes: ['01', '10'],
+    outcomes: BELL_OUTCOMES.psi_plus,
     correlationText: '100% Opposite Outcomes (|01⟩ or |10⟩)'
   },
   {
@@ -63,7 +64,7 @@ export const BELL_STATES = [
     color: '#f59e0b',
     accentColor: '#fbbf24',
     description: 'The famous Singlet State (S=0). It remains completely invariant under any identical simultaneous rotation of both measurement axes.',
-    outcomes: ['01', '10'],
+    outcomes: BELL_OUTCOMES.psi_minus,
     correlationText: '100% Opposite Outcomes (Rotational Singlet)'
   }
 ];

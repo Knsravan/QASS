@@ -20,6 +20,7 @@ import { SCENE_GL } from './sceneGl';
 import GlassSlider from './GlassSlider';
 import { QualityComposer } from './QualityScene';
 import { SharedCanvas } from './SharedCanvas';
+import { stateVectorRAM } from './quantumMath';
 
 
 // ==========================================
@@ -791,17 +792,6 @@ export default function ExponentialModule({ theme = 'dark', isSidebarOpen = true
     return count.toLocaleString();
   };
 
-  // Accurate dynamic RAM estimation for state vector simulation (16 bytes per complex amplitude)
-  const getRAMEstimate = (n) => {
-    const bytes = Math.pow(2, n) * 16;
-    if (bytes < 1024) return `${bytes} Bytes`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(0)} MB`;
-    if (n <= 35) return `${(bytes / (1024 * 1024 * 1024)).toFixed(0)} GB (PC limit)`;
-    if (n === 50) return '16 Petabytes (Supercomputer Limit)';
-    if (n >= 300) return 'Exceeds Atoms in Universe (~10⁸⁰)!';
-    return `${(bytes / (1024 * 1024 * 1024 * 1024)).toFixed(0)} TB`;
-  };
 
   // Navigation handlers
   const handleNext = () => {
@@ -1048,7 +1038,7 @@ export default function ExponentialModule({ theme = 'dark', isSidebarOpen = true
           <span style={{ color: '#f8fafc', fontWeight: '600' }}>
             {stage === 3
               ? (cosmicMilestone === 50 ? '16 PB (Supercomputer)' : '> Atoms in Universe')
-              : getRAMEstimate(qubitCount)}
+              : stateVectorRAM(qubitCount)}
           </span>
         </div>
       </div>

@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { BlockMath, InlineMath } from 'react-katex';
 import { QubitCore } from './BlochSphere';
 import gsap from 'gsap';
-import { getInitialState, GATES_MATRICES, applyMatrix, calculateProbabilities } from './quantumMath';
+import { getInitialState, GATES_MATRICES, applyMatrix, calculateProbabilities, gateNumQubits, getFinalState, calculateGateLogic, formatStateKet } from './quantumMath';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { QualityComposer } from './QualityScene';
 
@@ -101,90 +101,6 @@ const qPlus = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0)
 const qMinus = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
 
 const BASIS_QUATS = { '0': q0, '1': q1, '+': qPlus, '-': qMinus };
-
-function gateNumQubits(gateId) {
-  return gateId === 'toffoli' ? 3 : 2;
-}
-
-function getFinalState(gateId, inputs) {
-  const activeInputs = inputs.slice(0, gateNumQubits(gateId));
-  const initialState = getInitialState(activeInputs);
-  const matrix = GATES_MATRICES[gateId];
-  return matrix ? applyMatrix(matrix, initialState) : initialState;
-}
-
-// A pure state is entangled iff it is not a full tensor product of single-qubit
-// states, i.e. some qubit-vs-rest bipartition of the amplitude vector, reshaped
-// into a 2 x 2^(n-1) matrix, has rank > 1 (some 2x2 minor is nonzero).
-export function isResultEntangled(gateId, inputs) {
-  const n = gateNumQubits(gateId);
-  const state = getFinalState(gateId, inputs);
-  const eps = 1e-9;
-  for (let k = 0; k < n; k++) {
-    const shift = n - 1 - k; // qubit 0 is the most significant bit
-    const rows = [[], []];
-    for (let i = 0; i < state.length; i++) {
-      rows[(i >> shift) & 1].push(state[i]);
-    }
-    const [u, v] = rows;
-    for (let a = 0; a < u.length; a++) {
-      for (let b = a + 1; b < u.length; b++) {
-        const mr = (u[a].r * v[b].r - u[a].i * v[b].i) - (u[b].r * v[a].r - u[b].i * v[a].i);
-        const mi = (u[a].r * v[b].i + u[a].i * v[b].r) - (u[b].r * v[a].i + u[b].i * v[a].r);
-        if (mr * mr + mi * mi > eps) return true;
-      }
-    }
-  }
-  return false;
-}
-
-function flipBasis(b) {
-  if (b === '0') return '1';
-  if (b === '1') return '0';
-  return b; // |+> and |-> are eigenstates of X
-}
-
-function calculateGateLogic(gateId, inputs) {
-  const isEntangled = isResultEntangled(gateId, inputs);
-  let outputs = [...inputs];
-
-  if (!isEntangled) {
-    if (gateId === 'cnot') {
-      if (inputs[0] === '1') outputs[1] = flipBasis(inputs[1]);
-    } else if (gateId === 'swap') {
-      outputs[0] = inputs[1]; outputs[1] = inputs[0];
-    } else if (gateId === 'toffoli') {
-      if (inputs[0] === '1' && inputs[1] === '1') outputs[2] = flipBasis(inputs[2]);
-    } else if (gateId === 'cz') {
-      // Phase kickback: CZ maps |+>|1> to |->|1> (and symmetrically)
-      if (inputs[0] === '+' && inputs[1] === '1') outputs[0] = '-';
-      else if (inputs[1] === '+' && inputs[0] === '1') outputs[1] = '-';
-    } else if (gateId === 'bell') {
-      // The H maps the control first: |0> -> |+>, |1> -> |->, |+> -> |0>
-      outputs[0] = inputs[0] === '0' ? '+' : (inputs[0] === '1' ? '-' : '0');
-    }
-  }
-
-  return { outputs, isEntangled };
-}
-
-// Formats the final state as a ket sum, e.g. \frac{|00\rangle + |11\rangle}{\sqrt{2}}.
-// All reachable amplitudes are real with equal magnitudes (inputs are 0/1/+ and the
-// gate matrices are real), so signs and the denominator follow from the term count.
-function formatStateKet(state, numQubits) {
-  const terms = [];
-  state.forEach((c, idx) => {
-    if (c.r * c.r + c.i * c.i < 1e-6) return;
-    terms.push({ label: idx.toString(2).padStart(numQubits, '0'), neg: c.r < 0 });
-  });
-  if (terms.length === 0) return '0';
-  const numerator = terms
-    .map((t, k) => `${k === 0 ? (t.neg ? '-' : '') : (t.neg ? ' - ' : ' + ')}|${t.label}\\rangle`)
-    .join('');
-  const denominators = { 2: '\\sqrt{2}', 4: '2', 8: '2\\sqrt{2}' };
-  const d = denominators[terms.length];
-  return d ? `\\frac{${numerator}}{${d}}` : numerator;
-}
 
 function getAnimationTooltip(gateId, inputs, logic) {
   const finalKet = formatStateKet(getFinalState(gateId, inputs), gateNumQubits(gateId));

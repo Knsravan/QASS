@@ -8,6 +8,7 @@ import gsap from 'gsap';
 import { Bloom, ChromaticAberration } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
 import { InlineMath } from 'react-katex';
+import { GATE_ROTATIONS } from './quantumMath';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { QualityComposer } from './QualityScene';
 
@@ -18,6 +19,13 @@ const qPlus = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0)
 function getQuat(startQ, axis, angle) {
   const rot = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(...axis).normalize(), angle);
   return rot.multiply(startQ);
+}
+
+// A step's rotation fields, from its gate's rotation (GATE_ROTATIONS in quantumMath.js).
+function rotationFields(id) {
+  const { axis, angle, startsAtPlus } = GATE_ROTATIONS[id];
+  const start = startsAtPlus ? qPlus : q0;
+  return { startQuat: start.clone(), endQuat: getQuat(start, axis, angle), axis, startsAtPlus };
 }
 
 // Scratch vector reused by the trail sampler to avoid per-tick allocations
@@ -50,7 +58,7 @@ export const GATES_STEPS = [
     comparison: 'This is the direct quantum analog to a classical NOT gate. Just like a NOT gate flips a 0 to a 1, the Pauli-X gate flips the primary basis states.',
     desc: '180° flip around X-axis. Direct classical equivalent.', classical: 'Classical NOT', hasClassicalEquivalent: true,
     math: 'X = \\begin{bmatrix} 0 & 1 \\\\ 1 & 0 \\end{bmatrix}', truthTable: '0 → 1\n1 → 0',
-    startQuat: q0.clone(), endQuat: getQuat(q0, [0, 0, 1], Math.PI), axis: [0, 0, 1], angleText: '180°', startsAtPlus: false,
+    ...rotationFields('pauli-x'), angleText: '180°',
     reversibility: 'Both are reversible (NOT NOT = original).',
     camPos: [4.2, 8, 4],
     animationTooltip: "Watch the vector swing 180° perfectly upside-down! It passes right through the equator, instantly turning a 100% chance of 0 into a 100% chance of 1."
@@ -68,7 +76,7 @@ export const GATES_STEPS = [
     comparison: 'Classical bits cannot hold imaginary or negative phases. Thus, there is no true classical equivalent. It roughly translates to "flip the bit, but also make its probability wave imaginary".',
     desc: '180° rotation around Y-axis. No classical analog (Y = X then Z combined).', classical: 'None (Bit+Phase Flip)', hasClassicalEquivalent: false,
     math: 'Y = \\begin{bmatrix} 0 & -i \\\\ i & 0 \\end{bmatrix}', truthTable: 'N/A',
-    startQuat: q0.clone(), endQuat: getQuat(q0, [1, 0, 0], Math.PI), axis: [1, 0, 0], angleText: '180°', startsAtPlus: false,
+    ...rotationFields('pauli-y'), angleText: '180°',
     reversibility: 'Every quantum gate must be reversible (unitary). Classical bits cannot hold imaginary phase.',
     camPos: [4.2, 0, 11],
     animationTooltip: "Notice the 180° swing across the Y-axis? It flips the probabilities exactly like the X-gate, but it rotates through the imaginary plane, adding a complex phase!"
@@ -86,7 +94,7 @@ export const GATES_STEPS = [
     comparison: 'A classical bit is just a rigid 0 or 1. It has no "direction" or "phase" to flip. The Z gate is purely quantum, affecting how the qubit\'s wave function interferes with others.',
     desc: '180° rotation around Z-axis. Invisible in classical bits.', classical: 'None (Quantum Phase)', hasClassicalEquivalent: false,
     math: 'Z = \\begin{bmatrix} 1 & 0 \\\\ 0 & -1 \\end{bmatrix}', truthTable: 'N/A',
-    startQuat: qPlus.clone(), endQuat: getQuat(qPlus, [0, 1, 0], Math.PI), axis: [0, 1, 0], angleText: '180°', startsAtPlus: true,
+    ...rotationFields('pauli-z'), angleText: '180°',
     reversibility: 'A classical bit is just 0 or 1. It has no "phase" to flip, making this uniquely quantum.',
     camPos: [4.2, 10, 5],
     animationTooltip: "The vector spins 180° around the pole! The probability of 0 or 1 doesn't change at all, but the 'phase' direction is now pointing backwards."
@@ -104,7 +112,7 @@ export const GATES_STEPS = [
     comparison: 'A classical coin flip randomizes a bit to 0 or 1, losing all previous information. The Hadamard gate creates superposition without destroying information (applying it twice yields the original state).',
     desc: '180° rotation about the diagonal axis. Creates superposition.', classical: 'None (Superposition)', hasClassicalEquivalent: false,
     math: 'H = \\frac{1}{\\sqrt{2}}\\begin{bmatrix} 1 & 1 \\\\ 1 & -1 \\end{bmatrix}', truthTable: 'N/A',
-    startQuat: q0.clone(), endQuat: getQuat(q0, [0, 1, 1], Math.PI), axis: [0, 1, 1], angleText: '180°', startsAtPlus: false,
+    ...rotationFields('hadamard'), angleText: '180°',
     reversibility: 'H is its own inverse (H H = I). A classical coin flip destroys information, H does not.',
     camPos: [9.2, 5, 9],
     animationTooltip: "A massive 180° diagonal flip! It pulls the vector exactly onto the equator, leaving it perfectly balanced between 0 and 1 in a true quantum superposition."
@@ -122,7 +130,7 @@ export const GATES_STEPS = [
     comparison: 'Again, classical computing has no concept of imaginary phase or fractional state flips. This gate is used strictly in quantum mechanics to build complex interference patterns.',
     desc: '90° (quarter) turn around Z-axis.', classical: 'None', hasClassicalEquivalent: false,
     math: 'S = \\begin{bmatrix} 1 & 0 \\\\ 0 & i \\end{bmatrix}', truthTable: 'N/A',
-    startQuat: qPlus.clone(), endQuat: getQuat(qPlus, [0, 1, 0], Math.PI/2), axis: [0, 1, 0], angleText: '90°', startsAtPlus: true,
+    ...rotationFields('s-gate'), angleText: '90°',
     reversibility: 'S is the square root of Z. It requires two S gates to make a full Z phase flip.',
     camPos: [4.2, 8, 6],
     animationTooltip: "A quarter-turn (90°) around the equator. It doesn't change the probabilities, but it rotates the quantum phase sideways into the imaginary dimension."
@@ -140,7 +148,7 @@ export const GATES_STEPS = [
     comparison: 'No classical analog exists. However, in quantum computing, the T gate is uniquely important because it is required to achieve universal computation, allowing quantum computers to approximate any unitary matrix.',
     desc: '45° (eighth) turn around Z-axis.', classical: 'None', hasClassicalEquivalent: false,
     math: 'T = \\begin{bmatrix} 1 & 0 \\\\ 0 & e^{i\\pi/4} \\end{bmatrix}', truthTable: 'N/A',
-    startQuat: qPlus.clone(), endQuat: getQuat(qPlus, [0, 1, 0], Math.PI/4), axis: [0, 1, 0], angleText: '45°', startsAtPlus: true,
+    ...rotationFields('t-gate'), angleText: '45°',
     reversibility: 'T is the square root of S. Essential for universal fault-tolerant quantum computing.',
     camPos: [4.2, 8, 6],
     animationTooltip: "A tiny 45° step around the equator! This tiny eighth-turn of phase is the secret ingredient needed to run any complex quantum algorithm."
