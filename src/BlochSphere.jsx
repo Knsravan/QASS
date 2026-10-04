@@ -170,6 +170,9 @@ const _EXP_LIGHT = { amb: 0.6, c1: new THREE.Color('#ffffff'), i1: 2.0, c2: new 
 const _HUB_LIGHT = { amb: 0.5, c1: new THREE.Color('#00f2fe'), i1: 8, c2: new THREE.Color('#f093fb'), i2: 8, dist: 30 };
 const _ORIGIN_BS = new THREE.Vector3(0, 0, 0);
 const _AXIS_Y = new THREE.Vector3(0, 1, 0);
+const _DEC_CAM = new THREE.Vector3(0, 2.25, 20);   // Decoherence's resting view: where the camera is and what it aims at
+const _DEC_LOOK = new THREE.Vector3(0, 1.65, 0);
+const _HUB_CAM = new THREE.Vector3(0, 0, 13);
 const _tempColor1_BS = new THREE.Color();
 const _tempColor2_BS = new THREE.Color();
 const _STEP_COLORS_BS = {
@@ -1352,6 +1355,19 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
       _tmpQ2.copy(state.camera.quaternion).invert();
       decView.current.a.copy(decDir.current.a).applyQuaternion(_tmpQ2);
       decView.current.b.copy(decView.current.a);
+    }
+    // Decoherence's view is driven here, with the very glide the pair uses (not by a separate tween), so the
+    // camera and the models arrive together and the hand-over finds them exactly where the module has them.
+    if (isDec && controlsRef.current) {
+      const goalDec = mz ? (decClosing ? null : 'module') : (decClosing && (multi === 'split' || multi === 'merge') ? 'hub' : null);
+      if (goalDec) {
+        const kc = 1 - Math.exp(-2.6 * Math.min(delta, 0.1));
+        const c = controlsRef.current;
+        c.object.position.lerp(goalDec === 'module' ? _DEC_CAM : _HUB_CAM, kc);
+        c.target.lerp(goalDec === 'module' ? _DEC_LOOK : _ORIGIN_BS, kc);
+        c.update();
+        settleCam.current = 0;
+      }
     }
     if (isDec) {
       const dd = decDir.current;

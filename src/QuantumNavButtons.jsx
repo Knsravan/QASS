@@ -41,19 +41,19 @@ export const QuantumNavButtons = memo(function QuantumNavButtons({
       {onPrev && (
         <button
           type="button"
-          className="quantum-nav-btn prev-btn glass-btn glass-interactive"
+          className="quantum-nav-btn icon-only prev-btn glass-btn glass-interactive"
           onClick={onPrev}
           disabled={!canPrev}
-          aria-label="Previous step"
+          aria-label={cleanPrevText(prevLabel) || 'Previous step'}
+          title={cleanPrevText(prevLabel) || 'Previous step'}
         >
           <MorphIcon
             icon={ChevronLeft}
             spring="smooth"
-            strokeWidth={1}
-            size={16}
+            strokeWidth={1.6}
+            size={22}
             color="currentColor"
           />
-          <span>{cleanPrevText(prevLabel) || 'Prev'}</span>
         </button>
       )}
 
@@ -61,30 +61,26 @@ export const QuantumNavButtons = memo(function QuantumNavButtons({
       {onNext && (
         <button
           type="button"
-          className="quantum-nav-btn next-btn glass-btn glass-interactive"
+          className="quantum-nav-btn icon-only next-btn glass-btn glass-interactive"
           onClick={onNext}
           disabled={!canNext}
-          aria-label="Next step"
+          aria-label={isComplete ? 'Complete' : cleanNextText(nextLabel) || (isLast ? 'Complete' : 'Next step')}
+          title={isComplete ? 'Complete' : cleanNextText(nextLabel) || (isLast ? 'Complete' : 'Next step')}
         >
-          <span>
-            {isComplete
-              ? 'Complete'
-              : cleanNextText(nextLabel) || (isLast ? 'Complete' : 'Next')}
-          </span>
           {isComplete || isLast ? (
             <MorphIcon
               icon={Check}
               spring="smooth"
-              strokeWidth={1}
-              size={16}
+              strokeWidth={1.6}
+              size={22}
               color="currentColor"
             />
           ) : (
             <MorphIcon
               icon={ChevronRight}
               spring="smooth"
-              strokeWidth={1}
-              size={16}
+              strokeWidth={1.6}
+              size={22}
               color="currentColor"
             />
           )}
