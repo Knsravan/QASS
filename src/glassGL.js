@@ -234,6 +234,8 @@ function opacityOf(el, s, now) {
 
 // Overlap by more than a hair (pieces that merely touch don't count).
 const OVERLAP_PX = 4;
+// How long a piece keeps the CSS lens after it last needed it.
+const LENS_HOLD = 700;
 const overlaps = (a, b) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > OVERLAP_PX && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > OVERLAP_PX;
 
 // ─── Page content behind glass ──────────────────────────────────────────────
@@ -429,7 +431,12 @@ export function glassFrame() {
   const all = [...byCanvas.values()].flat().sort(paintOrder);
   const canBend = canBendBackdrop();
   all.forEach((g, i) => {
-    g.lens = canBend && (hasContentBehind(g, now) || all.slice(0, i).some((u) => !u.el.contains(g.el) && overlaps(u.r, g.r)));
+    // Held for a moment once it's needed, like hasContentBehind's answer: a
+    // piece fading in and out over the glass (Gates' looping tooltip over the
+    // sidebar's edge) otherwise swapped the glass between its two looks, and
+    // a big piece's CSS lens on and off, on nearly every frame of the fade.
+    if (hasContentBehind(g, now) || all.slice(0, i).some((u) => !u.el.contains(g.el) && overlaps(u.r, g.r))) g.s.lensAt = now;
+    g.lens = canBend && !!g.s.lensAt && now - g.s.lensAt < LENS_HOLD;
     keep.add(g.el);
   });
   for (const el of marked) {
