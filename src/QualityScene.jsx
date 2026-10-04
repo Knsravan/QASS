@@ -121,6 +121,13 @@ export function QualityCanvas({ background = false, children, ...props }) {
       // pays for it (bloom scenes are drawn through the composer anyway).
       gl={{ ...props.gl, antialias: props.gl?.antialias !== false && q.tier === 'high' }}
       dpr={q.dpr}
+      // The scenes fill a fixed stage that never scrolls, so the canvas needn't
+      // be measured again on every scroll in the page (by default it is: each
+      // sidebar scroll then re-reads every canvas, and resizes the renderer and
+      // its glow buffers whenever the reading differs). The size is taken
+      // without CSS transforms, so a module opened mid scale-in animation still
+      // gets its full size rather than the scaled-down one.
+      resize={{ scroll: false, offsetSize: true, ...props.resize }}
       // A frame-rate limit (Display & Accessibility) draws on a timer instead
       // of every display frame; the star field always does.
       frameloop={background || q.fpsCap ? 'demand' : props.frameloop}
