@@ -819,6 +819,11 @@ h6,
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
   transform: translateZ(0);
+  /* Scrolled by the compositor, off the main thread the 3D scenes draw on.
+     Translucent over the scene, Chrome would otherwise repaint it on the
+     main thread on every scroll frame (below 1.5x pixel ratio, to keep LCD
+     text), and the scenes behind slowed while it scrolled. Same below. */
+  will-change: scroll-position;
 }
 
 .sidebar-scrollable-content::-webkit-scrollbar {
@@ -5541,6 +5546,7 @@ div:has(> canvas) {
   gap: 14px;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, .15) transparent;
+  will-change: scroll-position; /* compositor scrolling, see .sidebar-scrollable-content */
 }
 
 .dp-head {
@@ -5712,6 +5718,7 @@ div:has(> canvas) {
   scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
   -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 14px);
   mask-image: linear-gradient(180deg, transparent 0, #000 14px);
+  will-change: scroll-position; /* compositor scrolling, see .sidebar-scrollable-content */
 }
 
 .sidebar-nav.is-pushed > .sidebar-page {

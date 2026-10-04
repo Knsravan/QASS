@@ -114,20 +114,26 @@ export function mountGlassMotion() {
     pressing = null;
     wake();
   };
+  // Hover moves only the mute circle (its reach toward the capsule); rims and
+  // jelly answer presses. So only entering or leaving the circle wakes the
+  // loop: woken by every pointerover / pointerout, it ran on every frame of a
+  // sidebar scroll (each item passing under a still pointer fires both) and
+  // re-measured the top bar each time, slowing the 3D scenes behind it.
   const onOver = (e) => {
-    const el = e.target.closest?.(`${RIM_SEL}, ${PRESS_SEL}`);
-    if (!el) return;
+    const el = e.target.closest?.('.lg-nav-circle');
+    if (!el || el.contains(e.relatedTarget)) return;
     const s = stateOf(el);
-    if (s.circle && !s.hover) { s.hover = true; if (!pressing) s.reach.t = -3; }
+    if (s.hover) return;
+    s.hover = true;
+    if (!pressing) s.reach.t = -3;
     wake();
   };
   const onOut = (e) => {
     const el = e.target.closest?.('.lg-nav-circle');
-    if (el && !el.contains(e.relatedTarget)) {
-      const s = stateOf(el);
-      s.hover = false;
-      if (!pressing || pressing.el !== el) s.reach.t = 0;
-    }
+    if (!el || el.contains(e.relatedTarget)) return;
+    const s = stateOf(el);
+    s.hover = false;
+    if (!pressing || pressing.el !== el) s.reach.t = 0;
     wake();
   };
 
