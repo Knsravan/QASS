@@ -4,6 +4,7 @@ import { Html, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { Bloom } from '@react-three/postprocessing';
 import { InlineMath } from 'react-katex';
+import { bornProbabilities } from './quantumMath';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { QualityComposer } from './QualityScene';
 
@@ -22,7 +23,6 @@ const STEPS = [
     desc: <>The symbol <InlineMath math={String.raw`|\,\rangle`} /> (Ket) is a physicist's way of writing a column vector. Notice how the arrow is pointing perfectly to the North Pole (the <InlineMath math={String.raw`|0\rangle`} /> axis). Look at the matrix: the top number is 1 (meaning 100% <InlineMath math={String.raw`|0\rangle`} />), and the bottom number is 0.</>,
     hint: <>Top number = amount of UP (<InlineMath math={String.raw`|0\rangle`} />). Bottom number = amount of DOWN (<InlineMath math={String.raw`|1\rangle`} />).</>,
     vectorLabel: <InlineMath math={String.raw`|0\rangle`} />,
-    probTop: 1.0, probBottom: 0.0,
   },
   {
     id: 1,
@@ -37,7 +37,6 @@ const STEPS = [
     desc: <>Now the arrow swung 180° to point directly at the South Pole (the <InlineMath math={String.raw`|1\rangle`} /> axis). Look at the matrix again: the 1 has moved to the bottom position.</>,
     hint: 'Top number is now 0. Bottom number is 1, meaning 100% chance of measuring 1.',
     vectorLabel: <InlineMath math={String.raw`|1\rangle`} />,
-    probTop: 0.0, probBottom: 1.0,
   },
   {
     id: 2,
@@ -52,7 +51,6 @@ const STEPS = [
     desc: <>When a qubit is in superposition, its vector points between states. <InlineMath math={String.raw`\alpha`} /> and <InlineMath math={String.raw`\beta`} /> are complex numbers called "amplitudes" — they encode the probability of each outcome.</>,
     hint: <>The Born Rule: the probability of measuring 0 is <InlineMath math={String.raw`|\alpha|^2`} />, and for 1 it is <InlineMath math={String.raw`|\beta|^2`} />.</>,
     vectorLabel: <InlineMath math={String.raw`|+\rangle`} />,
-    probTop: 0.5, probBottom: 0.5,
   },
   {
     id: 3,
@@ -67,9 +65,12 @@ const STEPS = [
     desc: <>Why a row vector with an asterisk (*)? To find probabilities, we multiply a state by itself (inner product). In linear algebra, multiplying two column vectors doesn't work. We must turn the first into a row vector (transpose) and flip its imaginary parts (complex conjugate, the *) so the result is always a real, positive probability.</>,
     hint: <><InlineMath math={String.raw`\langle\psi|\varphi\rangle`} /> = "bracket" → that is literally where the word came from!</>,
     vectorLabel: <InlineMath math={String.raw`\langle\psi|`} />,
-    probTop: 0.3, probBottom: 0.7,
   },
-];
+].map((step) => {
+  // Each step's measurement odds follow from where its vector points (the Born rule).
+  const { p0, p1 } = bornProbabilities(step.theta);
+  return { ...step, probTop: p0, probBottom: p1 };
+});
 
 // Static reusable vectors to prevent GC allocations
 const _UP_VEC_DN = new THREE.Vector3(0, 1, 0);

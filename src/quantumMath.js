@@ -88,6 +88,14 @@ export function calculateProbabilities(state) {
   });
 }
 
+// ─── Dirac Notation ──────────────────────────────────────────────────────────
+
+// The Born rule for a qubit whose Bloch vector sits at polar angle theta from |0>:
+// the state cos(θ/2)|0> + e^{iφ} sin(θ/2)|1>, measured as 0 with |α|² and 1 with |β|².
+export function bornProbabilities(theta) {
+  return { p0: Math.pow(Math.cos(theta / 2), 2), p1: Math.pow(Math.sin(theta / 2), 2) };
+}
+
 // ─── Multi-Qubit Gates ───────────────────────────────────────────────────────
 
 export function gateNumQubits(gateId) {

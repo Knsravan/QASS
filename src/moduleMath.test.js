@@ -4,7 +4,7 @@ import {
   getInitialState, GATES_MATRICES, applyMatrix, calculateProbabilities,
   gateNumQubits, getFinalState, isResultEntangled, calculateGateLogic, formatStateKet,
   GATE_ROTATIONS, BELL_OUTCOMES, interferenceProbabilities, stateVectorRAM,
-  densityMatrix, SYNDROME_TABLE,
+  densityMatrix, SYNDROME_TABLE, bornProbabilities,
 } from './quantumMath';
 
 // The module math, checked against the textbook: gate matrices, partial traces
@@ -40,6 +40,30 @@ const kron = (...vs) => vs.reduce((acc, v) => acc.flatMap((a) => v.map((b) => mu
 const inputCombos = (n) => (n === 0 ? [[]] : inputCombos(n - 1).flatMap((rest) => ['0', '1', '+'].map((b) => [b, ...rest])));
 
 const MULTI_GATES = ['cnot', 'swap', 'cz', 'bell', 'toffoli'];
+
+// ─── Dirac Notation ──────────────────────────────────────────────────────────
+
+describe('the Born rule', () => {
+  test('the odds are |α|² and |β|² of the state the vector points to, whatever its phase', () => {
+    for (let theta = 0; theta <= Math.PI; theta += Math.PI / 20) {
+      [0, 1.1, Math.PI * 1.25].forEach((phi) => {
+        const [alpha, beta] = [c(Math.cos(theta / 2)), mul(expi(phi), c(Math.sin(theta / 2)))];
+        const { p0, p1 } = bornProbabilities(theta);
+        expect(p0).toBeCloseTo(abs2(alpha), 12);
+        expect(p1).toBeCloseTo(abs2(beta), 12);
+        expect(p0 + p1).toBeCloseTo(1, 12);
+      });
+    }
+  });
+
+  test('the module\'s four steps: |0>, |1>, |+> and the bra example', () => {
+    expect(bornProbabilities(0)).toEqual({ p0: 1, p1: 0 });
+    expect(bornProbabilities(Math.PI).p1).toBeCloseTo(1, 12);
+    expect(bornProbabilities(Math.PI / 2).p0).toBeCloseTo(0.5, 12);
+    // 54° from |0> leans toward 0: about 79% / 21%, not the 30% / 70% it once listed.
+    expect(bornProbabilities(Math.PI * 0.3).p0).toBeCloseTo(0.794, 3);
+  });
+});
 
 // ─── Classical vs Quantum Gates ──────────────────────────────────────────────
 
