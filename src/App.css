@@ -4141,6 +4141,13 @@ h6,
                 white-space: nowrap;
               }
 
+              /* Next / Previous are arrows only: round glass buttons. */
+              .quantum-nav-btn.icon-only {
+                width: 48px;
+                padding: 0;
+                gap: 0;
+              }
+
               .quantum-nav-btn:hover {
                 background: rgba(26, 30, 38, 0.92);
                 border-color: var(--nav-border-hover, #38bdf8);

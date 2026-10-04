@@ -119,7 +119,7 @@ export function BlochSphereUnit({ posArr, color, label, isPure, noiseLevel, acti
       const sc = Math.max(0.0001, entranceRef.current[posKey] != null ? entranceRef.current[posKey] : 0);
       outerRef.current.scale.setScalar(sc);
       outerRef.current.position.x = posArr[0];
-      outerRef.current.position.y = (posArr[1] || MODEL_Y) + (entranceRef.current.yRise != null ? entranceRef.current.yRise : 0);
+      outerRef.current.position.y = (posArr[1] != null ? posArr[1] : MODEL_Y) + (entranceRef.current.yRise != null ? entranceRef.current.yRise : 0);
       outerRef.current.position.z = posArr[2] || 0;
     }
 
