@@ -49,6 +49,8 @@ import QassLogo from './QassLogo';
 // Self-contained modules are split into their own chunks so the landing page
 // and hub don't pay for every module's scene up front. The loaders are also
 // used to prefetch the chunks once the hub is idle, so opening one is instant.
+// A failed load needs no handling where they're called: the module then renders
+// through its lazy() fallback, whose error reaches ModuleErrorBoundary.
 const MODULE_LOADERS = {
   interference: () => import('./InterferenceModule'),
   entanglement: () => import('./EntanglementModule'),
@@ -1367,7 +1369,7 @@ function App() {
       // takes over in place, its ring draws on from a point, and then its cards pop.
       let done = false;
       setPairModule('exponential');
-      MODULE_LOADERS.exponential().then((mod) => setExponentialLoaded(() => mod.default));
+      MODULE_LOADERS.exponential().then((mod) => setExponentialLoaded(() => mod.default)).catch(() => {});
       setStagePhase('multi-center');
       const t1 = setTimeout(() => {
         setStagePhase('multi-zoom');
@@ -1415,8 +1417,8 @@ function App() {
       // module's scene takes over in place and its cards pop.
       let done = false;
       setPairModule(activeModuleId);
-      if (activeModuleId === 'entanglement') MODULE_LOADERS.entanglement().then((mod) => setEntanglementLoaded(() => mod.default));
-      if (activeModuleId === 'decoherence') MODULE_LOADERS.decoherence().then((mod) => setDecoherenceLoaded(() => mod.default));
+      if (activeModuleId === 'entanglement') MODULE_LOADERS.entanglement().then((mod) => setEntanglementLoaded(() => mod.default)).catch(() => {});
+      if (activeModuleId === 'decoherence') MODULE_LOADERS.decoherence().then((mod) => setDecoherenceLoaded(() => mod.default)).catch(() => {});
       setStagePhase('multi-center');
       const t1 = setTimeout(() => setStagePhase('multi-split'), 1300);
       const pose = activeModuleId === 'entanglement'
@@ -1468,7 +1470,7 @@ function App() {
       let done = false;
       // Load its code during the vanish and render it directly (not through React.lazy,
       // which would suspend for a tick and drop the canvas), so the hand-over is one commit.
-      MODULE_LOADERS.interference().then((mod) => setInterferenceLoaded(() => mod.default));
+      MODULE_LOADERS.interference().then((mod) => setInterferenceLoaded(() => mod.default)).catch(() => {});
       setStagePhase('solo-center');
       const t = setTimeout(() => {
         done = true;
@@ -1534,7 +1536,7 @@ function App() {
       let done = false;
       setStagePhase('vanish');
       fadeOutSharedCanvas(520);
-      MODULE_LOADERS.nocloning().then((mod) => setNoCloningLoaded(() => mod.default));
+      MODULE_LOADERS.nocloning().then((mod) => setNoCloningLoaded(() => mod.default)).catch(() => {});
       const t = setTimeout(() => {
         done = true;
         skipNextSnapshot();
