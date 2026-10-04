@@ -85,7 +85,7 @@ The simulator is designed for desktop and tablet screens. On narrow windows (und
 |------|------------------|
 | `src/App.jsx` | App shell: landing page, sidebar, module routing, mute and learning-mode state |
 | `src/*Module.jsx`, `src/BlochSphere.jsx`, `src/QuantumGates.jsx`, ... | One file per module's 3D scene and overlay |
-| `src/quantumMath.js` | State-vector, gate and measurement math |
+| `src/quantumMath.js` | State-vector, gate and measurement math, and each module's quantum math (tested in `quantumMath.test.js` and `moduleMath.test.js`) |
 | `src/use*Audio.js`, `src/sharedAudio.js` | Per-module sound design on one shared `AudioContext` |
 | `src/LiquidGlass.js`, `src/glassLens.js`, `src/GlassNavBar.jsx` | The Liquid Glass material, its lens filter and the floating tab bar |
 | `src/liquid-glass/` | The Liquid Glass skill's material, used by the sidebar and the top bar |

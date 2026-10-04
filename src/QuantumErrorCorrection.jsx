@@ -15,6 +15,7 @@ import { QuantumNavButtons } from './QuantumNavButtons';
 import { SCENE_GL } from './sceneGl';
 import { QualityComposer } from './QualityScene';
 import { SharedCanvas } from './SharedCanvas';
+import { SYNDROME_TABLE } from './quantumMath';
 
 
 // ─── Color Palette ────────────────────────────────────────────────────────────
@@ -166,12 +167,7 @@ const getQECStep = (stepIndex, errorQubit = 0) => {
 };
 
 // ─── Syndrome Truth Table ─────────────────────────────────────────────────────
-// errorQubit: 0=Q1, 1=Q2, 2=Q3
-const SYNDROME_TABLE = {
-  0: { s1: 1, s2: 0, label: 'Error on Q₁' },
-  1: { s1: 1, s2: 1, label: 'Error on Q₂' },
-  2: { s1: 0, s2: 1, label: 'Error on Q₃' },
-};
+// SYNDROME_TABLE (quantumMath.js), keyed by errorQubit: 0=Q1, 1=Q2, 2=Q3
 
 // ─── Camera Waypoints ─────────────────────────────────────────────────────────
 const CAM = {
