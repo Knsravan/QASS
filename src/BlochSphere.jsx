@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect, useLayoutEffect, useMemo } from 're
 import { useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Html, PresentationControls } from '@react-three/drei';
 import { useSpring, a } from '@react-spring/three';
-import { handoff } from './handoff';
+import { handoff, GLIDE } from './handoff';
 import { BlochSphereUnit, arrowGrow, DEC_STATIC_ENTRANCE, CT, CA } from './DecoSphereUnit';
 import * as THREE from 'three';
 import { Bloom } from '@react-three/postprocessing';
@@ -1186,6 +1186,8 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
   const [bitOn, setBitOn] = useState(true);
   const rightRig = useRef();
   const targetRig = useRef();
+  const bloomRef = useRef(null);
+  const bloomSet = useRef(false);
   const ctlLabel = useRef();
   const tgtLabel = useRef();
   const isMulti = activeModule === 'multi-qubit-gates'; // the hub's scene standing in for Multi Qubit Gates
@@ -1361,7 +1363,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
     if (isDec && controlsRef.current) {
       const goalDec = mz ? (decClosing ? null : 'module') : (decClosing && (multi === 'split' || multi === 'merge') ? 'hub' : null);
       if (goalDec) {
-        const kc = 1 - Math.exp(-2.6 * Math.min(delta, 0.1));
+        const kc = 1 - Math.exp(-GLIDE * Math.min(delta, 0.1));
         const c = controlsRef.current;
         c.object.position.lerp(goalDec === 'module' ? _DEC_CAM : _HUB_CAM, kc);
         c.target.lerp(goalDec === 'module' ? _DEC_LOOK : _ORIGIN_BS, kc);
@@ -1376,7 +1378,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
       handoff.decStart.pure.copy(dd.a);
       handoff.decStart.noisy.copy(dd.b);
       // The arrows grow slowly before the pair splits and zooms; on a close they shrink back once it has zoomed out.
-      const ak = 1 - Math.exp(-2.2 * Math.min(delta, 0.1));
+      const ak = 1 - Math.exp(-GLIDE * (2.2 / 2.6) * Math.min(delta, 0.1));
       const goal = decClosing && (multi === 'split' || multi === 'merge') ? 0 : 1;
       arrowGrow.p += (goal - arrowGrow.p) * ak;
     }
@@ -1393,7 +1395,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
     // ── Hub <-> module: the two bits stay and grow to the module's size ──
     if (rigRef.current) {
       const rig = rigRef.current;
-      const k = 1 - Math.exp(-(vanishing ? 7 : 2.5) * Math.min(delta, 0.1));
+      const k = 1 - Math.exp(-(vanishing ? 7 : GLIDE * (2.5 / 2.6)) * Math.min(delta, 0.1));
       const ts = vanishing ? 0.0001 : !activeModule ? 0.7 : isRig ? (mz ? 1 : 0.7) : 1;
       const ty = !activeModule ? -0.8 : isMulti ? (mz ? -0.5 : -0.8) : isEnt || isExp || isDec ? (mz ? 0 : -0.8) : activeModule === 'gates' ? -0.5 : 0;
       rig.scale.setScalar(rig.scale.x + (ts - rig.scale.x) * k);
@@ -1412,7 +1414,17 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
         if (solo && s < 0.06) setBitOn(false);
       }
       const r = rightRig.current;
-      const km = 1 - Math.exp(-2.6 * Math.min(delta, 0.1)); // the move / split / zoom glide
+      const km = 1 - Math.exp(-GLIDE * Math.min(delta, 0.1)); // the move / split / zoom glide
+      // Each module's glow, eased in with the move (set outright on the first frame).
+      const bloom = bloomRef.current;
+      if (bloom) {
+        const th = isExp ? 0.25 : isDec ? 0.16 : 0.3;
+        const it = activeModule === 'gates' || activeModule === 'multi-qubit-gates' ? 0.4 : isEnt ? 0.45 : isExp || isDec ? 0.65 : 0.6;
+        const kb = bloomSet.current ? km : 1;
+        bloomSet.current = true;
+        bloom.intensity += (it - bloom.intensity) * kb;
+        bloom.luminanceMaterial.threshold += (th - bloom.luminanceMaterial.threshold) * kb;
+      }
       const pairX = mz ? (isEnt ? (handoff.entPairX || 4.6) : isDec ? 5.8 : 2) : 2.4; // half the gap between the pair
       if (isEnt && !mz) handoff.entPairX = 4.6; // a fresh open starts from the module's default spacing
       const lg = isEnt && mz ? _LIGHTS_ENT : isExp && mz ? _LIGHTS_EXP : isDec && mz ? _LIGHTS_DEC : _LIGHTS_HUB;
@@ -1524,7 +1536,9 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
   return (
     <>
       <QualityComposer disableNormalPass>
-        <Bloom luminanceThreshold={isExp ? 0.25 : isDec ? 0.16 : 0.3} mipmapBlur intensity={activeModule === 'gates' || activeModule === 'multi-qubit-gates' ? 0.4 : isEnt ? 0.45 : isExp || isDec ? 0.65 : 0.6} />
+        {/* Fixed props: a new threshold or intensity would rebuild the effect and recompile its
+            shaders on the spot (the very frame a module starts opening). bloomGlow sets them. */}
+        <Bloom ref={bloomRef} luminanceThreshold={0.3} mipmapBlur intensity={0.6} />
       </QualityComposer>
       <ambientLight ref={ambRef} intensity={isLight ? 0.8 : lightInit.amb} />
       <pointLight ref={light1Ref} position={lightStart[0]} color={lightInit.c1} intensity={isLight ? 12 : lightInit.i1} distance={lightInit.dist} />
