@@ -74,6 +74,9 @@ function GlassLayer() {
 
   useEffect(() => {
     const stop = registerGlassCanvas(gl.domElement);
+    // Compile the glass shader now, not on its first use (the first glass over this scene,
+    // often just as a module starts opening, would otherwise wait for it mid-move).
+    gl.compile(parts.scene, parts.camera);
     return () => {
       stop();
       parts.material.dispose();
@@ -153,13 +156,19 @@ function scaleBloom(effect, scale) {
   if (baseWidth > 1 && baseHeight > 1) setSize(Math.max(1, Math.round(baseWidth * scale)), Math.max(1, Math.round(baseHeight * scale)));
 }
 
+// The caller's own ref on a <Bloom> still gets the effect (QualityComposer sets one too).
+const setRef = (ref, value) => {
+  if (typeof ref === 'function') ref(value);
+  else if (ref) ref.current = value;
+};
+
 export function QualityComposer({ children, ...props }) {
   const q = useQuality();
   if (!q.bloom) return null;
   const passes = Children.toArray(children)
     .filter((c) => q.aberration || c.type !== ChromaticAberration)
     .map((c) => (c.type === Bloom
-      ? cloneElement(c, { levels: Math.min(c.props.levels ?? 8, q.bloomLevels), ref: (e) => scaleBloom(e, q.bloomScale) })
+      ? cloneElement(c, { levels: Math.min(c.props.levels ?? 8, q.bloomLevels), ref: (e) => { scaleBloom(e, q.bloomScale); setRef(c.props.ref, e); } })
       : c));
   return (
     <EffectComposer multisampling={q.msaa} {...props} key={q.tier}>

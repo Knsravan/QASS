@@ -388,7 +388,7 @@ function StateSpaceConstellation({
     }
     return new THREE.TubeGeometry(new Circle(), 128, 0.028, 16, true);
   }, []);
-  const reveal = useRef({ p: fromHub ? 0 : 1, wait: fromHub ? 0.25 : 0, done: !fromHub });
+  const reveal = useRef({ p: fromHub ? 0 : 1, wait: fromHub ? 0.1 : 0, done: !fromHub });
   useEffect(() => {
     if (closing) { reveal.current.wait = 0.35; reveal.current.done = false; }
   }, [closing]);
@@ -402,7 +402,7 @@ function StateSpaceConstellation({
     if (!R.done) {
       const d = Math.min(delta, 0.1);
       if (R.wait > 0) R.wait -= d;
-      else R.p = Math.min(1, Math.max(0, R.p + (closing ? -d / 1.0 : d / 1.5)));
+      else R.p = Math.min(1, Math.max(0, R.p + (closing ? -d / 1.0 : d / 1.0)));
       const e = R.p * R.p * (3 - 2 * R.p); // eased fraction of the circle drawn
       const ring = ringRef.current;
       if (ring) ring.geometry.setDrawRange(0, Math.floor((e * ringGeo.index.count) / 6) * 6);

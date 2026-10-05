@@ -11,6 +11,7 @@ import { isResultEntangled } from './quantumMath';
 import CameraShifter from './CameraShifter';
 import { SharedCanvas, fadeOutSharedCanvas, showSharedCanvas, skipNextSnapshot, settleSharedCamera, getSharedCameraPose, onSharedCanvasRevealed } from './SharedCanvas';
 import { useExitPresence } from './useExitPresence';
+import { glideMs } from './handoff';
 import LandingOrbitalCloud from './LandingOrbitalCloud';
 import GlassNavBar from './GlassNavBar';
 import DisplayPanel, { DisplayPanelIcon } from './DisplayPanel';
@@ -1371,11 +1372,14 @@ function App() {
       let done = false;
       setPairModule('exponential');
       MODULE_LOADERS.exponential().then((mod) => setExponentialLoaded(() => mod.default)).catch(() => {});
+      // The zoom starts while the qubit is still on its way to the middle, so the two moves
+      // run on as one (stage lengths in glideMs: see handoff.js).
       setStagePhase('multi-center');
+      const zoomAt = glideMs(1000);
       const t1 = setTimeout(() => {
         setStagePhase('multi-zoom');
-        settleSharedCamera([0, 1.4, 13], [0, 0, 0], 1700);
-      }, 1100);
+        settleSharedCamera([0, 1.4, 13], [0, 0, 0], glideMs(1700));
+      }, zoomAt);
       const t2 = setTimeout(() => {
         done = true;
         setExpFromHub(true);
@@ -1384,7 +1388,7 @@ function App() {
         setStagePhase('ring');
         setStageSeq((n) => n + 1);
         setStageId(activeModuleId);
-      }, 2900);
+      }, zoomAt + glideMs(1800));
       return () => { clearTimeout(t1); clearTimeout(t2); if (!done) setStagePhase('idle'); };
     }
     if (stageId === 'exponential' && activeModuleId === null) {
@@ -1420,8 +1424,13 @@ function App() {
       setPairModule(activeModuleId);
       if (activeModuleId === 'entanglement') MODULE_LOADERS.entanglement().then((mod) => setEntanglementLoaded(() => mod.default)).catch(() => {});
       if (activeModuleId === 'decoherence') MODULE_LOADERS.decoherence().then((mod) => setDecoherenceLoaded(() => mod.default)).catch(() => {});
+      // Each stage starts while the one before is still easing out, so the qubit flows from
+      // the move into the split and on into the zoom without stopping in between; the
+      // hand-over waits until the zoom has landed (stage lengths in glideMs: see handoff.js).
       setStagePhase('multi-center');
-      const t1 = setTimeout(() => setStagePhase('multi-split'), 1300);
+      const splitAt = glideMs(900);
+      const zoomAt = splitAt + glideMs(1000);
+      const t1 = setTimeout(() => setStagePhase('multi-split'), splitAt);
       const pose = activeModuleId === 'entanglement'
         ? { cam: [isSidebarOpen ? 0.6 : 0, 0.2, 14.2], target: [0, 0, 0] } // where the Entanglement scene rests
         : activeModuleId === 'decoherence'
@@ -1433,8 +1442,8 @@ function App() {
         // models land exactly where the module has them (and its own camera move
         // has nowhere left to go).
         // (Decoherence's hub scene drives its own camera with the pair's glide.)
-        if (activeModuleId !== 'decoherence') settleSharedCamera(pose.cam, pose.target, 1500);
-      }, 2700);
+        if (activeModuleId !== 'decoherence') settleSharedCamera(pose.cam, pose.target, glideMs(1500));
+      }, zoomAt);
       const t2 = setTimeout(() => {
         done = true;
         setModuleTarget(pose.target);
@@ -1443,7 +1452,7 @@ function App() {
         setStagePhase('morph');
         setStageSeq((n) => n + 1);
         setStageId(activeModuleId);
-      }, 4300);
+      }, zoomAt + glideMs(1600));
       return () => { clearTimeout(t1); clearTimeout(t1b); clearTimeout(t2); if (!done) setStagePhase('idle'); };
     }
     if ((stageId === 'multi-qubit-gates' || stageId === 'entanglement' || stageId === 'decoherence') && activeModuleId === null) {
@@ -1512,7 +1521,7 @@ function App() {
         setStagePhase('morph');
         setStageSeq((n) => n + 1);
         setStageId(activeModuleId);
-      }, 1400);
+      }, glideMs(1400));
       return () => { clearTimeout(t); if (!done) setStagePhase('idle'); };
     }
     if (stageId === 'gates' && activeModuleId === null) {
@@ -1620,14 +1629,15 @@ function App() {
       return () => { off(); clearTimeout(t2); clearTimeout(t3); };
     }
     if (stagePhase === 'morph') {
-      // (Decoherence's pair has already settled by the hand-over, so its cards need no wait.)
-      const t = setTimeout(() => setJellyState('run'), pairModule === 'decoherence' && stageId === 'decoherence' ? 350 : 1000);
+      // The module's scene has taken over in place, so its cards can pop almost at once;
+      // Quantum Interference's intro move plays first.
+      const t = setTimeout(() => setJellyState('run'), stageId === 'interference' ? 1000 : 350);
       return () => clearTimeout(t);
     }
     if (stagePhase === 'bounce') {
       // Cards pop once the models have bounced in (the module starts them when its scene shows).
       let t2 = 0;
-      const off = onSharedCanvasRevealed(() => { off(); t2 = setTimeout(() => setJellyState('run'), 1400); });
+      const off = onSharedCanvasRevealed(() => { off(); t2 = setTimeout(() => setJellyState('run'), 1150); });
       const t3 = setTimeout(() => setJellyState('run'), 6000); // never leave the cards hidden
       return () => { off(); clearTimeout(t2); clearTimeout(t3); };
     }
@@ -1651,12 +1661,12 @@ function App() {
       // (A lone qubit has no second one to merge in, so it goes straight on to its hub place.)
       const lone = pairModule === 'exponential';
       const dec = pairModule === 'decoherence';
-      if (!dec) settleSharedCamera([0, 0, 13], [0, 0, 0], lone ? 1100 : 1500);
-      const t = setTimeout(() => { setHubTarget([0, 0, 0]); setStagePhase(lone ? 'morph' : 'multi-merge'); }, lone ? 1100 : dec ? 1250 : 1500);
+      if (!dec) settleSharedCamera([0, 0, 13], [0, 0, 0], glideMs(lone ? 1100 : 1500));
+      const t = setTimeout(() => { setHubTarget([0, 0, 0]); setStagePhase(lone ? 'morph' : 'multi-merge'); }, glideMs(lone ? 1100 : dec ? 1250 : 1500));
       return () => clearTimeout(t);
     }
     if (stagePhase === 'multi-merge') {
-      const t = setTimeout(() => setStagePhase('morph'), 1500);
+      const t = setTimeout(() => setStagePhase('morph'), glideMs(1500));
       return () => clearTimeout(t);
     }
     if (stagePhase === 'shrink') {
