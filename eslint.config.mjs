@@ -30,9 +30,4 @@ export default [
     languageOptions: { ecmaVersion: 'latest', sourceType: 'module', globals: { ...globals.node, ...globals.browser } },
     rules: js.configs.recommended.rules,
   },
-  {
-    files: ['scripts/**/*.js'],
-    languageOptions: { sourceType: 'commonjs', globals: { ...globals.node } },
-    rules: js.configs.recommended.rules,
-  },
 ];

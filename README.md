@@ -97,7 +97,6 @@ The simulator is designed for desktop and tablet screens. On narrow windows (und
 | `src/use*Audio.js`, `src/sharedAudio.js` | Per-module sound design on one shared `AudioContext` |
 | `src/LiquidGlass.js`, `src/glassLens.js`, `src/GlassNavBar.jsx` | The Liquid Glass material, its lens filter and the floating tab bar |
 | `src/liquid-glass/` | The Liquid Glass skill's material, used by the sidebar and the top bar |
-| `scripts/generate_audio.js` | Optional: regenerates the narration clips (see below) |
 | `e2e/` | Browser smoke tests (Playwright) |
 
 ### The Liquid Glass material
@@ -175,18 +174,9 @@ The tab bar's selection indicator is a hand-written spring (damping 0.72, stiffn
 
 The QASS mark is the letter Q drawn as the app's Bloch sphere, with the state vector running out of the sphere as the Q's tail. It is code, not an image: `src/QassLogo.jsx` draws it in SVG with its motion in SMIL (a meridian turns the sphere, light runs along the equator, a spark circles it, the state point breathes), paused with reduced motion; `intro` draws it on once (the landing badge). `public/logo.svg` is the same mark still, `public/favicon.svg` a heavier version for 16 to 48 px, and the PNG icons, `favicon.ico` and the social image `og-image.jpg` are rendered from them.
 
-### Narration clips (optional)
-
-`public/audio` holds a set of narration clips for the Superposition (`superposition/`) and Dirac Notation (`dirac-notation/`) modules. The app does not play them yet; they are deployed but never downloaded until it does. `scripts/generate_audio.js` can regenerate the Superposition ones with [ElevenLabs](https://elevenlabs.io/) using your own API key:
-
-```bash
-ELEVENLABS_API_KEY=your_key node scripts/generate_audio.js
-```
-
 ## Roadmap
 
 - **Advanced mode.** The Beginner / Advanced switch is in place, but the Advanced sandbox is not built yet and currently shows a "loading" placeholder.
-- Wiring the narration clips into the Superposition and Dirac modules.
 - A mobile-friendly layout.
 
 ## Acknowledgements
