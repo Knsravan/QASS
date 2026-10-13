@@ -100,7 +100,7 @@ export function useExponentialAudio() {
       trackSource(osc1);
       trackSource(osc2);
     } catch (e) {
-      console.warn('Audio play error:', e);
+      if (import.meta.env.DEV) console.warn('Audio play error:', e);
     }
   }, [getAudioContext, trackSource]);
 
@@ -134,7 +134,7 @@ export function useExponentialAudio() {
         trackSource(osc);
       });
     } catch (e) {
-      console.warn('Audio play error:', e);
+      if (import.meta.env.DEV) console.warn('Audio play error:', e);
     }
   }, [getAudioContext, trackSource]);
 
@@ -163,7 +163,7 @@ export function useExponentialAudio() {
       sub.stop(now + 0.65);
       trackSource(sub);
     } catch (e) {
-      console.warn('Audio play error:', e);
+      if (import.meta.env.DEV) console.warn('Audio play error:', e);
     }
   }, [getAudioContext, trackSource]);
 
@@ -192,7 +192,7 @@ export function useExponentialAudio() {
       osc.stop(now + 0.08);
       trackSource(osc);
     } catch (e) {
-      console.warn('Audio play error:', e);
+      if (import.meta.env.DEV) console.warn('Audio play error:', e);
     }
   }, [getAudioContext, trackSource]);
 
@@ -227,7 +227,7 @@ export function useExponentialAudio() {
       osc.stop(now + 0.85);
       trackSource(osc);
     } catch (e) {
-      console.warn('Audio play error:', e);
+      if (import.meta.env.DEV) console.warn('Audio play error:', e);
     }
   }, [getAudioContext, trackSource]);
 
@@ -256,7 +256,7 @@ export function useExponentialAudio() {
       osc.stop(now + 0.25);
       trackSource(osc);
     } catch (e) {
-      console.warn('Audio play error:', e);
+      if (import.meta.env.DEV) console.warn('Audio play error:', e);
     }
   }, [getAudioContext, trackSource]);
 

@@ -1,0 +1,238 @@
+/* =========================================
+   LANDING PAGE (DELTHA FONT)
+   ========================================= */
+.landing-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  background: radial-gradient(circle at center, #0a0e17 0%, #02040a 100%);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Deltha', 'Inter', sans-serif;
+}
+
+.landing-overlay {
+  position: absolute;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  /* No `forwards`: an animation kept on after it ends makes the overlay a
+     backdrop root, so its glass cards couldn't see (or frost) the 3D scene
+     behind them and its lines ran sharp through the cards' text. */
+  animation: fadeInSlow 2s ease-out;
+  padding: 40px;
+  font-family: 'Deltha', 'Inter', sans-serif;
+}
+
+.hero-badge {
+  background: rgba(0, 242, 254, 0.05);
+  border: 1px solid rgba(0, 242, 254, 0.4);
+  color: #00f2fe;
+  padding: 8px 20px;
+  border-radius: 30px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 25px;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: 0 0 20px rgba(0, 242, 254, 0.2);
+  animation: float 6s ease-in-out infinite;
+  font-family: 'Deltha', 'Inter', sans-serif;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hero-badge .qass-logo {
+  flex-shrink: 0;
+  overflow: visible;
+  margin-left: -6px;
+}
+
+.hero-title {
+  font-size: 70px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  color: #ffffff;
+  margin: 0 0 20px 0;
+  text-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+  font-family: 'Deltha', 'Inter', sans-serif;
+}
+
+.hero-title span {
+  background: linear-gradient(90deg, #00f2fe, #4facfe, #f093fb, #00f2fe);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmerText 4s linear infinite;
+  font-family: 'Deltha', 'Inter', sans-serif;
+}
+
+.hero-subtitle {
+  font-family: 'Space Grotesk', 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 16.5px;
+  font-weight: 400;
+  color: #94a3b8;
+  max-width: 680px;
+  line-height: 1.75;
+  letter-spacing: 0.2px;
+  margin-bottom: 55px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.feature-grid {
+  display: flex;
+  gap: 25px;
+  margin-bottom: 55px;
+}
+
+.feature-card {
+  background: linear-gradient(145deg, rgba(20, 25, 35, 0.6) 0%, rgba(10, 12, 18, 0.8) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+
+  padding: 28px 24px;
+  border-radius: 20px;
+  width: 220px;
+  text-align: left;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.feature-card:hover {
+  transform: translateY(-10px) scale(1.02);
+  background: linear-gradient(145deg, rgba(30, 38, 50, 0.8) 0%, rgba(15, 18, 25, 0.9) 100%);
+  border: 1px solid rgba(0, 242, 254, 0.4);
+  box-shadow: 0 20px 40px rgba(0, 242, 254, 0.15);
+}
+
+.feature-icon {
+  font-size: 28px;
+  margin-bottom: 15px;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
+}
+
+.feature-card h4 {
+  color: #f8fafc;
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  font-family: 'Deltha', 'Inter', sans-serif;
+}
+
+.feature-card p {
+  font-family: 'Space Grotesk', 'Plus Jakarta Sans', 'Inter', sans-serif;
+  color: #cbd5e1;
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 400;
+  line-height: 1.65;
+  letter-spacing: 0.15px;
+}
+
+.start-btn {
+  position: relative;
+  background: linear-gradient(90deg, #00f2fe 0%, #4facfe 100%);
+  color: #0f172a;
+  border: none;
+  padding: 18px 48px;
+  font-size: 16px;
+  font-weight: 800;
+  border-radius: 40px;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: 0 0 20px rgba(0, 242, 254, 0.4), 0 0 40px rgba(0, 242, 254, 0.2);
+  transition: all 0.3s ease;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-family: 'Deltha', 'Inter', sans-serif;
+}
+
+.start-btn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+  transform: skewX(-20deg);
+  animation: sweep 3s infinite;
+}
+
+.start-btn:hover {
+  transform: scale(1.05) translateY(-2px);
+  box-shadow: 0 10px 30px rgba(0, 242, 254, 0.6), 0 0 60px rgba(0, 242, 254, 0.3);
+}
+
+/* No `forwards`: a filter or transform left on the container after the
+   entrance would make it a backdrop root, and every glass surface inside
+   would frost (and bend) an empty backdrop instead of the scene behind. */
+.app-container {
+  animation: fadeInApp 1s ease-in;
+}
+
+@keyframes fadeInSlow {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeInApp {
+  0% {
+    opacity: 0;
+    filter: blur(10px);
+    transform: scale(0.98);
+  }
+
+  100% {
+    opacity: 1;
+    filter: blur(0px);
+    transform: scale(1);
+  }
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes shimmerText {
+  to {
+    background-position: 200% center;
+  }
+}
+
+@keyframes sweep {
+  0% {
+    left: -100%;
+  }
+
+  20% {
+    left: 200%;
+  }
+
+  100% {
+    left: 200%;
+  }
+}

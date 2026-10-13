@@ -1,0 +1,176 @@
+/* =============================================================================
+   WEBGL LIQUID GLASS (glassGL.js)
+   Glass sitting on a 3D scene is drawn by the scene itself (refraction, veil,
+   rim light, shadow, touch light); the element keeps only its content. Its
+   CSS glass (lens, tint, rim, shadow) steps aside while [data-gl] is set.
+   ============================================================================= */
+[data-gl],
+.lg-lensed[data-gl]:not([data-gl-lens])::before {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Glass with page content behind it: the CSS lens bends that content (the
+   scene's bend can't); the WebGL glass draws the body and the edge light. */
+.lg-lensed[data-gl][data-gl-lens]::before {
+  -webkit-backdrop-filter: var(--gl-lens, none) !important;
+  backdrop-filter: var(--gl-lens, none) !important;
+}
+
+[data-gl] {
+  box-shadow: none !important;
+}
+
+[data-gl]:is(.lg, .lg-pane, .lg-bar) {
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
+/* Cards and panels styled inline in a module: the WebGL bevel is their rim,
+   like every other piece of glass, so their own border steps aside too. */
+[data-gl][data-gl-big] {
+  border-color: transparent !important;
+}
+
+:is(.lg-pane, .lg-bar, .feature-card.lg, .start-btn.lg)[data-gl]::after {
+  display: none !important;
+}
+
+/* Glass that carries text (panels, the sidebar, cards, tooltips): a soft
+   blur inside the rim band, feathered in, so the text reads cleanly. It
+   frosts page elements under the glass too (labels, the VS badge), which
+   the scene can't. The rim keeps the WebGL bend and light. Buttons and
+   pills stay Clear. */
+.lg-lensed[data-gl][data-gl-big]:not([data-gl-lens])::before {
+  inset: 10px;
+  border-radius: var(--gl-ir, 14px);
+  -webkit-backdrop-filter: blur(7px) saturate(1.2) !important;
+  backdrop-filter: blur(7px) saturate(1.2) !important;
+  -webkit-mask-image:
+    linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent),
+    linear-gradient(to bottom, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent),
+    linear-gradient(to bottom, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+  mask-composite: intersect;
+}
+
+/* Tooltips float over labels and the scene: a little more body. */
+.glass-tooltip.lg-lensed[data-gl][data-gl-big]:not([data-gl-lens])::before {
+  background: rgba(6, 8, 12, 0.32) !important;
+}
+
+/* The top bar's pieces flow together in the glass itself. */
+.lg-nav:has(.lg-bar[data-gl]) :is(.lg-nav-neck, .lg-nav-neck-rim) {
+  display: none;
+}
+
+/* Light glass (over mostly light content): dark text and icons. */
+[data-lg-light],
+[data-lg-light] :not(svg *) {
+  color: #0b0d12 !important;
+  text-shadow: none !important;
+  transition: color 0.3s ease;
+}
+
+/* The glass's edge light (glassGL.js): one transparent canvas over the page. */
+.gl-edges {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 500;
+}
+
+
+/* Opening the first module from the hub: the hub's text fades up and away
+   while the two bits stay and grow; the module's own pieces fade in after. */
+.idle-hud { transition: opacity 0.5s ease, transform 0.55s cubic-bezier(0.4, 0, 0.2, 1); }
+.idle-hud-leaving { opacity: 0; transform: translateY(-14px); }
+.idle-hud-leaving * { pointer-events: none !important; }
+.module-appear { animation: moduleAppear 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.5s both; }
+@keyframes moduleAppear { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes moduleFade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .idle-hud, .module-appear { transition: none; animation: none; } }
+
+/* The logo and name are the way back to the start (no module open). */
+.sidebar-home {
+  display: flex; align-items: center; gap: 12px; min-width: 0;
+  padding: 0; margin: 0; border: 0; background: none; color: inherit;
+  font: inherit; text-align: left; cursor: pointer; border-radius: 12px;
+  -webkit-tap-highlight-color: transparent;
+}
+.sidebar-home:focus-visible { outline: 2px solid rgba(56, 189, 248, 0.8); outline-offset: 4px; }
+
+/* Jelly pop: a module's cards and buttons spring in one after another once its
+   3D scene is in, and spring out before it leaves. The state sits on the stage
+   (data-jelly-state): "wait" holds them at zero size, "run" plays the pop,
+   "out" plays the reverse. The animation fills backwards only, so hover
+   effects work again once it ends. */
+[data-jelly-state="wait"] [data-jelly],
+[data-jelly-state="wait"] .quantum-nav-btn { transform: translate(var(--tx, 0px), 0) scale(0) !important; animation: none !important; }
+[data-jelly-state="wait"] [data-jelly-host],
+[data-jelly-state="run"] [data-jelly-host],
+[data-jelly-state="out"] [data-jelly-host] { animation: none !important; opacity: 1 !important; }
+[data-jelly-state="run"] [data-jelly] {
+  animation: jellyPop 1.05s linear backwards !important;
+  animation-delay: calc(var(--j, 0) * 0.14s) !important;
+}
+[data-jelly-state="run"] .quantum-nav-btn { animation: jellyPop 1.05s linear backwards !important; }
+[data-jelly-state="run"] .quantum-nav-btn:nth-child(1) { animation-delay: 0.42s !important; }
+[data-jelly-state="run"] .quantum-nav-btn:nth-child(2) { animation-delay: 0.56s !important; }
+[data-jelly-state="out"] [data-jelly],
+[data-jelly-state="out"] .quantum-nav-btn {
+  animation: jellyOut 0.5s cubic-bezier(0.5, 0, 0.75, 0) forwards !important;
+  animation-delay: calc((3 - var(--j, 0)) * 0.07s) !important;
+}
+[data-jelly-state="out"] .quantum-nav-btn:nth-child(1) { animation-delay: 0.05s !important; }
+[data-jelly-state="out"] .quantum-nav-btn:nth-child(2) { animation-delay: 0s !important; }
+[data-jelly-fade] { transition: opacity 0.45s ease; }
+[data-jelly-state="wait"] [data-jelly-fade], [data-jelly-state="out"] [data-jelly-fade] { opacity: 0 !important; }
+@keyframes jellyPop {
+  0%   { transform: translate(var(--tx, 0px), 0) scale(0); opacity: 0; animation-timing-function: cubic-bezier(0.2, 0.8, 0.3, 1); }
+  22%  { opacity: 1; }
+  40%  { transform: translate(var(--tx, 0px), 0) scale(1.14, 0.88); animation-timing-function: ease-in-out; }
+  58%  { transform: translate(var(--tx, 0px), 0) scale(0.93, 1.07); animation-timing-function: ease-in-out; }
+  76%  { transform: translate(var(--tx, 0px), 0) scale(1.04, 0.98); animation-timing-function: ease-in-out; }
+  90%  { transform: translate(var(--tx, 0px), 0) scale(0.99, 1.01); animation-timing-function: ease-in-out; }
+  100% { transform: translate(var(--tx, 0px), 0) scale(1); opacity: 1; }
+}
+@keyframes jellyOut {
+  0%   { transform: translate(var(--tx, 0px), 0) scale(1); }
+  25%  { transform: translate(var(--tx, 0px), 0) scale(1.07, 0.95); animation-timing-function: cubic-bezier(0.5, 0, 0.75, 0); }
+  100% { transform: translate(var(--tx, 0px), 0) scale(0); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-jelly-state="wait"] [data-jelly], [data-jelly-state="wait"] .quantum-nav-btn { transform: none !important; }
+  [data-jelly-state="run"] [data-jelly], [data-jelly-state="run"] .quantum-nav-btn,
+  [data-jelly-state="out"] [data-jelly], [data-jelly-state="out"] .quantum-nav-btn { animation: none !important; }
+}
+
+/* Closing any module: whatever glass cards and buttons it has spring out (using
+   the independent `scale` property, so their own positioning transforms stay).
+   The top bar stays; elements that already have their own pop (data-jelly) use that. */
+.canvas-container[data-jelly-state="out"] :is([data-gl], .glass-tooltip, .glass-interactive, .lg-pane, .section-title, .vs-badge):not([data-jelly]):not(.quantum-nav-btn):not(.lg-nav):not(.lg-nav *) {
+  animation: jellyOutScale 0.5s cubic-bezier(0.5, 0, 0.75, 0) forwards !important;
+}
+@keyframes jellyOutScale {
+  0%   { scale: 1; }
+  25%  { scale: 1.06 0.95; animation-timing-function: cubic-bezier(0.5, 0, 0.75, 0); }
+  100% { scale: 0; opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .canvas-container[data-jelly-state="out"] :is([data-gl], .glass-tooltip, .glass-interactive, .lg-pane, .section-title, .vs-badge) { animation: none !important; }
+}
+
+/* The parts the Classical Gates scene adds to the hub's two bits (labels, the VS
+   badge) fade in as the module takes over, and out as it hands back. */
+.gates-extra { animation: moduleFade 0.9s ease-out 0.1s both; }
+.canvas-container[data-jelly-state="out"] .gates-extra { opacity: 0 !important; transition: opacity 0.45s ease; animation: none !important; }
+
+/* Multi Qubit Gates: the labels the pair gains as the hub's qubit splits fade in
+   (and out again on the way back). */
+.mq-extra { animation: moduleFade 0.9s ease-out 0.1s backwards; }
+.canvas-container[data-jelly-state="out"] .mq-extra { opacity: 0 !important; transition: opacity 0.45s ease; animation: none !important; }

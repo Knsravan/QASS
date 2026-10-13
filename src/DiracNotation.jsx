@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { Html, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { Bloom } from '@react-three/postprocessing';
-import { InlineMath } from 'react-katex';
+import { InlineMath } from './KatexMath';
 import { bornProbabilities } from './quantumMath';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { QualityComposer } from './QualityScene';

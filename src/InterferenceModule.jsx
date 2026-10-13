@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense } fr
 import { useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Html } from '@react-three/drei';
 import * as THREE from 'three';
-import { InlineMath } from 'react-katex';
+import { InlineMath } from './KatexMath';
 import { useDrag } from '@use-gesture/react';
 
 import BlochSphere from './BlochSphere';

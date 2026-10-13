@@ -5,7 +5,7 @@ import { Html, OrbitControls } from '@react-three/drei';
 import { Bloom } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import gsap from 'gsap';
-import { InlineMath } from 'react-katex';
+import { InlineMath } from './KatexMath';
 import { ClassicalBit, QubitCore } from './BlochSphere';
 import CameraShifter from './CameraShifter';
 import { QuantumNavButtons } from './QuantumNavButtons';

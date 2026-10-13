@@ -19,7 +19,7 @@ export default defineConfig({
             { name: 'react', test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/, priority: 30 },
             { name: 'three', test: /node_modules[\\/]three[\\/]/, priority: 20 },
             { name: 'r3f', test: /node_modules[\\/](@react-three|three-stdlib|postprocessing|n8ao|maath|camera-controls|troika-|@react-spring|@monogrid)/, priority: 10 },
-            { name: 'katex', test: /node_modules[\\/](katex|react-katex)[\\/]/, priority: 10 },
+            { name: 'katex', test: /node_modules[\\/]katex[\\/]/, priority: 10 },
           ],
         },
       },

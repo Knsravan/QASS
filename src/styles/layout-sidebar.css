@@ -1,0 +1,847 @@
+/* =========================================
+   MAIN LAYOUT (SIDEBAR & 3D CANVAS)
+   ========================================= */
+.main-content {
+  display: flex;
+  width: 100%;
+  height: 100vh;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 1;
+}
+
+.sidebar-wrapper {
+  position: relative;
+  margin: 20px;
+  display: flex;
+  height: calc(100% - 40px);
+  z-index: 10;
+  flex-shrink: 0;
+
+}
+
+.canvas-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  pointer-events: none;
+  /* Fix WebGL backdrop-filter bug by promoting to hardware layer */
+  will-change: transform;
+  transform: translateZ(0);
+  /* Allow clicks to pass through empty space */
+}
+
+.canvas-container>* {
+  pointer-events: auto;
+}
+
+/* =========================================
+   GLASSMORPHISM ACCORDION SIDEBAR
+   ========================================== */
+.sidebar-panel {
+  width: 380px;
+  min-width: 380px;
+  margin: 0;
+  height: 100%;
+  max-height: 100%;
+  box-sizing: border-box;
+
+  /* ── STANDARD GLASSMORPHISM MATERIAL ────────────────────────── */
+  background: var(--glass-bg-thick);
+  backdrop-filter: var(--glass-blur-thick);
+  -webkit-backdrop-filter: var(--glass-blur-thick);
+
+  border: var(--glass-border-base);
+  box-shadow:
+    var(--glass-highlight),
+    var(--glass-shadow-base);
+
+  border-radius: 26px;
+  padding: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  /* CRITICAL: contain:strict includes contain:paint which KILLS backdrop-filter.
+     Use layout+style only — preserves performance without breaking glass blur. */
+  
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  will-change: transform;
+  transform: translateZ(0);
+
+  /* A liquid spring: the glass overshoots a touch and settles. */
+  transition:
+    width 0.6s var(--lg-spring-glass, cubic-bezier(0.34, 1.3, 0.5, 1)),
+    min-width 0.6s var(--lg-spring-glass, cubic-bezier(0.34, 1.3, 0.5, 1)),
+    box-shadow 0.45s var(--glass-spring);
+}
+
+.sidebar-panel.collapsed {
+  width: 72px !important;
+  min-width: 72px !important;
+  padding: 0 !important;
+}
+
+/* Pinned Header (Logo, Title, Interactive Suite) */
+.sidebar-branding {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px 14px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  white-space: nowrap;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.035);
+  border-top-left-radius: 26px;
+  border-top-right-radius: 26px;
+  z-index: 20;
+  box-sizing: border-box;
+}
+
+.sidebar-branding .qass-logo {
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+.sidebar-branding img {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  object-fit: cover;
+  flex-shrink: 0;
+  box-shadow: 0 0 16px rgba(0, 229, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.sidebar-branding-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-branding-title {
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: -0.2px;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.sidebar-branding-tag {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: rgba(0, 229, 255, 0.85);
+  margin-top: 2px;
+}
+
+.sidebar-panel.collapsed .sidebar-branding {
+  padding: 16px 8px 14px 8px;
+  justify-content: center;
+}
+
+.sidebar-panel.collapsed .sidebar-branding-text {
+  opacity: 0;
+  display: none;
+}
+
+/* Pinned Header Action Controls (Theme + Audio) */
+.sidebar-branding-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.sidebar-theme-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 0;
+  position: relative;
+  transition: all 0.25s var(--glass-spring);
+  flex-shrink: 0;
+}
+
+.sidebar-theme-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.35);
+  transform: scale(1.06);
+}
+
+/* Pinned Header Global Audio Toggle Button */
+.sidebar-audio-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0;
+  position: relative;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+}
+
+.sidebar-audio-btn:hover {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.45);
+  color: #38bdf8;
+  transform: scale(1.06);
+}
+
+.sidebar-audio-btn.active {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.08);
+  border-color: rgba(56, 189, 248, 0.35);
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.22);
+}
+
+.sidebar-audio-btn.muted {
+  color: #64748b;
+  border-color: rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.sidebar-audio-btn .audio-icon {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+}
+
+.audio-live-waves {
+  position: absolute;
+  bottom: 3px;
+  right: 4px;
+  display: flex;
+  align-items: flex-end;
+  gap: 1.5px;
+  height: 7px;
+}
+
+.audio-wave {
+  width: 1.5px;
+  background: #38bdf8;
+  border-radius: 1px;
+  animation: audioWaveAnim 1.2s ease-in-out infinite alternate;
+}
+
+.audio-wave.bar-1 {
+  height: 3px;
+  animation-delay: 0.1s;
+}
+
+.audio-wave.bar-2 {
+  height: 6px;
+  animation-delay: 0.3s;
+}
+
+.audio-wave.bar-3 {
+  height: 4.5px;
+  animation-delay: 0.2s;
+}
+
+@keyframes audioWaveAnim {
+  0% {
+    transform: scaleY(0.4);
+    opacity: 0.6;
+  }
+
+  100% {
+    transform: scaleY(1.1);
+    opacity: 1;
+  }
+}
+
+.sidebar-panel.collapsed .sidebar-audio-btn {
+  display: none;
+}
+
+/* Scrollable Container for Accordion Modules */
+.sidebar-scrollable-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px 12px 18px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-sizing: border-box;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+  transform: translateZ(0);
+  /* Scrolled by the compositor, off the main thread the 3D scenes draw on.
+     Translucent over the scene, Chrome would otherwise repaint it on the
+     main thread on every scroll frame (below 1.5x pixel ratio, to keep LCD
+     text), and the scenes behind slowed while it scrolled. Same below. */
+  will-change: scroll-position;
+}
+
+.sidebar-scrollable-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-scrollable-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scrollable-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+}
+
+.sidebar-scrollable-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.sidebar-panel.collapsed .sidebar-scrollable-content {
+  padding: 10px 8px 18px 8px;
+  align-items: center;
+}
+
+.sidebar-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.sidebar-panel h2 {
+  margin: 0 0 20px 0;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+}
+
+/* ─── Premium GLASSMORPHISM Data Cards ─────────────────────────────────────── */
+.data-card {
+  background: var(--glass-bg-base);
+  border: var(--glass-border-base);
+  border-radius: 18px;
+  padding: 18px;
+  margin-bottom: 16px;
+  box-shadow:
+    var(--glass-highlight),
+    var(--glass-shadow-base);
+  transition:
+    transform 0.30s var(--glass-spring),
+    box-shadow 0.38s var(--glass-spring),
+    border-color 0.30s var(--glass-spring),
+    background 0.35s var(--glass-spring),
+    backdrop-filter 0.38s var(--glass-spring);
+}
+
+.pillar-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--text-secondary);
+  display: block;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.pillar-text {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  white-space: normal;
+}
+
+.math-box-fluid {
+  background: transparent;
+  text-align: center;
+  margin: 10px 0;
+}
+
+.katex-display {
+  color: var(--text-primary);
+  font-size: 13px !important;
+  margin: 5px 0 !important;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.curriculum-list {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.curriculum-item {
+  padding: 10px 14px;
+  border-radius: 14px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.72);
+
+  /* ── RESTING GLASS TILE ────────────────────────────────────────── */
+  background: var(--glass-bg-base);
+  border: var(--glass-border-base);
+  box-shadow:
+    var(--glass-highlight),
+    0 2px 8px -2px rgba(0, 0, 0, 0.28);
+
+  transition:
+    background 0.26s var(--glass-spring),
+    border-color 0.26s var(--glass-spring),
+    box-shadow 0.26s var(--glass-spring),
+    transform 0.26s var(--glass-spring),
+    color 0.18s var(--glass-spring);
+
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.curriculum-item:hover {
+  /* On hover: glass thickens — more opaque tint, brighter border, stronger specular */
+  background: rgba(255, 255, 255, 0.105);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  transform: translateX(4px) scale(1.010);
+  box-shadow:
+    inset 0 1.2px 1.5px rgba(255, 255, 255, 0.42),
+    inset 0 -0.8px 1px rgba(0, 0, 0, 0.24),
+    0 4px 18px -4px rgba(0, 0, 0, 0.42),
+    0 0 16px rgba(0, 210, 255, 0.10);
+}
+
+.curriculum-item:active {
+  transform: translateX(2px) scale(0.97);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.40),
+    inset 0 -0.5px 0.5px rgba(0, 0, 0, 0.18);
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.curriculum-item.active {
+  /* Active: RICHEST glass — the selected module glows with full optical depth */
+  background: rgba(255, 255, 255, 0.13);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow:
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.55),
+    inset 0 -1px 1.5px rgba(0, 0, 0, 0.30),
+    0 4px 20px -4px rgba(0, 0, 0, 0.48),
+    0 0 24px rgba(0, 210, 255, 0.15);
+  transform: translateX(4px);
+}
+
+/* =========================================
+   TOOLTIPS — ADAPTIVE LIQUID FROSTED GLASS
+   
+   Dual-mode behaviour (CSS-only, no JS):
+   ┌─ Over dark space (stars)  → blur shows starfield watercolor, very legible
+   └─ Over bright 3D mesh      → brightness(0.60) kills bright bleed-through,
+                                  inner dark vignette scrim protects text
+   
+   "Bending" illusion: ::before is an organic blob that morphs shape
+   continuously — gives the impression that the glass is warping/bending
+   the content behind it, like a physical convex lens.
+   ========================================= */
+.glass-tooltip {
+  /* ── Fill: opaque enough to protect text over bright 3D meshes ──
+     0.62 alpha: glass is still translucent (blur shows through)
+     but NOT transparent enough for bright teal mesh to wash out text.
+  ── */
+  background: rgba(4, 7, 5, 0.62);
+
+  /* ── Optical blur stack ──
+     blur(44px)      : strong smear — 3D content behind is visible blurred
+     saturate(110%)  : slight color boost (not overwhelming)
+     brightness(0.48): aggressively kills bright teal/purple bleed-through
+     contrast(130%)  : sharpens the dimmed content for visible glass texture
+  ── */
+  backdrop-filter: blur(44px) saturate(110%) brightness(0.48) contrast(130%);
+  -webkit-backdrop-filter: blur(44px) saturate(110%) brightness(0.48) contrast(130%);
+
+  /* ── Border ── */
+  border: 1px solid rgba(255, 255, 255, 0.14);
+
+  /* ── Shadows: specular + heavy inner dark vignette + outer grounding ── */
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.24),
+    /* inner dark scrim — absorbs bright 3D bleed at the edges */
+    inset 0 0 48px rgba(0, 0, 0, 0.55),
+    0 20px 56px rgba(0, 0, 0, 0.65),
+    0 6px 18px rgba(0, 0, 0, 0.40);
+
+  border-radius: 22px;
+  padding: 16px 20px;
+  width: 260px;
+  pointer-events: none;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+
+  transform-origin: 50% 100%;
+  animation: tooltipSpringIn 0.55s var(--lg-spring-glass, cubic-bezier(0.34, 1.3, 0.5, 1)) both;
+}
+
+/* ── Organic Blob Shimmer — the "bending light" illusion ─────────────
+   ::before is NOT a circle. It's an organic morphing blob shape that
+   continuously changes border-radius (blobMorph keyframes).
+   The rotating conic gradient INSIDE this blob makes it look like
+   the glass is bending, refracting, and warping the light behind it.
+   mix-blend-mode:overlay means it brightens where content is bright
+   and darkens where content is dark — making it look adaptive.
+   ──────────────────────────────────────────────────────────────────── */
+.glass-tooltip::before {
+  content: '';
+  position: absolute;
+  inset: -35%;
+  background: conic-gradient(
+    from 0deg at 35% 45%,
+    rgba(255, 255, 255, 0.00)  0deg,
+    rgba(255, 255, 255, 0.09) 55deg,
+    rgba(255, 255, 255, 0.00) 110deg,
+    rgba(255, 255, 255, 0.05) 185deg,
+    rgba(255, 255, 255, 0.00) 260deg,
+    rgba(255, 255, 255, 0.08) 330deg,
+    rgba(255, 255, 255, 0.00) 360deg
+  );
+  /* Organic blob — simulates real glass lens curvature */
+  border-radius: 62% 38% 46% 54% / 60% 44% 56% 40%;
+  pointer-events: none;
+  /* screen: adds subtle white shimmer without amplifying bright content */
+  mix-blend-mode: screen;
+  opacity: 0.45;
+  animation: glassFluidSpin 5s linear infinite, blobMorph 4.5s ease-in-out infinite;
+}
+
+@keyframes glassFluidSpin {
+  0%   { transform: rotate(0deg)   scale(1.00); }
+  50%  { transform: rotate(180deg) scale(1.10); }
+  100% { transform: rotate(360deg) scale(1.00); }
+}
+
+/* Blob shape morphs continuously — looks like glass bending/warping */
+@keyframes blobMorph {
+  0%   { border-radius: 62% 38% 46% 54% / 60% 44% 56% 40%; }
+  20%  { border-radius: 40% 60% 54% 46% / 44% 58% 42% 56%; }
+  40%  { border-radius: 54% 46% 38% 62% / 56% 40% 60% 44%; }
+  60%  { border-radius: 38% 62% 60% 40% / 48% 52% 48% 52%; }
+  80%  { border-radius: 60% 40% 46% 54% / 54% 46% 56% 44%; }
+  100% { border-radius: 62% 38% 46% 54% / 60% 44% 56% 40%; }
+}
+
+/* ── Top-edge specular light bar — pulses like sunlight on glass ── */
+.glass-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 8%;
+  width: 84%;
+  height: 1.5px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.00) 0%,
+    rgba(255, 255, 255, 0.45) 28%,
+    rgba(255, 255, 255, 0.60) 50%,
+    rgba(255, 255, 255, 0.45) 72%,
+    rgba(255, 255, 255, 0.00) 100%
+  );
+  border-radius: 999px;
+  pointer-events: none;
+  transform-origin: center;
+  animation: glassSpecularPulse 4s ease-in-out infinite;
+}
+
+/* 0.857 = 72% / 84% — the old width pulse, expressed as a centered scale */
+@keyframes glassSpecularPulse {
+  0%,  100% { opacity: 0.65; transform: scaleX(1); }
+  50%       { opacity: 1.00; transform: scaleX(0.857); }
+}
+
+/* ── Cyan accent — Classical Bit / North Pole ── */
+.glass-tooltip.cyan-glow {
+  border-color: rgba(0, 212, 240, 0.24);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.24),
+    inset 0 0 36px rgba(0, 0, 0, 0.35),
+    0 20px 56px rgba(0, 0, 0, 0.60),
+    0 6px 18px rgba(0, 0, 0, 0.38),
+    0 0 42px rgba(0, 212, 240, 0.16);
+}
+
+/* ── Purple accent — Quantum Qubit / South Pole ── */
+.glass-tooltip.purple-glow {
+  border-color: rgba(192, 132, 252, 0.24);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.24),
+    inset 0 0 36px rgba(0, 0, 0, 0.35),
+    0 20px 56px rgba(0, 0, 0, 0.60),
+    0 6px 18px rgba(0, 0, 0, 0.38),
+    0 0 42px rgba(192, 132, 252, 0.16);
+}
+
+/* ── Red/warning accent ── */
+.glass-tooltip.red-glow {
+  border-color: rgba(239, 68, 68, 0.24);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.24),
+    inset 0 0 36px rgba(0, 0, 0, 0.35),
+    0 20px 56px rgba(0, 0, 0, 0.60),
+    0 6px 18px rgba(0, 0, 0, 0.38),
+    0 0 42px rgba(239, 68, 68, 0.16);
+}
+
+/* ── Spring-in entry: blur dissolve + vertical rise ── */
+/* The tooltip grows out of a point like a drop of glass, overshooting a touch.
+   Transform only: an opacity or filter on it would cut its lens (::before)
+   off from the scene behind. */
+@keyframes tooltipSpringIn {
+  0% {
+    transform: translateY(12px) scale(0.3, 0.2);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ── Heading: always bright white with deep text shadow ──
+   Even if teal/purple bleeds through at 0.60 brightness,
+   the 0 1px 8px rgba(0,0,0,0.98) shadow creates a dark
+   halo around each character that makes them pop.
+── */
+.glass-tooltip h4 {
+  margin: 0 0 8px 0;
+  font-size: 13.5px;
+  font-family: "Fira Code", monospace;
+  letter-spacing: 0.4px;
+  color: #ffffff !important;
+  text-shadow:
+    0 1px 8px rgba(0, 0, 0, 0.98),
+    0 0 20px rgba(0, 0, 0, 0.75),
+    0 2px 4px rgba(0, 0, 0, 1.00);
+  position: relative;
+  z-index: 2;
+}
+
+/* ── Body text: soft warm white, deep contrast shadow ── */
+.glass-tooltip p {
+  margin: 0;
+  font-size: 12.5px;
+  color: rgba(224, 235, 245, 0.94);
+  line-height: 1.55;
+  text-shadow:
+    0 1px 6px rgba(0, 0, 0, 0.96),
+    0 2px 12px rgba(0, 0, 0, 0.70);
+  position: relative;
+  z-index: 2;
+}
+
+/* ── Safety rule: don't override nested div layout children ── */
+.glass-tooltip > div {
+  position: relative;
+  z-index: 2;
+}
+
+
+.circuit-tooltip-host {
+  position: relative;
+  cursor: crosshair;
+}
+
+.circuit-hover-tooltip {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 280px;
+  background: var(--glass-bg-thick);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: var(--glass-border-base);
+  box-shadow: var(--glass-highlight), var(--glass-shadow-base);
+  border-radius: 16px;
+  padding: 16px 18px 12px;
+  z-index: 200;
+  pointer-events: none;
+  animation: chtFadeUp 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  white-space: normal;
+}
+
+/* Arrow */
+.circuit-hover-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 7px solid transparent;
+}
+
+/* Cyan variant */
+.circuit-hover-tooltip--cyan {
+  border: 1px solid rgba(0, 242, 254, 0.35);
+  box-shadow:
+    0 0 30px rgba(0, 242, 254, 0.12),
+    0 16px 40px rgba(0, 0, 0, 0.6);
+}
+
+.circuit-hover-tooltip--cyan::after {
+  border-top-color: rgba(0, 242, 254, 0.35);
+}
+
+/* Purple variant */
+.circuit-hover-tooltip--purple {
+  border: 1px solid rgba(167, 139, 250, 0.35);
+  box-shadow:
+    0 0 30px rgba(167, 139, 250, 0.12),
+    0 16px 40px rgba(0, 0, 0, 0.6);
+}
+
+.circuit-hover-tooltip--purple::after {
+  border-top-color: rgba(167, 139, 250, 0.35);
+}
+
+/* Header row */
+.cht-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.cht-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #f1f5f9;
+  letter-spacing: 0.3px;
+  line-height: 1.3;
+}
+
+/* Animated pulsing dot */
+.cht-pulse {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #00f2fe;
+  box-shadow: 0 0 6px #00f2fe;
+  animation: chtPulse 1.4s ease-in-out infinite;
+}
+
+.circuit-hover-tooltip--purple .cht-pulse {
+  background: #a78bfa;
+  box-shadow: 0 0 6px #a78bfa;
+}
+
+/* Divider */
+.cht-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  margin-bottom: 10px;
+}
+
+/* Step list */
+.cht-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.cht-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  animation: chtSlideIn 0.25s ease-out both;
+}
+
+.cht-icon {
+  font-size: 13px;
+  flex-shrink: 0;
+  line-height: 1.5;
+}
+
+.cht-text {
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.5;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Footer hint */
+.cht-footer {
+  margin-top: 10px;
+  font-size: 10px;
+  color: rgba(148, 163, 184, 0.5);
+  text-align: center;
+  letter-spacing: 0.5px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 8px;
+}
+
+/* Keyframes */
+@keyframes chtFadeUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes chtPulse {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.4;
+    transform: scale(0.7);
+  }
+}
+
+@keyframes chtSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

@@ -3,7 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { Bloom } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import gsap from 'gsap';
-import { InlineMath } from 'react-katex';
+import { InlineMath } from './KatexMath';
 import { MorphIcon } from 'morphicons/react';
 import { Droplets, Calculator, Zap, Timer, Triangle, Thermometer, Flame, ArrowDown } from 'lucide';
 import CameraShifter from './CameraShifter';

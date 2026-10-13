@@ -14,7 +14,7 @@ Eleven guided modules take you from the difference between a bit and a qubit, th
 - **Dual Reality engine.** Classical bits and qubits side by side, so you can see exactly what quantum adds.
 - **Real quantum math.** Gate matrices, Bell states, measurement probabilities and state vectors are computed from the actual linear algebra and shown on screen.
 - **A circuit diagram** for every module, one click away in the sidebar.
-- **Synthesized soundscapes.** Every module has its own audio, generated live with the Web Audio API (no sound files), with a single mute control.
+- **Synthesized soundscapes.** Every module has its own audio, synthesized live with the Web Audio API (no sound files are played), with a single mute control.
 - **Liquid Glass interface.** The sidebar, top bar and buttons are real glass lenses that bend and reflect the scene behind them (details below), with spring-driven motion and reduced-motion / reduced-transparency support.
 
 ![Module hub with the sidebar open](docs/screenshots/02-hub.jpg)
@@ -66,6 +66,7 @@ The app opens at <http://localhost:3000>. Other scripts:
 | `npm run build` | Optimized production build in `build/` |
 | `npm run preview` | Serves the production build locally |
 | `npm test` | Runs the unit tests (Vitest) |
+| `npm run test:e2e` | Builds the app and opens every module in headless Chromium (Playwright); run `npx playwright install chromium` once first |
 | `npm run lint` | Lints the source (ESLint, fails on any warning) |
 
 The simulator is designed for desktop and tablet screens. On narrow windows (under 768 px) it shows a message asking you to use a larger screen.
@@ -76,6 +77,7 @@ The simulator is designed for desktop and tablet screens. On narrow windows (und
 - [three.js](https://threejs.org/) with [react-three-fiber](https://r3f.docs.pmnd.rs/), [drei](https://github.com/pmndrs/drei) and postprocessing (bloom, chromatic aberration)
 - [GSAP](https://gsap.com/) and [react-spring](https://www.react-spring.dev/) for animation
 - [KaTeX](https://katex.org/) for math rendering
+- Inter, Space Grotesk and Fira Code, bundled with [Fontsource](https://fontsource.org/) (no font CDN)
 - The Web Audio API for all sound design
 - [Lucide](https://lucide.dev/) icons with [Morphicons](https://www.npmjs.com/package/morphicons) transitions
 
@@ -84,12 +86,19 @@ The simulator is designed for desktop and tablet screens. On narrow windows (und
 | Path | What lives there |
 |------|------------------|
 | `src/App.jsx` | App shell: landing page, sidebar, module routing, mute and learning-mode state |
+| `src/curriculum.jsx` | The course: each module's title and its definition, comparison, formula and misconception cards |
+| `src/useStageChoreography.js` | The animated moves between the hub and each module |
+| `src/CircuitDiagrams.jsx` | The circuit diagram each module shows in the sidebar |
+| `src/moduleLoaders.js` | The modules that load on demand, as their own chunks |
+| `src/KatexMath.jsx` | `InlineMath` / `BlockMath`: KaTeX formulas as React components |
+| `src/styles/` | The stylesheets, imported by `App.jsx` in cascade order |
 | `src/*Module.jsx`, `src/BlochSphere.jsx`, `src/QuantumGates.jsx`, ... | One file per module's 3D scene and overlay |
 | `src/quantumMath.js` | State-vector, gate and measurement math, and each module's quantum math (tested in `quantumMath.test.js` and `moduleMath.test.js`) |
 | `src/use*Audio.js`, `src/sharedAudio.js` | Per-module sound design on one shared `AudioContext` |
 | `src/LiquidGlass.js`, `src/glassLens.js`, `src/GlassNavBar.jsx` | The Liquid Glass material, its lens filter and the floating tab bar |
 | `src/liquid-glass/` | The Liquid Glass skill's material, used by the sidebar and the top bar |
 | `scripts/generate_audio.js` | Optional: regenerates the narration clips (see below) |
+| `e2e/` | Browser smoke tests (Playwright) |
 
 ### The Liquid Glass material
 
@@ -168,7 +177,7 @@ The QASS mark is the letter Q drawn as the app's Bloch sphere, with the state ve
 
 ### Narration clips (optional)
 
-`public/audio` holds a set of narration clips for the Superposition and Dirac Notation modules. The app does not play them yet. `scripts/generate_audio.js` can regenerate the Superposition ones with [ElevenLabs](https://elevenlabs.io/) using your own API key:
+`public/audio` holds a set of narration clips for the Superposition (`superposition/`) and Dirac Notation (`dirac-notation/`) modules. The app does not play them yet; they are deployed but never downloaded until it does. `scripts/generate_audio.js` can regenerate the Superposition ones with [ElevenLabs](https://elevenlabs.io/) using your own API key:
 
 ```bash
 ELEVENLABS_API_KEY=your_key node scripts/generate_audio.js
