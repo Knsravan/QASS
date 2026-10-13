@@ -10,11 +10,12 @@ import { BlockMath, InlineMath } from './KatexMath';
 import { useQuantumAudio } from './useQuantumAudio';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { QualityComposer } from './QualityScene';
+import { bvqLive } from './bitVsQubitLive';
 
 // =========================================
 // 1. CLASSICAL BIT COMPONENT (Left Side)
 // =========================================
-export const ClassicalBit = ({ position, scale = 1, theme, activeModule, flipMode, isBlank, attemptCopy, isDecohering, onDomainHover, onDomainUnhover, customGridColor }) => {
+export const ClassicalBit = ({ position, scale = 1, theme, activeModule, flipMode, isBlank, attemptCopy, isDecohering, onDomainHover, onDomainUnhover, customGridColor, bitValue, onBitToggle }) => {
   const isLight = theme === 'light';
   const groupRef = useRef();
   const orbRef = useRef();
@@ -54,6 +55,10 @@ export const ClassicalBit = ({ position, scale = 1, theme, activeModule, flipMod
     }
   });
 
+  // Classical Bit vs Qubit holds the bit's value in the app (its readout and
+  // Flip button share it).
+  useEffect(() => { if (bitValue === 0 || bitValue === 1) setValue(bitValue); }, [bitValue]);
+
   // Expose a way to set value externally if needed
   useEffect(() => {
     if (flipMode === 'force-1') setValue(1);
@@ -64,7 +69,9 @@ export const ClassicalBit = ({ position, scale = 1, theme, activeModule, flipMod
 
   const handleToggle = (e) => {
     e.stopPropagation();
-    if (activeModule === 'bit-vs-qubit') setValue((v) => 1 - v);
+    if (activeModule !== 'bit-vs-qubit') return;
+    if (onBitToggle) onBitToggle();
+    else setValue((v) => 1 - v);
   };
 
   return (
@@ -126,10 +133,10 @@ export const ClassicalBit = ({ position, scale = 1, theme, activeModule, flipMod
       {hovered && activeModule === 'bit-vs-qubit' && (
         <Html position={[1.8, 2.2, 0]} center zIndexRange={[50, 0]}>
           <div className={`glass-tooltip ${value === 0 ? 'cyan-glow' : 'purple-glow'}`} style={{ width: '220px' }}>
-            <h4>🔒 Deterministic State {value}</h4>
+            <h4>Classical bit: {value}</h4>
             <p>{value === 0
-              ? "Strictly in the 0 state. Click to apply a NOT gate and instantly flip it to 1."
-              : "Strictly in the 1 state. Click to apply a NOT gate and instantly flip it back to 0."}</p>
+              ? "Exactly 0, every time you look. Click to apply a NOT gate and flip it to 1."
+              : "Exactly 1, every time you look. Click to apply a NOT gate and flip it back to 0."}</p>
           </div>
         </Html>
       )}
@@ -166,6 +173,11 @@ const _DEC_LIGHT = { amb: 0.16, c1: new THREE.Color('#14b8a6'), i1: 0.95, c2: ne
 const _DEC_UNIT_FIRST = 2.4 / 2.75;   // inside the first qubit's rig (its base scale is 1.2)
 const _DEC_UNIT_SECOND = 2 / 2.75;    // inside the second's (base scale 1)
 const _UPV = new THREE.Vector3(0, 1, 0);
+// Classical Bit vs Qubit draws the pair a little smaller and higher than the other modules
+// of this scene, so its readout fits underneath and the sphere stays in view with the
+// sidebar open. (App.jsx places the header pills to match: 39vh × BVQ_SCALE.)
+const BVQ_SCALE = 0.86;
+const BVQ_Y = 0.45;
 const _EXP_LIGHT = { amb: 0.6, c1: new THREE.Color('#ffffff'), i1: 2.0, c2: new THREE.Color('#a855f7'), i2: 1.5, dist: 1000 };
 const _HUB_LIGHT = { amb: 0.5, c1: new THREE.Color('#00f2fe'), i1: 8, c2: new THREE.Color('#f093fb'), i2: 8, dist: 30 };
 const _ORIGIN_BS = new THREE.Vector3(0, 0, 0);
@@ -185,7 +197,7 @@ const _STEP_COLORS_BS = {
 // =========================================
 // 2. QUANTUM QUBIT COMPONENT (Right Side)
 // =========================================
-export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla, isEntangled, isDecohering, attemptCopy, onDomainHover, onDomainUnhover, superpositionStep, onMeasure, onMeasuredValueChange, customVectorQuat, showCustomVector, emissiveColor, customGridColor, customRingColor, sphereRotation, visible, interferenceStep = 0, interferencePhase = 0, fadeExtras = false, vectorOut, startDir }) => {
+export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla, isEntangled, isDecohering, attemptCopy, onDomainHover, onDomainUnhover, superpositionStep, onMeasure, onMeasuredValueChange, customVectorQuat, showCustomVector, emissiveColor, customGridColor, customRingColor, sphereRotation, visible, interferenceStep = 0, interferencePhase = 0, fadeExtras = false, vectorOut, startDir, bvqResult, onBvqClick }) => {
   const coreGroupRef = useRef();
   const sphereRef = useRef(); const vectorRef = useRef(); const northPoleRef = useRef(); const southPoleRef = useRef(); const glassCoreRef = useRef();
   // Ground State (Step 0) animation refs
@@ -234,6 +246,15 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla,
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { setMeasuredValue(null); }, [activeModule]);
+  // Classical Bit vs Qubit: the app holds the measurement (its readout, the
+  // Measure button and the tally share it); the sphere shows it.
+  const bvqControlled = activeModule === 'bit-vs-qubit' && bvqResult !== undefined;
+  useEffect(() => {
+    if (!bvqControlled) return;
+    setMeasuredValue(bvqResult);
+    if (bvqResult !== null) flashTrigger.current = true;
+    else { collapseTime.current = -1; flashStartTime.current = 0; }
+  }, [bvqControlled, bvqResult]);
 
   useEffect(() => {
     if (onMeasuredValueChange) onMeasuredValueChange(measuredValue);
@@ -292,7 +313,8 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla,
       else if (activeModule === 'bit-vs-qubit') {
         if (measuredValue !== null) {
           targetX = measuredValue === 0 ? 0 : Math.PI;
-          if (glassCoreRef.current) { glassCoreRef.current.emissiveIntensity = isLight ? 0.5 : 1; glassCoreRef.current.emissive.setHex(0xf093fb); }
+          // The bit's colours: |0> cyan, |1> purple.
+          if (glassCoreRef.current) { glassCoreRef.current.emissiveIntensity = isLight ? 0.5 : 1; glassCoreRef.current.emissive.setHex(measuredValue === 0 ? 0x00f2fe : 0xf093fb); }
         } else {
           // Sweep vector around sphere to show continuous state space
           targetX = Math.PI / 2 + Math.sin(time * 0.65) * (Math.PI / 2 - 0.06);
@@ -553,6 +575,7 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla,
             : THREE.MathUtils.lerp(vectorRef.current.rotation.y, 0 + jitter, 0.1);
         vectorRef.current.scale.y = 1 + Math.sin(time * 4) * 0.03;
       }
+      if (activeModule === 'bit-vs-qubit') bvqLive.p1 = Math.sin(vectorRef.current.rotation.x / 2) ** 2;
     } // end if (vectorRef.current)
 
     // ── Ground State (Step 0): icy shimmer + freeze ring ──────────────────
@@ -604,17 +627,19 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla,
 
   const getTooltipContent = (part) => {
     if (part === 'qubit') {
-      if (activeModule === 'bit-vs-qubit') return { title: "Quantum Bit (Qubit)", text: "Unlike a classical bit, this state vector can point ANYWHERE on the sphere. Click to measure and force it to collapse!" };
+      if (activeModule === 'bit-vs-qubit') return measuredValue === null
+        ? { title: "Qubit", text: "Its arrow can point anywhere on the sphere, not just up (0) or down (1). Click to measure it: the result is 0 or 1 at random, with the odds shown below." }
+        : { title: `Measured: ${measuredValue}`, text: "Measuring forced the arrow to a pole. Click to prepare a fresh qubit and measure again." };
       if (activeModule === 'entanglement') return { title: "Entangled Qubit", text: <>Part of a 2-qubit joint wavefunction (<InlineMath math={String.raw`|\Psi\rangle`} />). Its state is indivisible from its partner.</> };
       return { title: "Quantum Bit", text: "A fluid geometric probability vector. It can exist in multiple states simultaneously and entangle with other qubits." };
     }
     if (part === 'north') {
-      if (activeModule === 'bit-vs-qubit') return { title: <>North Pole — <InlineMath math={String.raw`|0\rangle`} /></>, text: <>Ground state. Measurement collapses the qubit here when <InlineMath math={String.raw`\alpha`} /> is dominant (P = <InlineMath math={String.raw`|\alpha|^2`} />).</> };
+      if (activeModule === 'bit-vs-qubit') return { title: <>North Pole — <InlineMath math={String.raw`|0\rangle`} /></>, text: <>A measurement lands here with probability <InlineMath math={String.raw`|\alpha|^2`} />: the closer the arrow points to it, the likelier.</> };
       if (activeModule === 'interference') return { title: "Constructive Return", text: <>Two H-Gates cancel out, returning the qubit perfectly to <InlineMath math={String.raw`|0\rangle`} />.</> };
       return { title: <>North Pole — <InlineMath math={String.raw`|0\rangle`} /></>, text: <>The computational basis ground state <InlineMath math={String.raw`|0\rangle`} />.</> };
     }
     if (part === 'south') {
-      if (activeModule === 'bit-vs-qubit') return { title: <>South Pole — <InlineMath math={String.raw`|1\rangle`} /></>, text: <>Excited state. Measurement collapses here when <InlineMath math={String.raw`\beta`} /> is dominant (P = <InlineMath math={String.raw`|\beta|^2`} />).</> };
+      if (activeModule === 'bit-vs-qubit') return { title: <>South Pole — <InlineMath math={String.raw`|1\rangle`} /></>, text: <>A measurement lands here with probability <InlineMath math={String.raw`|\beta|^2`} />: the closer the arrow points to it, the likelier.</> };
       if (activeModule === 'measurement') return { title: "Collapsed Reality", text: <>The observation forced the superposition to snap into <InlineMath math={String.raw`|1\rangle`} />.</> };
       return { title: <>South Pole — <InlineMath math={String.raw`|1\rangle`} /></>, text: <>The computational basis excited state <InlineMath math={String.raw`|1\rangle`} />.</> };
     }
@@ -665,6 +690,7 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla,
         <mesh
           onClick={(e) => {
             e.stopPropagation();
+            if (activeModule === 'bit-vs-qubit' && onBvqClick) { onBvqClick(); return; }
             if (activeModule === 'bit-vs-qubit' || (activeModule === 'superposition' && superpositionStep === 3)) {
               if (measuredValue === null) {
                 const currentRotX = vectorRef.current ? vectorRef.current.rotation.x : Math.PI / 2;
@@ -889,8 +915,10 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla,
             </Html>
           )}
         </group>
-        <Html position={[0, 2.34, 0]} center style={{ pointerEvents: 'none' }}>
-          <span style={{ color: '#64748b', fontSize: '11px', fontWeight: '700', fontFamily: 'Inter, sans-serif' }}>|0⟩</span>
+        <Html position={[0, activeModule === 'bit-vs-qubit' ? 2.55 : 2.34, 0]} center style={{ pointerEvents: 'none' }}>
+          <span style={activeModule === 'bit-vs-qubit'
+            ? { color: measuredValue === 0 ? '#00f2fe' : '#94a3b8', textShadow: measuredValue === 0 ? '0 0 15px #00f2fe' : 'none', fontSize: '20px', fontWeight: '800', fontFamily: "'Fira Code', monospace", transition: 'all 0.2s' }
+            : { color: '#64748b', fontSize: '11px', fontWeight: '700', fontFamily: 'Inter, sans-serif' }}>|0⟩</span>
         </Html>
 
         <group position={[0, -2.1, 0]} ref={southPoleRef} onPointerOver={(e) => { e.stopPropagation(); setHoveredState('south'); if (onDomainHover) onDomainHover(); }} onPointerOut={(e) => { setHoveredState(null); if (onDomainUnhover) onDomainUnhover(); }}>
@@ -923,15 +951,17 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla,
             </Html>
           )}
         </group>
-        <Html position={[0, -2.40, 0]} center style={{ pointerEvents: 'none' }}>
-          <span style={{ color: '#64748b', fontSize: '11px', fontWeight: '700', fontFamily: 'Inter, sans-serif' }}>|1⟩</span>
+        <Html position={[0, activeModule === 'bit-vs-qubit' ? -2.6 : -2.40, 0]} center style={{ pointerEvents: 'none' }}>
+          <span style={activeModule === 'bit-vs-qubit'
+            ? { color: measuredValue === 1 ? '#f093fb' : '#94a3b8', textShadow: measuredValue === 1 ? '0 0 15px #f093fb' : 'none', fontSize: '20px', fontWeight: '800', fontFamily: "'Fira Code', monospace", transition: 'all 0.2s' }
+            : { color: '#64748b', fontSize: '11px', fontWeight: '700', fontFamily: 'Inter, sans-serif' }}>|1⟩</span>
         </Html>
 
-        {hoveredState === 'qubit' && activeModule === 'bit-vs-qubit' && measuredValue !== null && (
+        {hoveredState === 'qubit' && activeModule === 'bit-vs-qubit' && (
           <Html position={[-2.5, 2.2, 0]} center zIndexRange={[50, 0]}>
-            <div className={'glass-tooltip ' + (measuredValue === 0 ? 'cyan-glow' : 'purple-glow')} style={{ width: '220px' }}>
-              <h4>🎯 Collapsed State {measuredValue}</h4>
-              <p>The state vector was forced to collapse into a single deterministic reality upon measurement.</p>
+            <div className={'glass-tooltip ' + (measuredValue === 1 ? 'purple-glow' : 'cyan-glow')} style={{ width: '230px' }}>
+              <h4>{getTooltipContent('qubit').title}</h4>
+              <p>{getTooltipContent('qubit').text}</p>
             </div>
           </Html>
         )}
@@ -1150,7 +1180,7 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla,
   );
 };
 
-export default function BlochSphere({ theme, activeModule, qubitCount, isDecohering, attemptCopy, isSidebarOpen, setIsSidebarOpen, interferenceStep, interferencePhase, isGlobalMuted = false, vanishing = false, multi = null, handoverTarget, centerOnly = false }) {
+export default function BlochSphere({ theme, activeModule, qubitCount, isDecohering, attemptCopy, isSidebarOpen, setIsSidebarOpen, interferenceStep, interferencePhase, isGlobalMuted = false, vanishing = false, multi = null, handoverTarget, centerOnly = false, bvq }) {
   const isLight = theme === 'light';
   const tetherRef = useRef();
   const controlsRef = useRef();
@@ -1196,6 +1226,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
   const isPair = isMulti || isEnt || isDec;
   const isExp = activeModule === 'exponential';        // ... or for Exponential State Space (the lone qubit zooms in)
   const isRig = isPair || isExp;                       // the rig takes the module's size when zoomed
+  const isBvq = activeModule === 'bit-vs-qubit';       // Classical Bit vs Qubit: a little smaller and higher, clear of its readout
   const entX0 = handoff.entPairX || 4.6;
   const targetX = useRef(multi === 'zoom' ? (isEnt ? entX0 : isDec ? 5.8 : 2) : multi === 'split' ? 2.4 : 0);
   const targetY = useRef(multi === 'zoom' && !isEnt ? (isDec ? 1.65 : 1.2) : 0);
@@ -1242,8 +1273,8 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
     const rig = rigRef.current;
     const zoomed = isRig && multi === 'zoom';
     if (rig) {
-      rig.scale.setScalar(!activeModule ? 0.7 : isRig ? (zoomed ? 1 : 0.7) : 1);
-      rig.position.y = !activeModule ? -0.8 : isMulti ? (zoomed ? -0.5 : -0.8) : isEnt || isExp || isDec ? (zoomed ? 0 : -0.8) : activeModule === 'gates' ? -0.5 : 0;
+      rig.scale.setScalar(!activeModule ? 0.7 : isRig ? (zoomed ? 1 : 0.7) : isBvq ? BVQ_SCALE : 1);
+      rig.position.y = !activeModule ? -0.8 : isMulti ? (zoomed ? -0.5 : -0.8) : isEnt || isExp || isDec ? (zoomed ? 0 : -0.8) : activeModule === 'gates' ? -0.5 : isBvq ? BVQ_Y : 0;
     }
     const solo = activeModule === 'superposition' || activeModule === 'interference' || isRig || centerOnly;
     if (leftRig.current) leftRig.current.scale.setScalar(solo ? 0.0001 : 1);
@@ -1396,8 +1427,8 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
     if (rigRef.current) {
       const rig = rigRef.current;
       const k = 1 - Math.exp(-(vanishing ? 7 : GLIDE * (2.5 / 2.6)) * Math.min(delta, 0.1));
-      const ts = vanishing ? 0.0001 : !activeModule ? 0.7 : isRig ? (mz ? 1 : 0.7) : 1;
-      const ty = !activeModule ? -0.8 : isMulti ? (mz ? -0.5 : -0.8) : isEnt || isExp || isDec ? (mz ? 0 : -0.8) : activeModule === 'gates' ? -0.5 : 0;
+      const ts = vanishing ? 0.0001 : !activeModule ? 0.7 : isRig ? (mz ? 1 : 0.7) : isBvq ? BVQ_SCALE : 1;
+      const ty = !activeModule ? -0.8 : isMulti ? (mz ? -0.5 : -0.8) : isEnt || isExp || isDec ? (mz ? 0 : -0.8) : activeModule === 'gates' ? -0.5 : isBvq ? BVQ_Y : 0;
       rig.scale.setScalar(rig.scale.x + (ts - rig.scale.x) * k);
       rig.position.y += (ty - rig.position.y) * k;
     }
@@ -1582,7 +1613,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
                 <ClassicalBit position={[1.2, 0, 0]} scale={0.6} theme={theme} onDomainHover={() => handleHoverDomain('left')} onDomainUnhover={() => handleUnhoverDomain('left')} />
               </group>
             ) : !bitOn ? null : (
-                <ClassicalBit position={[0, 0, 0]} scale={1.1} theme={theme} activeModule={activeModule} isDecohering={isDecohering} onDomainHover={() => handleHoverDomain('left')} onDomainUnhover={() => handleUnhoverDomain('left')} />
+                <ClassicalBit position={[0, 0, 0]} scale={1.1} theme={theme} activeModule={activeModule} isDecohering={isDecohering} bitValue={activeModule === 'bit-vs-qubit' ? bvq?.bit : undefined} onBitToggle={activeModule === 'bit-vs-qubit' ? bvq?.onBitToggle : undefined} onDomainHover={() => handleHoverDomain('left')} onDomainUnhover={() => handleUnhoverDomain('left')} />
               )}
           </group>
         </PresentationControls>
@@ -1723,7 +1754,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
                 <BlochSphereUnit posArr={[0, 0, 0]} color={CT} label="" isPure={true} noiseLevel={0} activeNoise={null} entranceRef={DEC_STATIC_ENTRANCE} posKey="pure" step="intro" tempK={300} showLabels={false} dirOverride={decDir.current.a} />
               </group>
             ) : (
-              <QubitCore position={[0, 0, 0]} scale={1.2} theme={theme} activeModule={activeModule} isDecohering={isDecohering} vectorOut={vecOut} startDir={wasDec.current ? _decStartLocal.copy(decDir.current.a).applyAxisAngle(_AXIS_Y, -clock.getElapsedTime() * 0.04) : undefined} customVectorQuat={isRig || centerOnly ? _Q_UP : undefined} showCustomVector={isRig || centerOnly || undefined} emissiveColor={isMulti ? '#eab308' : isEnt || isExp ? '#00f2fe' : isDec ? '#14b8a6' : undefined} fadeExtras={isMulti} onDomainHover={() => handleHoverDomain('right')} onDomainUnhover={() => handleUnhoverDomain('right')} />
+              <QubitCore position={[0, 0, 0]} scale={1.2} theme={theme} activeModule={activeModule} isDecohering={isDecohering} vectorOut={vecOut} startDir={wasDec.current ? _decStartLocal.copy(decDir.current.a).applyAxisAngle(_AXIS_Y, -clock.getElapsedTime() * 0.04) : undefined} customVectorQuat={isRig || centerOnly ? _Q_UP : undefined} showCustomVector={isRig || centerOnly || undefined} emissiveColor={isMulti ? '#eab308' : isEnt || isExp ? '#00f2fe' : isDec ? '#14b8a6' : undefined} fadeExtras={isMulti} bvqResult={activeModule === 'bit-vs-qubit' ? bvq?.result : undefined} onBvqClick={activeModule === 'bit-vs-qubit' ? bvq?.onQubitClick : undefined} onDomainHover={() => handleHoverDomain('right')} onDomainUnhover={() => handleUnhoverDomain('right')} />
             )}
           </group>
         </PresentationControls>
