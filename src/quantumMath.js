@@ -220,15 +220,24 @@ export function interferenceProbabilities(phase) {
 // ─── Exponential State Space ─────────────────────────────────────────────────
 
 // Memory to hold an n-qubit state vector: 2^n complex amplitudes of 16 bytes.
+const SUPERSCRIPT = { '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+const BIG_UNITS = ['PB', 'EB', 'ZB', 'YB']; // 1024^5 .. 1024^8
 export function stateVectorRAM(n) {
   const bytes = Math.pow(2, n) * 16;
   if (bytes < 1024) return `${bytes} Bytes`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(0)} MB`;
-  if (n <= 35) return `${(bytes / (1024 * 1024 * 1024)).toFixed(0)} GB (PC limit)`;
+  if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(0)} KB`;
+  if (bytes < 1024 ** 3) return `${(bytes / 1024 ** 2).toFixed(0)} MB`;
+  if (n <= 35) return `${(bytes / 1024 ** 3).toFixed(0)} GB (PC limit)`;
+  if (bytes < 1024 ** 5) return `${(bytes / 1024 ** 4).toFixed(0)} TB`;
   if (n === 50) return '16 Petabytes (Supercomputer Limit)';
-  if (n >= 300) return 'Exceeds Atoms in Universe (~10⁸⁰)!';
-  return `${(bytes / (1024 * 1024 * 1024 * 1024)).toFixed(0)} TB`;
+  // log10(bytes) = n·log10(2) + log10(16), worked out without overflowing.
+  const log10Bytes = n * Math.log10(2) + Math.log10(16);
+  if (log10Bytes >= 80) return 'Exceeds Atoms in Universe (~10⁸⁰)!';
+  const unit = Math.min(BIG_UNITS.length - 1, Math.floor(Math.log2(bytes) / 10) - 5);
+  const value = bytes / 1024 ** (unit + 5);
+  if (value < 1024) return `${value.toFixed(0)} ${BIG_UNITS[unit]}`;
+  const exp = String(Math.floor(log10Bytes)).replace(/\d/g, (d) => SUPERSCRIPT[d]);
+  return `~10${exp} Bytes`;
 }
 
 // ─── Decoherence ─────────────────────────────────────────────────────────────

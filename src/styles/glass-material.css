@@ -1,0 +1,700 @@
+/* =============================================================================
+   LIQUID GLASS MATERIAL
+   Port of BitChord's LiquidGlass.kt (Kyant0/backdrop). LiquidGlass.js bakes
+   the SDF edge lens into each element's backdrop-filter and the 45 degree
+   specular rim into --lg-rim; this layer supplies the rest of the recipe:
+   surface tint, soft shadow, content colour and spring press response.
+   ============================================================================= */
+:root,
+[data-theme="dark"] {
+  --lg-surface: rgba(18, 18, 18, 0.40);        /* #121212 @ SURFACE_OPACITY */
+  --lg-surface-thick: rgba(18, 18, 18, 0.56);
+  --lg-surface-hover: rgba(34, 34, 38, 0.46);
+  --lg-content: #ffffff;                        /* glassContentColor() */
+  --lg-content-secondary: rgba(255, 255, 255, 0.65);
+  --lg-indicator: rgba(0, 0, 0, 0.5);           /* glassIndicatorColor() @ 0.5 */
+  --lg-edge: rgba(255, 255, 255, 0.10);         /* GLASS_EDGE_COLOR */
+  --lg-shadow: 0 4px 24px rgba(0, 0, 0, 0.10);  /* Shadow.Default */
+  --lg-row-hover: rgba(255, 255, 255, 0.06);
+  --lg-inset-fill: rgba(255, 255, 255, 0.04);
+  --lg-spring-press: linear(0, 0.0902, 0.2642, 0.4422, 0.594, 0.7127, 0.8009, 0.8641, 0.9084, 0.9389, 0.9596, 0.9734, 0.9826, 0.9887, 0.9927, 0.9953, 0.997, 0.9981, 1);
+  --lg-spring-glass: linear(0, 0.0537, 0.1795, 0.3358, 0.4949, 0.64, 0.7623, 0.8588, 0.9305, 0.9802, 1.0118, 1.0296, 1.0372, 1.0381, 1.0349, 1.0295, 1.0234, 1.0174, 1.0121, 1.0077, 1.0044, 1.0019, 1.0003, 0.9993, 0.9987, 0.9985, 0.9986, 0.9987, 0.9989, 0.9992, 1);
+}
+
+[data-theme="light"] {
+  --lg-surface: rgba(250, 250, 250, 0.40);
+  --lg-surface-thick: rgba(250, 250, 250, 0.56);
+  --lg-surface-hover: rgba(255, 255, 255, 0.52);
+  --lg-content: #000000;
+  --lg-content-secondary: rgba(0, 0, 0, 0.65);
+  --lg-indicator: rgba(255, 255, 255, 0.5);
+  --lg-edge: rgba(0, 0, 0, 0.08);
+  --lg-row-hover: rgba(0, 0, 0, 0.05);
+  --lg-inset-fill: rgba(0, 0, 0, 0.03);
+}
+
+/* ── The surface ────────────────────────────────────────────────────────── */
+.lg.lg {
+  background:
+    var(--lg-rim, none) 0 0 / 100% 100% no-repeat border-box,
+    var(--lg-surface);
+  border-color: transparent;
+  box-shadow: var(--lg-shadow);
+  transition:
+    scale 450ms var(--lg-spring-press),
+    background-color 200ms ease,
+    opacity 200ms ease;
+}
+
+.lg.lg--thick {
+  background:
+    var(--lg-rim, none) 0 0 / 100% 100% no-repeat border-box,
+    var(--lg-surface-thick);
+}
+
+.lg.lg--press {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lg.lg--press:hover {
+  background:
+    var(--lg-rim, none) 0 0 / 100% 100% no-repeat border-box,
+    var(--lg-surface-hover);
+}
+
+/* Glass swells under the finger rather than sinking (Echo's accessory press) */
+.lg.lg--press:active {
+  scale: 1.04;
+}
+
+.lg.lg--press:disabled {
+  opacity: 0.4;
+  scale: 1;
+  cursor: default;
+}
+
+/* Content on glass is pure white/black: the only tint that holds against an
+   arbitrary backdrop. Accent-coloured controls keep their accent. */
+.sidebar-panel.lg,
+.idle-fact-ticker.lg,
+.feature-card.lg,
+.glass-tooltip.lg,
+.glass-card.lg {
+  color: var(--lg-content);
+}
+
+/* ── Nothing stacks glass on glass: nested surfaces become plain sheets ──── */
+.lg-inset.lg-inset {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: var(--lg-inset-fill);
+  border: 0.5px solid var(--lg-edge);
+  box-shadow: none;
+}
+
+/* ── Sidebar contents: rows on the glass, not glass rows ────────────────── */
+.sidebar-panel .curriculum-item {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--lg-content-secondary);
+  border-radius: 999px;
+  transform: none;
+  transition: background-color 200ms ease, color 150ms ease;
+}
+
+.sidebar-panel .curriculum-item:hover {
+  background: var(--lg-row-hover);
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--lg-content);
+  transform: none;
+}
+
+.sidebar-panel .curriculum-item.active {
+  background: var(--lg-indicator);
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--lg-content);
+  transform: none;
+}
+
+.sidebar-panel .curriculum-item:active {
+  transform: none;
+  box-shadow: none;
+}
+
+.sidebar-panel .data-card {
+  background: var(--lg-inset-fill);
+  border: 0.5px solid var(--lg-edge);
+  border-radius: 18px;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  transform: none;
+}
+
+.sidebar-panel .data-card:hover {
+  background: var(--lg-row-hover);
+  box-shadow: none;
+  transform: none;
+}
+
+/* ── Floating tab bar (GlassNavBar) ─────────────────────────────────────── */
+.lg-nav {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;                                   /* spacedBy(6.dp) */
+  z-index: 1000;
+  pointer-events: auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui, sans-serif;
+}
+
+.lg-nav-pill {
+  position: relative;
+  box-sizing: border-box;
+  height: 48px;
+  width: 248px;
+  padding: 6px;                               /* PILL_INSET */
+  border: 0;
+  border-radius: 999px;
+  display: flex;
+}
+
+.lg-nav-row {
+  position: relative;
+  display: flex;
+  width: 100%;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.lg-nav-indicator {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 6px;
+  width: 0;
+  border-radius: 999px;
+  background: var(--lg-indicator);
+  transform-origin: center;
+  will-change: transform;
+  pointer-events: none;
+}
+
+.lg-nav-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--lg-content-secondary);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: color 180ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lg-nav-tab.is-selected {
+  color: var(--lg-content);
+}
+
+.lg-nav-tab:focus-visible {
+  outline: 2px solid rgba(10, 132, 255, 0.9);
+  outline-offset: -2px;
+}
+
+.lg-nav-icon {
+  display: inline-flex;
+  transition: scale 600ms var(--lg-spring-glass);
+}
+
+.lg-nav-tab.is-selected .lg-nav-icon {
+  scale: 1.08;                                /* selected glyph */
+}
+
+.lg-nav-label {
+  white-space: nowrap;
+}
+
+.lg-nav-circle {
+  box-sizing: border-box;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--lg-content-secondary);
+}
+
+.lg-nav-circle.is-active {
+  color: var(--lg-content);
+}
+
+/* Muted: the slashed speaker in iOS system red, so the state reads at a glance */
+.lg-nav-circle:not(.is-active) {
+  color: #ff453a;
+}
+
+.lg-nav-circle:focus-visible {
+  outline: 2px solid rgba(10, 132, 255, 0.9);
+  outline-offset: 2px;
+}
+
+/* ── Accessibility ──────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .lg.lg,
+  .lg-nav-icon {
+    transition-duration: 0.01ms !important;
+  }
+
+  .lg.lg--press:active {
+    scale: 1;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .lg.lg,
+  .lg.lg--thick {
+    background: var(--lg-rim, none) 0 0 / 100% 100% no-repeat border-box, rgb(28, 28, 30);
+  }
+}
+
+@media (prefers-contrast: more) {
+  .lg.lg {
+    border: 1px solid rgba(255, 255, 255, 0.55);
+  }
+}
+
+/* Primary action: tinted glass (iOS 26 "prominent" style) */
+.start-btn.lg {
+  background:
+    var(--lg-rim, none) 0 0 / 100% 100% no-repeat border-box,
+    rgba(56, 189, 248, 0.42);
+  color: #ffffff;
+  text-shadow: none;
+}
+
+.start-btn.lg:hover {
+  background:
+    var(--lg-rim, none) 0 0 / 100% 100% no-repeat border-box,
+    rgba(56, 189, 248, 0.54);
+}
+/* =============================================================================
+   LIQUID GLASS SKILL: SIDEBAR + TOP BAR
+   The sidebar (.lg-pane), its toggle tab (.lg-pane) and the top bar's capsule
+   and mute circle (.lg-bar) use the skill's material from
+   src/liquid-glass/liquid-glass.css: a barely-there tint, blur + saturation,
+   an inner top highlight, a 1px rim lit from the top-left and a soft highlight
+   at the top-left. The top bar also bends what's behind it (Chromium lens).
+   These rules re-assert that recipe where the app's older, more specific
+   styles for these elements would otherwise win.
+   ============================================================================= */
+.sidebar-panel.lg-pane,
+.sidebar-toggle-btn.lg-pane {
+  background: var(--lgs-surface);
+  -webkit-backdrop-filter: blur(var(--lgs-blur)) saturate(var(--lgs-saturate));
+  backdrop-filter: blur(var(--lgs-blur)) saturate(var(--lgs-saturate));
+  border: 0;
+  box-shadow: inset 0 1px 0 var(--lgs-hi), inset 0 -1px 1px var(--lgs-rim-lo), 0 18px 50px -24px var(--lgs-shadow);
+  color: var(--lgs-ink);
+}
+
+.sidebar-panel.lg-pane {
+  border-radius: var(--lgs-radius);
+}
+
+.sidebar-toggle-btn.lg-pane {
+  border-radius: 0 12px 12px 0;
+  color: var(--lgs-muted);
+}
+
+.sidebar-toggle-btn.lg-pane:hover {
+  background: var(--lgs-tint-strong);
+  color: var(--lgs-ink);
+}
+
+/* Module rows sit on the sidebar's glass as plain rows (glass never stacks on
+   glass); the open module is a pressed pill, like the skill's .lg-pill. */
+.sidebar-panel.lg-pane .glass-chip {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-radius: 999px;
+  transform: none;
+  transition: background-color 200ms ease, color 150ms ease, box-shadow 200ms ease;
+}
+
+.sidebar-panel.lg-pane .glass-chip:hover {
+  background: var(--lgs-tint-strong);
+  border-color: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.sidebar-panel.lg-pane .glass-chip-group.active .glass-chip {
+  background: var(--lgs-tint-strong);
+  border-color: transparent;
+  box-shadow: inset 0 1px 0 var(--lgs-hi);
+}
+
+.sidebar-panel.lg-pane .glass-chip-group.active .chip-indicator {
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Content cards inside the sidebar are sheets on its glass, never glass
+   themselves. !important matches the module-specific card rules this has to beat. */
+.sidebar-panel.lg-pane .data-card,
+.sidebar-panel.lg-pane .circuit-diagram-card {
+  background: rgba(255, 255, 255, 0.035) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-radius: 18px;
+  transform: none !important;
+}
+
+.sidebar-panel.lg-pane .data-card:hover,
+.sidebar-panel.lg-pane .circuit-diagram-card:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* The top bar's capsule and mute circle are .lg-bar surfaces, laid out by
+   .lg-nav rather than fixed to the top of the window like a standalone bar. */
+.lg-nav .lg-bar {
+  position: relative;
+  left: auto;
+  top: auto;
+  transform: none;
+  z-index: auto;
+  max-width: none;
+}
+
+/* The sliding selection is the skill's pressed pill. */
+.lg-nav-indicator {
+  background: var(--lgs-tint-strong);
+  box-shadow: inset 0 1px 0 var(--lgs-hi);
+}
+
+.lg-nav-tab {
+  color: var(--lgs-muted);
+}
+
+.lg-nav-tab:hover {
+  color: var(--lgs-ink);
+}
+
+.lg-nav-tab.is-selected {
+  color: var(--lgs-accent);
+}
+
+.lg-nav-circle {
+  color: var(--lgs-ink);
+  cursor: pointer;
+  transition: transform .35s cubic-bezier(.2, .8, .2, 1), background-color .3s, color .3s;
+}
+
+.lg-nav-circle:hover {
+  background: var(--lgs-tint-strong);
+}
+
+.lg-nav-circle.is-active {
+  color: var(--lgs-ink);
+}
+
+/* Muted: the slashed speaker in the skill's danger colour, so the state reads at a glance */
+.lg-nav-circle:not(.is-active) {
+  color: var(--lgs-danger);
+}
+
+.lg-nav-tab:focus-visible {
+  outline: 2px solid var(--lgs-accent);
+  outline-offset: -2px;
+}
+
+.lg-nav-circle:focus-visible {
+  outline: 2px solid var(--lgs-accent);
+  outline-offset: 2px;
+}
+
+/* Reduced transparency: solid surfaces, same shapes. */
+@media (prefers-reduced-transparency: reduce) {
+  .sidebar-panel.lg-pane,
+  .sidebar-toggle-btn.lg-pane,
+  .lg-nav .lg-bar {
+    background: rgb(20, 24, 33);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-nav-circle {
+    transition: none;
+  }
+}
+
+/* Sidebar chips and the fact-card link are native buttons, so they work with
+   the keyboard and screen readers. Drop the browser's button defaults so they
+   look exactly like the glass controls they replaced. */
+button.glass-chip {
+  width: 100%;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  box-sizing: border-box;
+}
+
+button.fact-jump-link {
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: none;
+}
+
+.glass-chip:focus-visible,
+.idle-hud-cta:focus-visible,
+.fact-jump-link:focus-visible,
+.sidebar-toggle-btn:focus-visible {
+  outline: 2px solid rgba(56, 189, 248, 0.9);
+  outline-offset: -2px;
+}
+
+/* Advanced mode placeholder in the sidebar: full text when open, the
+   Advanced icon when collapsed (the 72px strip can't fit the words). */
+.sidebar-advanced-placeholder {
+  margin: 8px 0 0;
+  padding: 12px 16px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.sidebar-panel.collapsed .sidebar-advanced-placeholder {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* =============================================================================
+   LENS LAYER (LiquidGlass.js + glassLens.js)
+   A lensed surface draws its glass on ::before: the backdrop bent at the rim
+   (Chromium) or plain frost elsewhere, from --lg-backdrop. The element itself
+   must not filter its backdrop, and ::before carries no outer shadow, which
+   would shift Chrome's filter coordinates. The element's own tint is painted
+   before ::before, so it is already part of the backdrop the lens bends;
+   repainting it on ::before would double it and turn the glass milky.
+   ============================================================================= */
+.lg-lensed {
+  isolation: isolate;
+}
+
+.lg-lensed--rel {
+  position: relative;
+}
+
+.lg-lensed::before {
+  content: "";
+  position: absolute;
+  inset: calc(-1 * var(--lg-bw, 0px));
+  border-radius: inherit;
+  z-index: -1;
+  pointer-events: none;
+  -webkit-backdrop-filter: var(--lg-backdrop, none);
+  backdrop-filter: var(--lg-backdrop, none);
+  /* glassLight.js: a bright beam behind the glass darkens what shows through */
+  backdrop-filter: var(--lg-backdrop, none) brightness(var(--lg-see, 1));
+  /* Some surfaces (the glass tooltip's old shimmer) styled ::before
+     themselves; the lens replaces that. */
+  background: none;
+  opacity: 1;
+  mix-blend-mode: normal;
+  transform: none;
+  animation: none;
+}
+
+/* A faded (disabled) control has opacity below 1, which would cut ::before
+   off from the page behind it: it keeps plain frost on the element instead. */
+.lg-lensed:disabled {
+  -webkit-backdrop-filter: var(--lg-backdrop-base) !important;
+  backdrop-filter: var(--lg-backdrop-base) !important;
+}
+
+.lg-lensed:disabled::before {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* 3D labels (drei <Html>) are mounted next to their canvas with z-indices up
+   to 16777271, which put them above the top bar and the sidebar. Isolating
+   the canvas's parent keeps every label inside its own scene. */
+div:has(> canvas) {
+  isolation: isolate;
+}
+
+/* =============================================================================
+   LANDING: LIQUID GLASS CARDS AND BUTTON
+   The three feature cards and "Initialize Simulator" are lensed (LiquidGlass.js):
+   the scene behind them is frosted in the middle and bent at the rim. Their
+   tint is kept light so the bend shows. On top sits a crisp rim (::after):
+   bright where the fixed top-left light hits, fading round to a faint cool
+   edge at the bottom-right. Cards lift and their rim brightens on hover; the
+   button leans toward the mouse (magnetic) and both swell when pressed.
+   ============================================================================= */
+.landing-overlay .feature-card.lg {
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.05), rgba(8, 12, 22, 0.30));
+  border: 0;
+  box-shadow: 0 24px 50px -24px rgba(0, 0, 0, 0.75);
+  color: #ffffff;
+  transition:
+    transform 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+    scale 450ms var(--lg-spring-press),
+    box-shadow 0.35s ease;
+}
+
+.landing-overlay .feature-card.lg:hover {
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.08), rgba(8, 12, 22, 0.26));
+  border: 0;
+  transform: translateY(-8px);
+  box-shadow: 0 30px 60px -24px rgba(0, 0, 0, 0.8);
+}
+
+.landing-overlay .start-btn.lg {
+  background:
+    radial-gradient(90% 120% at 30% 0%, rgba(255, 255, 255, 0.22), transparent 60%),
+    linear-gradient(180deg, rgba(90, 210, 255, 0.34), rgba(20, 120, 210, 0.30));
+  color: #ffffff;
+  text-shadow: 0 1px 8px rgba(0, 30, 60, 0.55);
+  box-shadow: 0 18px 40px -18px rgba(0, 160, 255, 0.55), 0 0 30px -8px rgba(0, 242, 254, 0.35);
+  transition:
+    transform 0.25s ease-out,
+    scale 450ms var(--lg-spring-press),
+    box-shadow 0.35s ease;
+}
+
+.landing-overlay .start-btn.lg:hover {
+  background:
+    radial-gradient(90% 120% at 30% 0%, rgba(255, 255, 255, 0.28), transparent 60%),
+    linear-gradient(180deg, rgba(90, 210, 255, 0.44), rgba(20, 120, 210, 0.38));
+  scale: 1.04;
+  box-shadow: 0 22px 48px -18px rgba(0, 160, 255, 0.7), 0 0 44px -8px rgba(0, 242, 254, 0.5);
+}
+
+.landing-overlay .start-btn.lg:active {
+  scale: 1.07;
+}
+
+/* The crisp rim, drawn above the lens. Replaces the button's old light sweep. */
+.landing-overlay .feature-card.lg::after,
+.landing-overlay .start-btn.lg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  left: 0;
+  width: auto;
+  height: auto;
+  padding: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  transform: none;
+  animation: none;
+  background: linear-gradient(calc(135deg + var(--tilt-shift, 0deg)),
+      rgba(255, 255, 255, 0.70) 0%,
+      rgba(255, 255, 255, 0.18) 28%,
+      rgba(255, 255, 255, 0.04) 55%,
+      rgba(140, 220, 255, 0.30) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  opacity: min(1, calc(0.75 * var(--rim-gain, 1)));
+  transition: opacity 0.3s ease;
+}
+
+.landing-overlay .feature-card.lg:hover::after,
+.landing-overlay .start-btn.lg:hover::after {
+  opacity: min(1, calc(1 * var(--rim-gain, 1)));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-overlay .feature-card.lg:hover {
+    transform: none;
+  }
+}
+
+/* =============================================================================
+   GLASS MOTION (glassMotion.js)
+   While a spring drives an element's `scale` / `translate` (jelly press, drag
+   stretch, the mute circle's reach), those two must not also be transitioned,
+   or every frame would ease toward the last one.
+   The neck: the glass that fills the gap when the mute circle melts into the
+   Beginner/Advanced capsule. Its shape is a mask drawn by glassMotion.js.
+   ============================================================================= */
+.lg-moving {
+  transition-property: background, background-color, color, opacity, box-shadow, transform, border-color !important;
+}
+
+.lg-nav-neck,
+.lg-nav-neck-rim {
+  position: absolute;
+  inset: -12px;
+  pointer-events: none;
+  visibility: hidden;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.lg-nav-neck {
+  background: var(--lgs-tint-strong);
+  -webkit-backdrop-filter: blur(8px) saturate(1.5);
+  backdrop-filter: blur(8px) saturate(1.5);
+}
+
+.lg-nav-neck-rim {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.12));
+}
+
+
+/* Bright beams (glassLight.js): when one passes behind glass inside the app,
+   the glass darkens what shows through it (--lg-see, in the lens layer
+   above) and its text gets a dark glow (--lg-dim), easing in and out. The
+   glass stays dark and the text stays white. The glow applies only while
+   dimmed, so it never replaces a surface's own text-shadow otherwise. */
+[data-lg-dim] {
+  text-shadow: 0 1px 10px rgba(0, 0, 0, calc(0.9 * var(--lg-dim, 0)));
+}

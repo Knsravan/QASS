@@ -289,6 +289,20 @@ describe('state-vector memory', () => {
     expect(300 * Math.log10(2)).toBeGreaterThan(80);
     expect(stateVectorRAM(300)).toBe('Exceeds Atoms in Universe (~10⁸⁰)!');
   });
+
+  test('sizes between the milestones stay readable', () => {
+    expect(stateVectorRAM(45)).toBe('512 TB');
+    expect(stateVectorRAM(51)).toBe('32 PB');
+    expect(stateVectorRAM(60)).toBe('16 EB');
+    expect(stateVectorRAM(70)).toBe('16 ZB');
+    expect(stateVectorRAM(80)).toBe('16 YB');
+    expect(stateVectorRAM(100)).toBe('~10³¹ Bytes');
+  });
+
+  test('the atoms-in-the-universe line falls where 16·2^n first passes 10^80', () => {
+    expect(stateVectorRAM(261)).toBe('~10⁷⁹ Bytes');
+    expect(stateVectorRAM(262)).toBe('Exceeds Atoms in Universe (~10⁸⁰)!');
+  });
 });
 
 // ─── Decoherence ─────────────────────────────────────────────────────────────

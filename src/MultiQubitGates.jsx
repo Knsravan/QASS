@@ -3,7 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import { Bloom } from '@react-three/postprocessing';
 import * as THREE from 'three';
-import { BlockMath, InlineMath } from 'react-katex';
+import { BlockMath, InlineMath } from './KatexMath';
 import { QubitCore } from './BlochSphere';
 import gsap from 'gsap';
 import { getInitialState, GATES_MATRICES, applyMatrix, calculateProbabilities, gateNumQubits, getFinalState, calculateGateLogic, formatStateKet } from './quantumMath';

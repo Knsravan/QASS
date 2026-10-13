@@ -325,7 +325,7 @@ export function applyLiquidGlass(node, target, geometry = measureGlass(node)) {
     wanted.push('lg-lensed');
     if (staticPos) wanted.push('lg-lensed--rel');
   }
-  // Reduce transparency: solid instead of see-through (App.css).
+  // Reduce transparency: solid instead of see-through (src/styles).
   if (reducedTransparency()) wanted.push('lg-solid');
   node._lgClasses = wanted;
   const missing = wanted.filter((c) => !node.classList.contains(c));

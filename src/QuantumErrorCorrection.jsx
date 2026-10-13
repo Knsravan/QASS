@@ -7,7 +7,7 @@ import { Html, OrbitControls } from '@react-three/drei';
 import { Bloom } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import gsap from 'gsap';
-import { BlockMath, InlineMath } from 'react-katex';
+import { BlockMath, InlineMath } from './KatexMath';
 import { QubitCore } from './BlochSphere';
 import CameraShifter from './CameraShifter';
 import { useQECAudio } from './useQECAudio';

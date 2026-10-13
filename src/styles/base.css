@@ -1,0 +1,526 @@
+@font-face {
+  font-family: 'Deltha';
+  src: url('../fonts/Deltha.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@keyframes idleFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulseHint {
+
+  0%,
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+
+  50% {
+    transform: translateX(-5px);
+    opacity: 0.55;
+  }
+}
+
+/* =============================================================================
+   STANDARD GLASSMORPHISM DESIGN SYSTEM
+   ============================================================================= */
+:root,
+[data-theme="dark"] {
+  --bg-color: #000000;
+  --text-primary: #f5f5f7;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+
+  /* ─── LIQUID GLASS MATERIAL ──────────────────────────────────── */
+  --glass-bg-base: rgba(255, 255, 255, 0.055);
+  --glass-bg-thick: rgba(20, 22, 30, 0.42);
+  --glass-bg-pill: rgba(255, 255, 255, 0.08);
+
+  /* ─── GLASS BORDER ───────────────────────────────────────────── */
+  --glass-border-base: 1px solid rgba(255, 255, 255, 0.18);
+  --glass-border-subtle: 1px solid rgba(255, 255, 255, 0.10);
+  --glass-border-strong: 1px solid rgba(255, 255, 255, 0.32);
+
+  /* ─── HIGHLIGHT SYSTEM (top rim + hairline + bottom bounce light) ── */
+  --glass-highlight:
+    inset 0 1px 1px rgba(255, 255, 255, 0.30),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.08),
+    inset 0 -8px 16px -10px rgba(255, 255, 255, 0.16);
+  --glass-highlight-bottom: inset 0 -1px 1px rgba(255, 255, 255, 0.10);
+  --glass-specular-edge: rgba(255, 255, 255, 0.38);
+
+  /* ─── SHADOWS (ambient + contact) ────────────── */
+  --glass-shadow-base: 0 16px 44px -10px rgba(0, 0, 0, 0.60), 0 2px 8px rgba(0, 0, 0, 0.32);
+  --glass-shadow-pill: 0 8px 22px -8px rgba(0, 0, 0, 0.48), 0 1px 4px rgba(0, 0, 0, 0.28);
+
+  /* ─── OPTICAL STACK (blur + vibrancy) ──── */
+  --glass-blur: blur(20px) saturate(180%) brightness(1.06);
+  --glass-blur-thick: blur(34px) saturate(190%) brightness(1.03);
+
+  /* ─── REFRACTION (upgraded to SVG lensing when [data-lg-refract="on"]) ── */
+  --lg-refract: blur(0px);
+  --lg-refract-strong: blur(0px);
+
+  /* ─── MOVING SPECULAR (pointer-lit, viewport-fixed) ── */
+  --lg-specular: rgba(255, 255, 255, 0.10);
+  --lg-specular-size: 300px;
+  --lg-sheen: none;
+  --lg-tint: none;
+
+  /* ─── ADAPTIVE SCRIM ──────────────────────── */
+  --adaptive-scrim: rgba(0, 0, 0, 0.4);
+
+  /* ─── SPRINGS (Apple-style ease + overshoot) ─────── */
+  --glass-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --glass-spring-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --glass-spring-heavy: cubic-bezier(0.45, 1.35, 0.4, 1);
+
+  /* ─── LEGACY ALIASES ─────────────────────────────────────────── */
+  --glass-bg: var(--glass-bg-base);
+  --glass-border: var(--glass-border-base);
+  --glass-shadow: var(--glass-shadow-base);
+  --nav-bg: var(--glass-bg-pill);
+  --math-bg: var(--glass-bg-base);
+  --math-border: var(--glass-border-base);
+  --card-bg: var(--glass-bg-base);
+  --card-border: var(--glass-border-base);
+  --card-shadow: var(--glass-highlight), var(--glass-shadow-base);
+}
+
+[data-theme="light"] {
+  --bg-color: #f2f4f8;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #64748b;
+
+  /* ─── LIQUID GLASS MATERIAL ────────── */
+  --glass-bg-base: rgba(255, 255, 255, 0.48);
+  --glass-bg-thick: rgba(255, 255, 255, 0.62);
+  --glass-bg-pill: rgba(255, 255, 255, 0.55);
+  --glass-border-base: 1px solid rgba(255, 255, 255, 0.72);
+  --glass-border-subtle: 1px solid rgba(255, 255, 255, 0.5);
+  --glass-border-strong: 1px solid rgba(255, 255, 255, 0.92);
+
+  /* ─── HIGHLIGHT ──────────────────────────────────────── */
+  --glass-highlight:
+    inset 0 1px 1px rgba(255, 255, 255, 0.95),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.45),
+    inset 0 -8px 16px -10px rgba(255, 255, 255, 0.55);
+  --glass-highlight-bottom: inset 0 -1px 1px rgba(255, 255, 255, 0.5);
+  --glass-specular-edge: rgba(255, 255, 255, 1);
+
+  /* ─── SHADOWS ────────────────────────── */
+  --glass-shadow-base: 0 16px 44px -10px rgba(31, 38, 135, 0.16), 0 2px 8px rgba(31, 38, 135, 0.08);
+  --glass-shadow-pill: 0 8px 22px -8px rgba(31, 38, 135, 0.12), 0 1px 4px rgba(31, 38, 135, 0.06);
+
+  /* ─── OPTICAL STACK ────────────────────────────── */
+  --glass-blur: blur(20px) saturate(170%);
+  --glass-blur-thick: blur(34px) saturate(180%);
+
+  /* ─── REFRACTION ── */
+  --lg-refract: blur(0px);
+  --lg-refract-strong: blur(0px);
+
+  /* ─── MOVING SPECULAR ── */
+  --lg-specular: rgba(255, 255, 255, 0.55);
+  --lg-specular-size: 300px;
+  --lg-sheen: none;
+  --lg-tint: none;
+
+  --adaptive-scrim: rgba(255, 255, 255, 0.5);
+
+  /* ─── SPRINGS ────────────────────────────────────────────────── */
+  --glass-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --glass-spring-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --glass-spring-heavy: cubic-bezier(0.45, 1.35, 0.4, 1);
+
+  /* ─── LEGACY ─────────────────────────────────────────────────── */
+  --glass-bg: var(--glass-bg-base);
+  --glass-border: var(--glass-border-base);
+  --glass-shadow: var(--glass-shadow-base);
+  --nav-bg: var(--glass-bg-pill);
+  --math-bg: var(--glass-bg-base);
+  --math-border: var(--glass-border-base);
+  --card-bg: var(--glass-bg-base);
+  --card-border: var(--glass-border-base);
+  --card-shadow: var(--glass-highlight), var(--glass-shadow-base);
+}
+
+/* =============================================================================
+   STANDARD GLASSMORPHISM UTILITY CLASSES
+   ============================================================================= */
+.glass-panel,
+.glass-panel-thick,
+.glass-pill,
+.glass-chip,
+.data-card,
+.glass-interactive,
+.quantum-nav-btn {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.28s var(--glass-spring),
+    box-shadow 0.35s var(--glass-spring),
+    border-color 0.35s var(--glass-spring),
+    background 0.35s var(--glass-spring);
+}
+
+/* =============================================================================
+   GLASSMORPHISM — BASE PANEL MATERIAL CLASSES
+   ============================================================================= */
+
+/* Standard glass panel — sidebar content panels, module cards */
+.glass-panel {
+  background-image: var(--lg-sheen), var(--lg-tint);
+  background-attachment: fixed, scroll;
+  background-color: var(--glass-bg-base);
+  backdrop-filter: var(--lg-refract) var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: var(--glass-border-base);
+  box-shadow:
+    var(--glass-highlight),
+    var(--glass-shadow-base);
+  border-radius: 22px;
+}
+
+/* Thick glass panel — sidebar itself, major floating panels */
+.glass-panel-thick {
+  background-image: var(--lg-sheen), var(--lg-tint);
+  background-attachment: fixed, scroll;
+  background-color: var(--glass-bg-thick);
+  backdrop-filter: var(--lg-refract) var(--glass-blur-thick);
+  -webkit-backdrop-filter: var(--glass-blur-thick);
+  border: var(--glass-border-base);
+  box-shadow:
+    var(--glass-highlight),
+    var(--glass-shadow-base);
+  border-radius: 30px;
+}
+
+/* Pill — nav controls, tags, badges, small interactive pills */
+.glass-pill {
+  background-image: var(--lg-sheen), var(--lg-tint);
+  background-attachment: fixed, scroll;
+  background-color: var(--glass-bg-pill);
+  backdrop-filter: var(--lg-refract-strong) var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: var(--glass-border-base);
+  box-shadow:
+    var(--glass-highlight),
+    var(--glass-shadow-pill);
+  border-radius: 999px;
+}
+
+/* =============================================================================
+   GLASSMORPHISM — HOVER EFFECTS
+   ============================================================================= */
+
+/* Interactive cards and panels: blur deepens, border lightens, slight lift */
+.glass-interactive:hover {
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border-color: rgba(255, 255, 255, 0.28);
+  transform: translateY(-2px) scale(1.010);
+  box-shadow:
+    var(--glass-highlight),
+    0 8px 24px -4px rgba(0, 0, 0, 0.50);
+}
+
+/* Data cards: more subtle lift — they're nested, so less movement */
+.data-card:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    var(--glass-highlight),
+    0 6px 20px -4px rgba(0, 0, 0, 0.40);
+  transform: translateY(-1px);
+}
+
+/* =============================================================================
+   EDGE REFRACTION UTILITY CLASSES — true backdrop lensing (Chromium)
+   ============================================================================= */
+.glass-refract {
+  backdrop-filter: var(--lg-refract) var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.glass-refract-strong {
+  backdrop-filter: var(--lg-refract-strong) var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.glass-chromatic {
+  /* faint dispersion fringe on the rim, like light splitting at the lens edge */
+  box-shadow:
+    inset 1px 0 0 rgba(120, 220, 255, 0.10),
+    inset -1px 0 0 rgba(255, 140, 220, 0.08),
+    var(--glass-highlight),
+    var(--glass-shadow-base);
+}
+
+/* =============================================================================
+   ⚡ HAPTIC SPRING — Tap/Press feedback on all glass controls
+   ============================================================================= */
+.glass-btn,
+.glass-chip,
+.mode-btn,
+button.glass-pill {
+  transition:
+    transform 0.22s var(--glass-spring),
+    box-shadow 0.22s var(--glass-spring),
+    background 0.22s var(--glass-spring),
+    border-color 0.22s var(--glass-spring);
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  font-family: 'Space Grotesk', 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* =========================================
+   DELTHA HEADINGS SYSTEM (SIMULATOR & UI)
+   ========================================= */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.hero-title,
+.hero-badge,
+.sidebar-branding-title,
+.sidebar-section-title,
+.section-title,
+.module-item-title,
+.module-title,
+.sidebar-title-wrapper h3,
+.gate-title,
+.stage-title,
+.pillar-label,
+.stage-indicator-pill,
+.card-header-title,
+.circuit-heading,
+.deltha-heading {
+  font-family: 'Deltha', 'Inter', sans-serif !important;
+  letter-spacing: 0.6px;
+}
+
+.app-container {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* =========================================
+   FLOATING TOP NAVIGATION (BEGINNER/ADVANCED)
+   ========================================= */
+.floating-nav-control {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  width: 220px;
+  box-sizing: border-box;
+  background: var(--glass-bg-pill);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: var(--glass-border-base);
+  box-shadow:
+    var(--glass-highlight),
+    var(--glass-shadow-pill);
+  padding: 4px;
+  border-radius: 999px;
+  z-index: 1000;
+  pointer-events: auto;
+  gap: 0px;
+  transition: left 0.4s var(--glass-spring), transform 0.4s var(--glass-spring);
+  overflow: hidden;
+}
+
+.nav-glider {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.15);
+  border: var(--glass-border-strong);
+  border-radius: 999px;
+  transition: transform 0.38s var(--glass-spring);
+  box-shadow: var(--glass-shadow-pill);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  z-index: 0;
+  overflow: hidden;
+}
+
+.nav-glider.beginner {
+  transform: translateX(0);
+}
+
+.nav-glider.advanced {
+  transform: translateX(100%);
+}
+
+.mode-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.65);
+  padding: 7px 22px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.25s var(--glass-spring);
+  position: relative;
+  z-index: 1;
+}
+
+.mode-btn:hover:not(.active) {
+  color: #ffffff;
+}
+
+.mode-btn.active {
+  color: #ffffff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* =========================================
+   🌐 COMPARISON SECTION HEADER BADGES
+   (CLASSICAL PHYSICS vs QUANTUM PHYSICS)
+   ========================================= */
+.section-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  background: var(--glass-bg-pill);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: var(--glass-border-base);
+  box-shadow:
+    var(--glass-highlight),
+    var(--glass-shadow-pill);
+  font-family: 'Deltha', 'Inter', sans-serif !important;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: #f8fafc;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+  transition: all 0.35s var(--glass-spring);
+}
+
+.section-title.classical {
+  border-color: rgba(56, 189, 248, 0.45);
+  color: #e0f2fe;
+  box-shadow:
+    var(--glass-highlight),
+    var(--glass-shadow-pill),
+    0 0 20px rgba(56, 189, 248, 0.20);
+}
+
+.section-title.classical .section-title-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #38bdf8;
+  box-shadow: 0 0 8px #38bdf8, 0 0 16px rgba(56, 189, 248, 0.6);
+  flex-shrink: 0;
+}
+
+.section-title.quantum {
+  border-color: rgba(192, 132, 252, 0.45);
+  color: #fdf4ff;
+  box-shadow:
+    var(--glass-highlight),
+    var(--glass-shadow-pill),
+    0 0 20px rgba(192, 132, 252, 0.20);
+}
+
+.section-title.quantum .section-title-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #c084fc;
+  box-shadow: 0 0 8px #c084fc, 0 0 16px rgba(192, 132, 252, 0.6);
+  flex-shrink: 0;
+}
+
+/* =========================================
+   🔊 TOP-RIGHT AUDIO CONTROL PILL
+   ========================================= */
+.top-right-audio-btn {
+  position: fixed !important;
+  top: 20px !important;
+  right: 28px !important;
+  width: 46px !important;
+  height: 46px !important;
+  min-width: 46px !important;
+  min-height: 46px !important;
+  max-width: 46px !important;
+  max-height: 46px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: var(--glass-bg-pill) !important;
+  backdrop-filter: var(--glass-blur) !important;
+  -webkit-backdrop-filter: var(--glass-blur) !important;
+  border: var(--glass-border-base) !important;
+  box-shadow:
+    var(--glass-highlight),
+    var(--glass-shadow-pill) !important;
+  color: #38bdf8 !important;
+  cursor: pointer !important;
+  z-index: 9999 !important;
+  pointer-events: auto !important;
+  user-select: none !important;
+  transition: all 0.3s var(--glass-spring) !important;
+}
+
+.top-right-audio-btn:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(56, 189, 248, 0.65) !important;
+  box-shadow: inset 0 1.5px 2px rgba(255, 255, 255, 0.65),
+    0 0 24px rgba(56, 189, 248, 0.45),
+    0 20px 44px -8px rgba(0, 0, 0, 0.85) !important;
+  transform: translateY(-1px) scale(1.08) !important;
+}
+
+
+.top-right-audio-btn.muted {
+  color: #94a3b8 !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  background: var(--glass-bg-pill) !important;
+}

@@ -1,0 +1,443 @@
+/* =============================================================================
+   DISPLAY & ACCESSIBILITY (DisplayPanel.jsx)
+   ============================================================================= */
+.lg-nav-circle-alt {
+  box-sizing: border-box;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--lg-content-secondary, #cbd5e1);
+  cursor: pointer;
+}
+
+.lg-nav-circle-alt.is-active,
+.lg-nav-circle-alt:hover {
+  color: #ffffff;
+}
+
+.sidebar-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Display & accessibility: a page of the sidebar, sliding in over the list
+   like a module's page (the sidebar's own glass is behind it). */
+.dp {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: #e8eef8;
+  font-family: 'Inter', system-ui, sans-serif;
+  transform: translateX(100%);
+  visibility: hidden;
+  transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s linear 0.5s;
+}
+
+.dp.is-open {
+  transform: none;
+  visibility: visible;
+  transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s;
+}
+
+/* The page under it steps back (and out of the tab order) while it is open. */
+.sidebar-body > .sidebar-nav,
+.sidebar-body > .sidebar-scrollable-content {
+  transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.5s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s;
+}
+.sidebar-body:has(> .dp.is-open) > .sidebar-nav,
+.sidebar-body:has(> .dp.is-open) > .sidebar-scrollable-content {
+  transform: translateX(-28%);
+  opacity: 0;
+  visibility: hidden;
+  transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.5s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s linear 0.5s;
+}
+
+[data-motion="reduced"] .dp,
+[data-motion="reduced"] .sidebar-body > * { transition-duration: 0.01ms !important; }
+
+.sidebar-display-btn {
+  all: unset;
+  margin-left: auto;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.sidebar-display-btn:hover,
+.sidebar-display-btn.is-active {
+  color: #fff;
+  background: rgba(62, 230, 255, 0.16);
+}
+
+.sidebar-display-btn:focus-visible {
+  outline: 2px solid #3ee6ff;
+  outline-offset: 2px;
+}
+
+.dp-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px 16px 14px;
+  display: grid;
+  gap: 14px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, .15) transparent;
+  will-change: scroll-position; /* compositor scrolling, see .sidebar-scrollable-content */
+}
+
+.dp-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dp-head h2 {
+  margin: 0;
+  flex: 1;
+  font: 400 13px 'Deltha', 'Inter', sans-serif;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.dp-fps {
+  font: 600 11px ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+  color: #3ee6ff;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(62, 230, 255, .1);
+  border: 1px solid rgba(62, 230, 255, .3);
+}
+
+.dp-close {
+  all: unset;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 20px;
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, .06);
+}
+
+.dp-close:hover { color: #fff; background: rgba(255, 255, 255, .12); }
+
+.dp-section {
+  display: grid;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, .08);
+}
+
+.dp-row { display: grid; gap: 7px; }
+.dp-row-head { display: grid; gap: 1px; }
+.dp-label { font-size: 13px; font-weight: 600; color: #f1f5f9; }
+.dp-hint { font-size: 11.5px; color: #93a0b8; line-height: 1.4; }
+
+.dp-seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, .28);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .4), inset 0 0 0 1px rgba(255, 255, 255, .06);
+}
+
+.dp-seg button {
+  all: unset;
+  flex: 1 1 auto;
+  cursor: pointer;
+  text-align: center;
+  padding: 7px 10px;
+  border-radius: 11px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #aab6cc;
+  white-space: nowrap;
+  transition: background .2s ease, color .2s ease;
+}
+
+.dp-seg button:hover { color: #fff; background: rgba(255, 255, 255, .06); }
+
+.dp-seg button.is-on {
+  color: #fff;
+  background: linear-gradient(180deg, rgba(62, 230, 255, .28), rgba(176, 108, 255, .22));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), inset 0 0 0 1px rgba(255, 255, 255, .18), 0 0 14px -4px rgba(62, 230, 255, .6);
+}
+
+.dp-seg button:focus-visible,
+.dp-close:focus-visible,
+.dp-reset:focus-visible,
+.dp-link:focus-visible {
+  outline: 2px solid rgba(62, 230, 255, .9);
+  outline-offset: 2px;
+}
+
+.dp-note { margin: 0; font-size: 12px; color: #cbd5e1; line-height: 1.5; }
+.dp-link { all: unset; cursor: pointer; color: #3ee6ff; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+
+.dp-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, .08);
+  font-size: 11px;
+  color: #93a0b8;
+}
+
+.dp-reset {
+  all: unset;
+  cursor: pointer;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(56, 189, 248, .22);
+  box-shadow: inset 0 0 0 1px rgba(56, 189, 248, .45);
+}
+
+.dp-reset:hover { background: rgba(56, 189, 248, .32); }
+
+/* ─── Sidebar pages (SidebarPages.jsx) ───────────────────────────────────────
+   The module list and the open module's page are two layers in the same
+   space. Opening a module slides its page in from the right while the list
+   slides a little left and fades out underneath (the page is clear glass, so
+   the list mustn't show through it); back reverses it. */
+.sidebar-nav {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  --page-ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.sidebar-nav > .sidebar-list {
+  position: absolute;
+  inset: 0;
+  transition: transform 0.5s var(--page-ease), opacity 0.5s var(--page-ease);
+}
+
+.sidebar-nav.is-pushed > .sidebar-list {
+  transform: translateX(-28%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sidebar-page {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateX(100%);
+  visibility: hidden;
+  transition: transform 0.5s var(--page-ease), visibility 0s linear 0.5s;
+}
+
+/* The page's content scrolls under a soft fade at the top instead of under
+   a backing, so the whole page stays on the sidebar's own glass. */
+.sidebar-page-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding: 0 14px 18px;
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 14px);
+  mask-image: linear-gradient(180deg, transparent 0, #000 14px);
+  will-change: scroll-position; /* compositor scrolling, see .sidebar-scrollable-content */
+}
+
+.sidebar-nav.is-pushed > .sidebar-page {
+  transform: none;
+  visibility: visible;
+  transition: transform 0.5s var(--page-ease), visibility 0s;
+}
+
+.sidebar-nav.is-dragging > .sidebar-list,
+.sidebar-nav.is-dragging > .sidebar-page {
+  transition: none;
+}
+
+/* A strip down the page's left edge to drag it back. */
+.sidebar-page-edge {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 18px;
+  z-index: 3;
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+.sidebar-page-head {
+  flex: none;
+  padding: 12px 14px 10px;
+  display: grid;
+  gap: 10px;
+}
+
+.sidebar-page-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: max-content;
+  padding: 6px 13px 6px 8px;
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #3ee6ff;
+  background: rgba(62, 230, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(62, 230, 255, 0.25);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.sidebar-page-back:hover {
+  background: rgba(62, 230, 255, 0.16);
+}
+
+.sidebar-page-back:focus-visible,
+.sidebar-page-pager button:focus-visible {
+  outline: 2px solid #3ee6ff;
+  outline-offset: 2px;
+}
+
+.sidebar-page-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sidebar-panel .sidebar-page-title h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.sidebar-page-icon {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--module-accent) 16%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--module-accent) 45%, transparent);
+}
+
+.sidebar-page-sweep {
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--module-accent), transparent);
+}
+
+.sidebar-page-body {
+  padding-top: 10px;
+}
+
+.sidebar-page-pager {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.sidebar-page-pager button {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 14px;
+  font: inherit;
+  text-align: left;
+  color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.sidebar-page-pager button:last-child {
+  text-align: right;
+}
+
+.sidebar-page-pager button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-page-pager button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.sidebar-page-pager span {
+  display: block;
+  font-size: 11px;
+}
+
+.sidebar-page-pager b {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: #eef3fb;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Rows say they open a page. */
+.chip-go {
+  margin-left: auto;
+  padding-left: 8px;
+  font-size: 18px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.35);
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.glass-chip:hover .chip-go,
+.glass-chip-group.active .chip-go {
+  color: var(--module-accent, #fff);
+  transform: translateX(2px);
+}
+
+[data-motion="reduced"] .sidebar-nav > .sidebar-list,
+[data-motion="reduced"] .sidebar-page {
+  transition-duration: 0.01ms !important;
+}

@@ -6,7 +6,7 @@ import { handoff, GLIDE } from './handoff';
 import { BlochSphereUnit, arrowGrow, DEC_STATIC_ENTRANCE, CT, CA } from './DecoSphereUnit';
 import * as THREE from 'three';
 import { Bloom } from '@react-three/postprocessing';
-import { BlockMath, InlineMath } from 'react-katex';
+import { BlockMath, InlineMath } from './KatexMath';
 import { useQuantumAudio } from './useQuantumAudio';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { QualityComposer } from './QualityScene';
@@ -1281,8 +1281,8 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
         initAudio();
         toggleMute(isGlobalMutedRef.current);
         playGroundState();
-      } catch (e) {
-        console.log("Audio init blocked before first interaction", e);
+      } catch {
+        // Audio can't start before the first interaction; the scene runs silent.
       }
     } else {
       setSuperpositionStep(-1);

@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { gsap } from 'gsap';
 import { WebGLRenderer } from 'three';
+import './fonts';
 import './index.css';
 import App from './App';
 import { startQuality } from './quality';

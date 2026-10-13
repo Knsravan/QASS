@@ -13,7 +13,7 @@
  * scene (and its glow) has drawn, the layer copies the frame into a texture
  * and draws, over the same frame, the glass of every glass element that sits
  * on that canvas. The DOM element then only holds its text and icons
- * ([data-gl] in App.css takes its CSS glass away). Big glass that carries
+ * ([data-gl] in src/styles takes its CSS glass away). Big glass that carries
  * text ([data-gl-big]) also gets a soft CSS blur inside its rim band, which
  * frosts page elements under it too; the rim stays the WebGL bend and light. Everything stays on the
  * GPU in the scene's own context: nothing is read back.

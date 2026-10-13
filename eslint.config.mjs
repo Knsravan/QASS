@@ -4,7 +4,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 
 export default [
-  { ignores: ['build', 'node_modules'] },
+  { ignores: ['build', 'node_modules', 'test-results', 'playwright-report'] },
   { linterOptions: { reportUnusedDisableDirectives: 'off' } },
   {
     files: ['src/**/*.{js,jsx}'],
@@ -26,8 +26,8 @@ export default [
     },
   },
   {
-    files: ['scripts/**/*.js'],
-    languageOptions: { sourceType: 'commonjs', globals: { ...globals.node } },
+    files: ['e2e/**/*.js', 'playwright.config.js'],
+    languageOptions: { ecmaVersion: 'latest', sourceType: 'module', globals: { ...globals.node, ...globals.browser } },
     rules: js.configs.recommended.rules,
   },
 ];

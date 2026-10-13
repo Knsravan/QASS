@@ -62,7 +62,7 @@ export const useIdleAudio = (isMuted) => {
       osc2.current.start();
 
     } catch (e) {
-      console.warn("AudioContext not supported", e);
+      if (import.meta.env.DEV) console.warn("AudioContext not supported", e);
     }
   }, []);
 

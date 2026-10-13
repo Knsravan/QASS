@@ -165,7 +165,7 @@ export function getQuality() {
   return snapshot;
 }
 
-// CSS reads the level and two of the choices (App.css).
+// CSS reads the level and two of the choices (src/styles).
 function mark() {
   try {
     const q = getQualityUnsafe();
