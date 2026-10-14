@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Html, Line, RoundedBox, Text } from '@react-three/drei';
+import { Html, Line, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { InlineMath } from './KatexMath';
 import { useQuality } from './QualityScene';
@@ -135,40 +135,59 @@ function useRimMaterial(strength = 0.85) {
   }), [strength]);
 }
 
-// A name plate mounted on a model: smoked glass in a steel bezel, its label lit
-// on the face and a light strip along the bottom. The plate for the state the
-// model is in glows in that state's colour; the other one stays dim.
-function StateTag({ text, color, active, width = 0.5, height = 0.5, fontSize = 0.3, position, onPointerOver, onPointerOut }) {
-  const stripMat = useRef();
-  const rimMat = useRef();
+// A name plate mounted on a model: a small pill of liquid glass (a round lens
+// for a single digit) with its label lit inside. The plate for the state the
+// model is in glows in that state's colour, at its edge and behind the label;
+// the other stays clear glass with a dim label.
+const tagRimVertex = rimVertex;
+const tagRimFragment = /* glsl */ `
+  uniform vec3 uColor; uniform float uStrength;
+  varying vec3 vN; varying vec3 vV; varying float vY;
+  void main() {
+    float f = pow(clamp(1.0 - abs(dot(vN, vV)), 0.0, 1.0), 2.2);
+    gl_FragColor = vec4(uColor, f * uStrength);
+  }`;
+const _tagDim = new THREE.Color('#94a3b8');
+function StateTag({ text, color, active, width = 0.42, height = 0.42, fontSize = 0.26, position, onPointerOver, onPointerOut }) {
   const textRef = useRef();
+  const coreMat = useRef();
   const glow = useRef(active ? 1 : 0);
-  const _c = useMemo(() => new THREE.Color(color), [color]);
-  const _dim = useMemo(() => new THREE.Color('#64748b'), []);
+  const tint = useMemo(() => new THREE.Color(color), [color]);
+  const rim = useMemo(() => new THREE.ShaderMaterial({
+    vertexShader: tagRimVertex,
+    fragmentShader: tagRimFragment,
+    uniforms: { uColor: { value: new THREE.Color() }, uStrength: { value: 0.5 } },
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  }), []);
   useFrame((_, dt) => {
     glow.current += ((active ? 1 : 0) - glow.current) * (1 - Math.exp(-8 * Math.min(dt, 0.1)));
     const g = glow.current;
-    if (stripMat.current) stripMat.current.opacity = 0.18 + g * 0.82;
-    if (rimMat.current) rimMat.current.opacity = g * 0.55;
-    if (textRef.current) textRef.current.color = '#' + _col.copy(_dim).lerp(_c, g).getHexString();
+    rim.uniforms.uColor.value.copy(_tagDim).lerp(tint, g);
+    rim.uniforms.uStrength.value = 0.55 + g * 1.5;
+    if (coreMat.current) coreMat.current.opacity = g * 0.32;
+    if (textRef.current) textRef.current.color = '#' + _col.copy(_tagDim).lerp(tint, g).getHexString();
   });
+  const r = height / 2;
+  const len = Math.max(0, width - height);
+  const depth = 0.32; // the pill's thickness, relative to its height
   return (
     <group position={position} onPointerOver={onPointerOver} onPointerOut={onPointerOut}>
-      {/* the glow around the bezel when this is the model's state */}
-      <RoundedBox args={[width + 0.15, height + 0.15, 0.02]} radius={0.085} smoothness={4} position={[0, 0, -0.04]} raycast={() => null}>
-        <meshBasicMaterial ref={rimMat} color={color} transparent opacity={active ? 0.55 : 0} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
-      </RoundedBox>
-      <RoundedBox args={[width + 0.07, height + 0.07, 0.05]} radius={0.06} smoothness={4} position={[0, 0, -0.012]}>
-        <Metal />
-      </RoundedBox>
-      <RoundedBox args={[width, height, 0.05]} radius={0.045} smoothness={4} position={[0, 0, 0.004]}>
-        <meshStandardMaterial color="#050a14" roughness={0.55} metalness={0.15} />
-      </RoundedBox>
-      <mesh position={[0, -height / 2 + 0.045, 0.031]} raycast={() => null}>
-        <planeGeometry args={[width * 0.5, 0.018]} />
-        <meshBasicMaterial ref={stripMat} color={color} transparent opacity={active ? 1 : 0.18} toneMapped={false} />
+      {/* the glass pill, flattened front to back */}
+      <mesh rotation-z={Math.PI / 2} scale={[1, 1, depth]}>
+        <capsuleGeometry args={[r, len, 16, 40]} />
+        <GlassMaterial />
       </mesh>
-      <Text ref={textRef} font={labelFont} fontSize={fontSize} color={active ? color : '#64748b'} anchorX="center" anchorY="middle" position={[0, 0.045, 0.032]}>
+      <mesh rotation-z={Math.PI / 2} scale={[1.04, 1.04, depth * 1.04]} material={rim} raycast={() => null}>
+        <capsuleGeometry args={[r, len, 12, 32]} />
+      </mesh>
+      {/* the light inside, behind the label, when this is the model's state */}
+      <mesh rotation-z={Math.PI / 2} scale={[0.72, 0.72, 0.02]} raycast={() => null}>
+        <capsuleGeometry args={[r, len, 8, 24]} />
+        <meshBasicMaterial ref={coreMat} color={color} transparent opacity={active ? 0.32 : 0} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
+      </mesh>
+      <Text ref={textRef} font={labelFont} fontSize={fontSize} color={active ? color : '#94a3b8'} anchorX="center" anchorY="middle" position={[0, 0.006, r * depth + 0.012]}>
         {text}
       </Text>
     </group>
@@ -378,12 +397,12 @@ export function PremiumBlochSphere({ result = null, onClick, onHover, onUnhover 
       {/* Name plates on stalks from the pivots: |0> above the north pole, |1> below the south */}
       {[1, -1].map((s) => (
         <mesh key={s} position={[0, s * (R * 1.075 + 0.17), 0]} raycast={() => null}>
-          <cylinderGeometry args={[0.016, 0.016, 0.22, 10]} />
+          <cylinderGeometry args={[0.012, 0.012, 0.22, 10]} />
           <Metal shade="#aab4c4" />
         </mesh>
       ))}
-      <StateTag text="|0⟩" color="#00f2fe" active={result === 0} width={0.86} height={0.5} fontSize={0.3} position={[0, R * 1.075 + 0.28 + 0.285, 0]} onPointerOver={hoverTo('north')} onPointerOut={hoverOut} />
-      <StateTag text="|1⟩" color="#f093fb" active={result === 1} width={0.86} height={0.5} fontSize={0.3} position={[0, -(R * 1.075 + 0.28 + 0.285), 0]} onPointerOver={hoverTo('south')} onPointerOut={hoverOut} />
+      <StateTag text="|0⟩" color="#00f2fe" active={result === 0} width={0.74} height={0.38} fontSize={0.24} position={[0, R * 1.075 + 0.28 + 0.2, 0]} onPointerOver={hoverTo('north')} onPointerOut={hoverOut} />
+      <StateTag text="|1⟩" color="#f093fb" active={result === 1} width={0.74} height={0.38} fontSize={0.24} position={[0, -(R * 1.075 + 0.28 + 0.2), 0]} onPointerOver={hoverTo('south')} onPointerOut={hoverOut} />
 
       {/* The state vector: a metal shaft lit in the state's colour, a cone head and a glowing tip */}
       <group ref={vecRef}>
@@ -528,12 +547,12 @@ export function PremiumBit({ value = 0, onToggle, onHover, onUnhover }) {
       {/* Name plates on arms from the collars: 0 by the 0 seat, 1 by the 1 seat */}
       {[SEAT, -SEAT].map((h) => (
         <mesh key={h} position={[0.73, h, 0]} rotation-z={Math.PI / 2} raycast={() => null}>
-          <cylinderGeometry args={[0.018, 0.018, 0.24, 10]} />
+          <cylinderGeometry args={[0.012, 0.012, 0.24, 10]} />
           <Metal shade="#aab4c4" />
         </mesh>
       ))}
-      <StateTag text="0" color="#00f2fe" active={value === 0} width={0.5} height={0.5} fontSize={0.34} position={[1.12, SEAT, 0]} />
-      <StateTag text="1" color="#f093fb" active={value === 1} width={0.5} height={0.5} fontSize={0.34} position={[1.12, -SEAT, 0]} />
+      <StateTag text="0" color="#00f2fe" active={value === 0} width={0.42} height={0.42} fontSize={0.27} position={[1.06, SEAT, 0]} />
+      <StateTag text="1" color="#f093fb" active={value === 1} width={0.42} height={0.42} fontSize={0.27} position={[1.06, -SEAT, 0]} />
 
       {hover && (
         <Tooltip position={[1.9, 2.2, 0]} glow={value === 0 ? 'cyan' : 'purple'} width={220}>
