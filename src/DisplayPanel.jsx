@@ -8,8 +8,8 @@ import { PARTS, qualityInfo, setDisplayLevel, setDisplayPart } from './quality';
  *
  * - Quality: Recommended (the level the device test chose) or High, Medium,
  *   Low outright.
- * - Single parts over that level: glow, frame rate, sharpness, liquid glass,
- *   stars, motion and solid surfaces.
+ * - Single parts over that level: glow, frame rate, liquid glass, stars,
+ *   motion and solid surfaces.
  *
  * Every choice applies at once, so the view behind the panel shows what it
  * does, with the frame rate read live at the top. Choices are saved for the
@@ -20,7 +20,6 @@ const LEVEL_NAME = { high: 'High', medium: 'Medium', low: 'Low' };
 const HINT = {
   glow: 'The neon light on lines, rings and particles',
   fps: 'How often the 3D scenes redraw; lower is lighter on battery',
-  sharp: 'How many pixels the 3D scenes draw',
   lens: 'Whether the glass bends what is behind it',
   stars: 'How many stars fill the background',
   motion: 'Interface animations; the 3D scenes keep moving',
