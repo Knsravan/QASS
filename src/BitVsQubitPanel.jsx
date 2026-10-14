@@ -69,10 +69,13 @@ export default function BitVsQubitPanel({ bit, onFlip, result, onMeasure, onNewQ
         </button>
       </section>
 
-      <p data-jelly className="bvq-hint" style={{ '--j': 1 }}>
-        A bit always reads exactly what it holds. A qubit gives <strong style={{ color: C0 }}>0</strong> or <strong style={{ color: C1 }}>1</strong> at
-        random when you measure it, with odds set by where its arrow points. Measure a few fresh qubits and watch the tally.
-      </p>
+      <section data-jelly className="bvq-card bvq-hint glass-card" style={{ '--j': 1 }} aria-label="Try it">
+        <span className="bvq-card-title bvq-hint-title">Try it</span>
+        <p>
+          A bit always reads exactly what it holds. A qubit gives <strong style={{ color: C0 }}>0</strong> or <strong style={{ color: C1 }}>1</strong> at
+          random when you measure it, with odds set by where its arrow points. Measure a few fresh qubits and watch the tally.
+        </p>
+      </section>
 
       <section data-jelly className="bvq-card glass-card" style={{ '--j': 2 }} aria-label="Qubit">
         <div className="bvq-card-head">
