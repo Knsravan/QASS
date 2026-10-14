@@ -102,3 +102,36 @@
   font-variant-numeric: tabular-nums;
 }
 
+
+/* The models' name plates (PremiumBitQubit.jsx GlassPill): liquid glass pills
+   like the header pills, pinned to the models. The active one glows in its
+   state's colour. */
+.bvq-pill {
+  --bvq-c: 0, 242, 254;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--glass-bg-pill);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: var(--glass-border-base);
+  box-shadow: var(--glass-highlight), var(--glass-shadow-pill);
+  color: #cbd5e1;
+  font: 700 14px/1 'Fira Code', ui-monospace, monospace;
+  white-space: nowrap;
+  user-select: none;
+  transition: color 0.25s, border-color 0.25s, box-shadow 0.25s, text-shadow 0.25s;
+}
+.bvq-pill-one { --bvq-c: 240, 147, 251; }
+.bvq-pill-round { width: 30px; padding: 0; }
+.bvq-pill[data-active] {
+  color: rgb(var(--bvq-c));
+  border-color: rgba(var(--bvq-c), 0.6);
+  text-shadow: 0 0 10px rgba(var(--bvq-c), 0.8);
+  box-shadow: var(--glass-highlight), var(--glass-shadow-pill), 0 0 18px rgba(var(--bvq-c), 0.35);
+}
+button.bvq-pill { cursor: pointer; }
+button.bvq-pill:focus-visible { outline: 2px solid rgba(var(--bvq-c), 0.9); outline-offset: 3px; }

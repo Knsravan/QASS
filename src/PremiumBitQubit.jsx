@@ -1,11 +1,10 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Html, Line, Text } from '@react-three/drei';
+import { Html, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import { InlineMath } from './KatexMath';
 import { useQuality } from './QualityScene';
 import { bvqLive } from './bitVsQubitLive';
-import labelFont from '@fontsource/fira-code/files/fira-code-latin-700-normal.woff?url';
 
 /*
  * Classical Bit vs Qubit's two models, drawn as one set of instruments:
@@ -135,63 +134,28 @@ function useRimMaterial(strength = 0.85) {
   }), [strength]);
 }
 
-// A name plate mounted on a model: a small pill of liquid glass (a round lens
-// for a single digit) with its label lit inside. The plate for the state the
-// model is in glows in that state's colour, at its edge and behind the label;
-// the other stays clear glass with a dim label.
-const tagRimVertex = rimVertex;
-const tagRimFragment = /* glsl */ `
-  uniform vec3 uColor; uniform float uStrength;
-  varying vec3 vN; varying vec3 vV; varying float vY;
-  void main() {
-    float f = pow(clamp(1.0 - abs(dot(vN, vV)), 0.0, 1.0), 2.2);
-    gl_FragColor = vec4(uColor, f * uStrength);
-  }`;
-const _tagDim = new THREE.Color('#dbe4f0');
-const _coreDark = new THREE.Color('#0b1424');
-function StateTag({ text, color, active, width = 0.42, height = 0.42, fontSize = 0.26, position, onPointerOver, onPointerOut }) {
-  const textRef = useRef();
-  const coreMat = useRef();
-  const glow = useRef(active ? 1 : 0);
-  const tint = useMemo(() => new THREE.Color(color), [color]);
-  const rim = useMemo(() => new THREE.ShaderMaterial({
-    vertexShader: tagRimVertex,
-    fragmentShader: tagRimFragment,
-    uniforms: { uColor: { value: new THREE.Color() }, uStrength: { value: 0.5 } },
-    transparent: true,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
-  }), []);
-  useFrame((_, dt) => {
-    glow.current += ((active ? 1 : 0) - glow.current) * (1 - Math.exp(-8 * Math.min(dt, 0.1)));
-    const g = glow.current;
-    rim.uniforms.uColor.value.copy(_tagDim).lerp(tint, g);
-    rim.uniforms.uStrength.value = 1.1 + g * 1.6;
-    if (coreMat.current) coreMat.current.color.copy(_coreDark).lerp(tint, g * 0.35);
-    if (textRef.current) textRef.current.color = '#' + _col.copy(_tagDim).lerp(tint, g).getHexString();
-  });
-  const r = height / 2;
-  const len = Math.max(0, width - height);
-  const depth = 0.32; // the pill's thickness, relative to its height
+// A name plate pinned to a model: a pill of the app's own liquid glass (the
+// same as the header pills: bent backdrop, rim light, press squash; see
+// LiquidGlass.js and glassGL.js), held at the end of an arm or stalk. The
+// plate for the model's current state glows in that state's colour. `onClick`
+// makes it a button.
+function GlassPill({ text, state, active, round = false, position, onClick, onPointerOver, onPointerOut, label }) {
+  const Tag = onClick ? 'button' : 'span';
   return (
-    <group position={position} onPointerOver={onPointerOver} onPointerOut={onPointerOut}>
-      {/* the glass pill, flattened front to back */}
-      <mesh rotation-z={Math.PI / 2} scale={[1, 1, depth]}>
-        <capsuleGeometry args={[r, len, 16, 40]} />
-        <GlassMaterial />
-      </mesh>
-      <mesh rotation-z={Math.PI / 2} scale={[1.04, 1.04, depth * 1.04]} material={rim} raycast={() => null}>
-        <capsuleGeometry args={[r, len, 12, 32]} />
-      </mesh>
-      {/* a frosted core so the label always reads; tinted with the state's colour when lit */}
-      <mesh rotation-z={Math.PI / 2} scale={[0.86, 0.86, 0.04]} raycast={() => null}>
-        <capsuleGeometry args={[r, len, 8, 24]} />
-        <meshBasicMaterial ref={coreMat} color="#0b1424" transparent opacity={0.82} depthWrite={false} />
-      </mesh>
-      <Text ref={textRef} font={labelFont} fontSize={fontSize} color={active ? color : '#dbe4f0'} anchorX="center" anchorY="middle" outlineWidth={0.006} outlineColor={color} outlineOpacity={active ? 0.6 : 0} position={[0, 0.006, r * depth + 0.012]}>
+    <Html position={position} center zIndexRange={[40, 0]}>
+      <Tag
+        type={onClick ? 'button' : undefined}
+        className={`bvq-pill ${round ? 'bvq-pill-round' : ''} bvq-pill-${state}`}
+        data-active={active ? '' : undefined}
+        aria-label={label}
+        aria-pressed={onClick ? active : undefined}
+        onClick={onClick}
+        onPointerOver={onPointerOver}
+        onPointerOut={onPointerOut}
+      >
         {text}
-      </Text>
-    </group>
+      </Tag>
+    </Html>
   );
 }
 
@@ -402,8 +366,8 @@ export function PremiumBlochSphere({ result = null, onClick, onHover, onUnhover 
           <Metal shade="#aab4c4" />
         </mesh>
       ))}
-      <StateTag text="|0⟩" color="#00f2fe" active={result === 0} width={1.04} height={0.54} fontSize={0.36} position={[0, R * 1.075 + 0.28 + 0.28, 0]} onPointerOver={hoverTo('north')} onPointerOut={hoverOut} />
-      <StateTag text="|1⟩" color="#f093fb" active={result === 1} width={1.04} height={0.54} fontSize={0.36} position={[0, -(R * 1.075 + 0.28 + 0.28), 0]} onPointerOver={hoverTo('south')} onPointerOut={hoverOut} />
+      <GlassPill text="|0⟩" state="zero" active={result === 0} position={[0, R * 1.075 + 0.28 + 0.15, 0]} label="North pole, ket zero" onPointerOver={hoverTo('north')} onPointerOut={hoverOut} />
+      <GlassPill text="|1⟩" state="one" active={result === 1} position={[0, -(R * 1.075 + 0.28 + 0.15), 0]} label="South pole, ket one" onPointerOver={hoverTo('south')} onPointerOut={hoverOut} />
 
       {/* The state vector: a metal shaft lit in the state's colour, a cone head and a glowing tip */}
       <group ref={vecRef}>
@@ -552,8 +516,8 @@ export function PremiumBit({ value = 0, onToggle, onHover, onUnhover }) {
           <Metal shade="#aab4c4" />
         </mesh>
       ))}
-      <StateTag text="0" color="#00f2fe" active={value === 0} width={0.62} height={0.62} fontSize={0.4} position={[1.16, SEAT, 0]} />
-      <StateTag text="1" color="#f093fb" active={value === 1} width={0.62} height={0.62} fontSize={0.4} position={[1.16, -SEAT, 0]} />
+      <GlassPill text="0" state="zero" round active={value === 0} position={[1.04, SEAT, 0]} label="Set the bit to 0" onClick={value === 0 ? undefined : onToggle} />
+      <GlassPill text="1" state="one" round active={value === 1} position={[1.04, -SEAT, 0]} label="Set the bit to 1" onClick={value === 1 ? undefined : onToggle} />
 
       {hover && (
         <Tooltip position={[1.9, 2.2, 0]} glow={value === 0 ? 'cyan' : 'purple'} width={220}>
