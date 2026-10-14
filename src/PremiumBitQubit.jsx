@@ -139,7 +139,7 @@ function useRimMaterial(strength = 0.85) {
 // LiquidGlass.js and glassGL.js), held at the end of an arm or stalk. The
 // plate for the model's current state glows in that state's colour. `onClick`
 // makes it a button.
-function GlassPill({ text, state, active, round = false, position, onClick, onPointerOver, onPointerOut, label }) {
+export function GlassPill({ text, state, active, round = false, position, onClick, onPointerOver, onPointerOut, label }) {
   const Tag = onClick ? 'button' : 'span';
   return (
     <Html position={position} center zIndexRange={[40, 0]}>
@@ -211,7 +211,13 @@ export function GrowIn({ animate = true, children }) {
 const LATITUDES = [-60, -30, 30, 60].map((d) => (d * Math.PI) / 180);
 const MERIDIANS = [0, 30, 60, 90, 120, 150].map((d) => (d * Math.PI) / 180);
 
-export function PremiumBlochSphere({ result = null, onClick, onHover, onUnhover }) {
+/**
+ * `result`: Classical Bit vs Qubit's measurement (null while the arrow sweeps).
+ * `direction`: {theta, phi} to hold the arrow at a given state instead (theta from |0>, phi
+ * from +x towards +z); the arrow glides there. `tipLabel`: a glass pill at the arrow's tip.
+ * `interactive`: false for a sphere that can't be clicked or measured.
+ */
+export function PremiumBlochSphere({ result = null, direction, tipLabel, interactive = true, onClick, onHover, onUnhover }) {
   const rim = useRimMaterial(0.9);
   const gridRef = useRef();
   const vecRef = useRef();
@@ -231,7 +237,7 @@ export function PremiumBlochSphere({ result = null, onClick, onHover, onUnhover 
 
   useFrame((state, dt) => {
     const t = state.clock.getElapsedTime();
-    const k = 1 - Math.exp(-(result === null ? 2.2 : 9) * Math.min(dt, 0.1));
+    const k = 1 - Math.exp(-(direction ? 3.2 : result === null ? 2.2 : 9) * Math.min(dt, 0.1));
 
     // A new measurement: a ring of light leaves the pole it landed on.
     if (result !== lastResult.current) {
@@ -243,17 +249,24 @@ export function PremiumBlochSphere({ result = null, onClick, onHover, onUnhover 
     }
 
     // Where the arrow points: sweeping the whole sphere until measured, then at the pole.
-    const goalTheta = result === null ? Math.PI / 2 + Math.sin(t * 0.65) * (Math.PI / 2 - 0.06) : result === 0 ? 0 : Math.PI;
+    // (A given direction instead: held there, gliding the short way round.)
+    const goalTheta = direction ? direction.theta
+      : result === null ? Math.PI / 2 + Math.sin(t * 0.65) * (Math.PI / 2 - 0.06) : result === 0 ? 0 : Math.PI;
     theta.current += (goalTheta - theta.current) * k;
-    if (result === null) phi.current += Math.min(dt, 0.1) * 0.45;
+    if (direction) {
+      const goalPhi = Math.PI / 2 - (direction.phi || 0); // this sphere's phi runs from +z
+      const d = Math.atan2(Math.sin(goalPhi - phi.current), Math.cos(goalPhi - phi.current));
+      phi.current += d * k;
+    } else if (result === null) phi.current += Math.min(dt, 0.1) * 0.45;
     const th = theta.current;
-    bvqLive.p1 = Math.sin(th / 2) ** 2;
+    const p1 = Math.sin(th / 2) ** 2;
+    if (!direction) bvqLive.p1 = p1;
 
     _dir.set(Math.sin(th) * Math.sin(phi.current), Math.cos(th), Math.sin(th) * Math.cos(phi.current));
     if (vecRef.current) vecRef.current.quaternion.setFromUnitVectors(UP, _dir);
 
     // The arrow's colour runs from cyan (|0>) to purple (|1>) with the odds.
-    _col.copy(C0).lerp(C1, bvqLive.p1);
+    _col.copy(C0).lerp(C1, p1);
     if (shaftMat.current) { shaftMat.current.color.copy(_col); shaftMat.current.emissive.copy(_col); }
     if (headMat.current) { headMat.current.color.copy(_col); headMat.current.emissive.copy(_col); }
     if (tipMat.current) tipMat.current.emissive.copy(_col);
@@ -293,12 +306,15 @@ export function PremiumBlochSphere({ result = null, onClick, onHover, onUnhover 
   });
 
   const hoverTo = (part) => (e) => { e.stopPropagation(); setHover(part); onHover?.(); };
+  // The pole the arrow rests on lights its pill and crown: the measured one, or a held |0> / |1>.
+  const atZero = result === 0 || (!!direction && direction.theta < 0.01);
+  const atOne = result === 1 || (!!direction && direction.theta > Math.PI - 0.01);
   const hoverOut = () => { setHover(null); onUnhover?.(); };
 
   return (
     <group>
       {/* Glass shell (the click and hover target) and its glowing silhouette */}
-      <mesh onClick={(e) => { e.stopPropagation(); onClick?.(); }} onPointerOver={hoverTo('qubit')} onPointerOut={hoverOut}>
+      <mesh onClick={interactive ? (e) => { e.stopPropagation(); onClick?.(); } : undefined} onPointerOver={interactive ? hoverTo('qubit') : undefined} onPointerOut={interactive ? hoverOut : undefined}>
         <sphereGeometry args={[R, 96, 64]} />
         <GlassMaterial />
       </mesh>
@@ -350,14 +366,14 @@ export function PremiumBlochSphere({ result = null, onClick, onHover, onUnhover 
       </mesh>
       <group position={[0, R, 0]} onPointerOver={hoverTo('north')} onPointerOut={hoverOut}>
         <mesh><sphereGeometry args={[0.2, 16, 16]} /><meshBasicMaterial visible={false} /></mesh>
-        <mesh><sphereGeometry args={[0.075, 24, 24]} /><meshStandardMaterial color="#00f2fe" emissive="#00f2fe" emissiveIntensity={result === 0 ? 4 : 1.6} /></mesh>
+        <mesh><sphereGeometry args={[0.075, 24, 24]} /><meshStandardMaterial color="#00f2fe" emissive="#00f2fe" emissiveIntensity={atZero ? 4 : 1.6} /></mesh>
       </group>
       <group position={[0, -R, 0]} onPointerOver={hoverTo('south')} onPointerOut={hoverOut}>
         <mesh><sphereGeometry args={[0.2, 16, 16]} /><meshBasicMaterial visible={false} /></mesh>
-        <mesh><sphereGeometry args={[0.075, 24, 24]} /><meshStandardMaterial color="#f093fb" emissive="#f093fb" emissiveIntensity={result === 1 ? 4 : 1.6} /></mesh>
+        <mesh><sphereGeometry args={[0.075, 24, 24]} /><meshStandardMaterial color="#f093fb" emissive="#f093fb" emissiveIntensity={atOne ? 4 : 1.6} /></mesh>
       </group>
-      <PoleCrown y={R} color="#00f2fe" active={result === 0} />
-      <PoleCrown y={-R} color="#f093fb" active={result === 1} />
+      <PoleCrown y={R} color="#00f2fe" active={atZero} />
+      <PoleCrown y={-R} color="#f093fb" active={atOne} />
 
       {/* Name plates on stalks from the pivots: |0> above the north pole, |1> below the south */}
       {[1, -1].map((s) => (
@@ -366,8 +382,8 @@ export function PremiumBlochSphere({ result = null, onClick, onHover, onUnhover 
           <Metal shade="#aab4c4" />
         </mesh>
       ))}
-      <GlassPill text="|0⟩" state="zero" active={result === 0} position={[0, R * 1.075 + 0.28 + 0.15, 0]} label="North pole, ket zero" onPointerOver={hoverTo('north')} onPointerOut={hoverOut} />
-      <GlassPill text="|1⟩" state="one" active={result === 1} position={[0, -(R * 1.075 + 0.28 + 0.15), 0]} label="South pole, ket one" onPointerOver={hoverTo('south')} onPointerOut={hoverOut} />
+      <GlassPill text="|0⟩" state="zero" active={atZero} position={[0, R * 1.075 + 0.28 + 0.15, 0]} label="North pole, ket zero" onPointerOver={hoverTo('north')} onPointerOut={hoverOut} />
+      <GlassPill text="|1⟩" state="one" active={atOne} position={[0, -(R * 1.075 + 0.28 + 0.15), 0]} label="South pole, ket one" onPointerOver={hoverTo('south')} onPointerOut={hoverOut} />
 
       {/* The state vector: a metal shaft lit in the state's colour, a cone head and a glowing tip */}
       <group ref={vecRef}>
@@ -383,6 +399,7 @@ export function PremiumBlochSphere({ result = null, onClick, onHover, onUnhover 
           <sphereGeometry args={[0.07, 24, 24]} />
           <meshStandardMaterial ref={tipMat} color="#ffffff" emissiveIntensity={4} />
         </mesh>
+        {tipLabel && <GlassPill text={tipLabel} state={atOne ? 'one' : 'zero'} active position={[0, R * 0.94 + 0.34, 0]} label={`The state ${tipLabel}`} />}
       </group>
       {/* The nucleus at the centre */}
       <mesh raycast={() => null}>
@@ -404,7 +421,7 @@ export function PremiumBlochSphere({ result = null, onClick, onHover, onUnhover 
         <meshBasicMaterial ref={ringMat} transparent opacity={0} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
 
-      {hover === 'qubit' && (
+      {hover === 'qubit' && interactive && (
         <Tooltip position={[-2.7, 2.1, 0]} glow={result === 1 ? 'purple' : 'cyan'}>
           {result === null ? (
             <><h4>Qubit</h4><p>Its arrow can point anywhere on the sphere, not just up (0) or down (1). Click to measure it: the result is 0 or 1 at random, with the odds shown below.</p></>

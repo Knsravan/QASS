@@ -1,12 +1,11 @@
-import React, { useRef, useState, useMemo } from 'react';
-import { useFrame } from '@react-three/fiber';
-import { Html, OrbitControls } from '@react-three/drei';
-import * as THREE from 'three';
+import React from 'react';
+import { OrbitControls } from '@react-three/drei';
 import { Bloom } from '@react-three/postprocessing';
 import { InlineMath } from './KatexMath';
 import { bornProbabilities } from './quantumMath';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { QualityComposer } from './QualityScene';
+import { PremiumBlochSphere, GlassPill } from './PremiumBitQubit';
 
 // ─── CONFIG ────────────────────────────────────────────────────────────────
 const STEPS = [
@@ -72,232 +71,41 @@ const STEPS = [
   return { ...step, probTop: p0, probBottom: p1 };
 });
 
-// Static reusable vectors to prevent GC allocations
-const _UP_VEC_DN = new THREE.Vector3(0, 1, 0);
-const _tempDir_DN = new THREE.Vector3();
-const _targetDir_DN = new THREE.Vector3();
-const _targetQ_DN = new THREE.Quaternion();
-const _targetColor_DN = new THREE.Color();
-
-// ─── AXIS ARROW (3D) ──────────────────────────────────────────────────────
-function AxisArrow({ dir, color, label, labelOffset }) {
-  const len = 2.8;
-  const [hovered, setHovered] = useState(false);
-  const q = useMemo(() => {
-    _tempDir_DN.set(...dir).normalize();
-    return new THREE.Quaternion().setFromUnitVectors(_UP_VEC_DN, _tempDir_DN);
-  }, [dir]);
-
-  return (
-    <group>
-      <group quaternion={q}>
-        {/* Shaft */}
-        <mesh position={[0, len / 2, 0]}>
-          <cylinderGeometry args={[0.018, 0.018, len, 12]} />
-          <meshBasicMaterial color={color} transparent opacity={hovered ? 0.9 : 0.55} />
-        </mesh>
-        {/* Cone tip */}
-        <mesh position={[0, len + 0.18, 0]}
-          onPointerOver={e => { e.stopPropagation(); setHovered(true); }}
-          onPointerOut={() => setHovered(false)}>
-          <coneGeometry args={[0.08, 0.36, 12]} />
-          <meshBasicMaterial color={color} transparent opacity={hovered ? 1 : 0.75} />
-        </mesh>
-      </group>
-      {/* Label in world space */}
-      <Html position={labelOffset} center>
-        <span style={{
-          fontFamily: "'Fira Code', monospace",
-          fontSize: '13px', fontWeight: '700',
-          color, opacity: 0.8, userSelect: 'none',
-          textShadow: `0 0 8px ${color}`,
-        }}>{label}</span>
-      </Html>
-    </group>
-  );
-}
-
-// ─── STATE VECTOR ARROW ───────────────────────────────────────────────────
-function StateVector({ theta, phi, color, label }) {
-  const groupRef = useRef();
-  const shaftRef = useRef();
-  const coneRef = useRef();
-  const currentQ = useRef(new THREE.Quaternion());
-  const currentColor = useRef(new THREE.Color(color));
-  const L = 2.4;
-
-  useFrame((_, delta) => {
-    // Target direction
-    _targetDir_DN.set(
-      Math.sin(theta) * Math.cos(phi),
-      Math.cos(theta),
-      Math.sin(theta) * Math.sin(phi)
-    ).normalize();
-
-    _targetQ_DN.setFromUnitVectors(_UP_VEC_DN, _targetDir_DN);
-    _targetColor_DN.set(color);
-
-    // Smooth slerp rotation
-    const t = Math.min(1, delta * 4);
-    currentQ.current.slerp(_targetQ_DN, t);
-    if (groupRef.current) groupRef.current.setRotationFromQuaternion(currentQ.current);
-
-    // Color lerp
-    currentColor.current.lerp(_targetColor_DN, t);
-    const c = currentColor.current;
-    if (shaftRef.current) shaftRef.current.color = c;
-    if (coneRef.current) coneRef.current.color = c;
-  });
-
-  return (
-    <group ref={groupRef}>
-      {/* Solid Vector Shaft */}
-      <mesh position={[0, L / 2, 0]}>
-        <cylinderGeometry args={[0.036, 0.036, L, 16]} />
-        <meshStandardMaterial ref={shaftRef} color={color} emissive={color} emissiveIntensity={0.9} />
-      </mesh>
-      {/* Pointed Cone Arrowhead */}
-      <mesh position={[0, L + 0.22, 0]}>
-        <coneGeometry args={[0.16, 0.38, 16]} />
-        <meshStandardMaterial ref={coneRef} color={color} emissive={color} emissiveIntensity={2.2} />
-      </mesh>
-      {/* Floating Arrow Tip Label */}
-      <Html position={[0, L + 0.65, 0]} center zIndexRange={[100, 0]}>
-        <div style={{
-          fontFamily: "'Fira Code', monospace",
-          fontSize: '14px', fontWeight: '800',
-          color: '#ffffff',
-          textShadow: '0 0 12px ' + color + ', 0 0 24px ' + color,
-          background: 'rgba(10, 18, 30, 0.75)',
-          padding: '4px 10px',
-          borderRadius: '12px',
-          border: '1.5px solid ' + color,
-          backdropFilter: 'blur(10px)',
-          opacity: 0.95,
-          animation: 'diracFadeIn 0.3s ease'
-        }}>
-          {label}
-        </div>
-      </Html>
-    </group>
-  );
-}
-
-// ─── PROJECTION LINES (shown in step 2) ───────────────────────────────────
-function ProjectionLines({ show, color }) {
-  const lineRef1 = useRef();
-  const lineRef2 = useRef();
-
-  useFrame((state) => {
-    const t = state.clock.getElapsedTime();
-    const pulse = (Math.sin(t * 2) + 1) / 2;
-    [lineRef1, lineRef2].forEach(r => {
-      if (r.current) r.current.opacity = show ? (0.2 + pulse * 0.35) : 0;
-    });
-  });
-
-  if (!show) return null;
-
-  return (
-    <>
-      {/* Projection down to Y axis */}
-      <mesh position={[0, -0.5, 0]}>
-        <cylinderGeometry args={[0.012, 0.012, 5, 8]} />
-        <meshBasicMaterial ref={lineRef1} color="#00f2fe" transparent opacity={0.3}
-          blending={THREE.AdditiveBlending} depthWrite={false} />
-      </mesh>
-      {/* Projection to X axis */}
-      <mesh position={[1.3, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.012, 0.012, 2.6, 8]} />
-        <meshBasicMaterial ref={lineRef2} color="#f7971e" transparent opacity={0.3}
-          blending={THREE.AdditiveBlending} depthWrite={false} />
-      </mesh>
-    </>
-  );
-}
-
-// ─── FLOATING LABELS for α and β ─────────────────────────────────────────
-function AmplitudeLabels({ show }) {
-  if (!show) return null;
-  return (
-    <>
-      <Html position={[0.55, 1.2, 0]} center>
-        <div style={{
-          fontFamily: "'Fira Code',monospace", fontSize: '18px',
-          color: '#00f2fe', fontWeight: '700', opacity: 0.9,
-          textShadow: '0 0 12px #00f2fe',
-          animation: 'diracFadeIn 0.5s ease',
-        }}>α</div>
-      </Html>
-      <Html position={[0.55, -1.0, 0]} center>
-        <div style={{
-          fontFamily: "'Fira Code',monospace", fontSize: '18px',
-          color: '#f7971e', fontWeight: '700', opacity: 0.9,
-          textShadow: '0 0 12px #f7971e',
-          animation: 'diracFadeIn 0.5s ease',
-        }}>β</div>
-      </Html>
-    </>
-  );
-}
-
-// ─── BLOCH REFERENCE RINGS ──────────────────────────────────────────────
-function BlochSphereBody() {
-  const R = 2.6;
-  return (
-    <group>
-      {/* Subtle Reference Equatorial Ring */}
-      <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[R, 0.010, 8, 80]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={0.08} blending={THREE.AdditiveBlending} />
-      </mesh>
-    </group>
-  );
-}
+// The state each step's arrow names at its tip (the poles' own pills name |0> and |1>).
+const TIP_LABEL = [null, null, '|+⟩', '⟨ψ|'];
 
 // ─── MAIN 3D SCENE ───────────────────────────────────────────────────
-export function DiracScene({ step, theme }) {
-  const isLight = theme === 'light';
+// The same glass Bloch sphere as Classical Bit vs Qubit (PremiumBitQubit.jsx),
+// holding each step's state: the arrow glides there, the pole it rests on
+// lights its pill, and a glass pill at the tip names states off the poles.
+// In the amplitudes step, α and β get pills of their own.
+export function DiracScene({ step }) {
   const stepData = STEPS[step];
+  const alpha = Math.sqrt(stepData.probTop);
+  const beta = Math.sqrt(stepData.probBottom);
 
   return (
     <>
       <QualityComposer disableNormalPass>
         <Bloom luminanceThreshold={0.3} mipmapBlur intensity={0.4} />
       </QualityComposer>
-      
-      <group position={[0, -0.5, 0]}>
-        <ambientLight intensity={isLight ? 0.4 : 0.08} />
-        <pointLight position={[5, 5, 5]} color={stepData.color} intensity={5} distance={22} />
-        <pointLight position={[-5, -5, -5]} color="#4facfe" intensity={2} distance={20} />
 
-        {/* ── Full Bloch sphere wireframe with meridians + latitudes ── */}
-        <BlochSphereBody step={step} />
-        {/* Origin sphere */}
-        <mesh>
-          <sphereGeometry args={[0.09, 16, 16]} />
-          <meshBasicMaterial color="#ffffff" transparent opacity={0.8} />
-        </mesh>
+      <ambientLight intensity={0.35} />
+      <pointLight position={[6, 6, 6]} color="#00f2fe" intensity={6} distance={30} />
+      <pointLight position={[-6, -6, -6]} color="#f093fb" intensity={6} distance={30} />
 
-        {/* Coordinate axes */}
-        <AxisArrow dir={[0, 1, 0]}  color="#22c55e" label={<InlineMath math={String.raw`|0\rangle`} />} labelOffset={[0.55, 3.1, 0]} />
-        <AxisArrow dir={[0, -1, 0]} color="#ef4444" label={<InlineMath math={String.raw`|1\rangle`} />} labelOffset={[0.55, -3.1, 0]} />
-        <AxisArrow dir={[1, 0, 0]}  color={isLight ? '#94a3b8' : '#2d3f55'} label="x" labelOffset={[3.2, 0, 0]} />
-        <AxisArrow dir={[0, 0, -1]} color={isLight ? '#94a3b8' : '#2d3f55'} label="y" labelOffset={[-0.1, 0, -3.2]} />
-
-        {/* Projection lines for step 2 */}
-        <ProjectionLines show={step === 2} color={stepData.color} />
-
-        {/* α β floating labels */}
-        <AmplitudeLabels show={step === 2} />
-
-        {/* The state vector */}
-        <StateVector
-          theta={stepData.theta}
-          phi={stepData.phi}
-          color={stepData.color}
-          label={stepData.vectorLabel}
+      <group position={[0, -0.3, 0]} scale={1.15}>
+        <PremiumBlochSphere
+          direction={{ theta: stepData.theta, phi: stepData.phi }}
+          tipLabel={TIP_LABEL[step]}
+          interactive={false}
         />
+        {step === 2 && (
+          <>
+            <GlassPill text={`α ≈ ${alpha.toFixed(2)}`} state="zero" active position={[-1.05, 0.95, 0]} label={`Amplitude alpha, about ${alpha.toFixed(2)}`} />
+            <GlassPill text={`β ≈ ${beta.toFixed(2)}`} state="one" active position={[-1.05, -0.95, 0]} label={`Amplitude beta, about ${beta.toFixed(2)}`} />
+          </>
+        )}
       </group>
 
       <OrbitControls enablePan={false} enableZoom={true} minDistance={5} maxDistance={14} dampingFactor={0.08} enableDamping />

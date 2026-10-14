@@ -1194,7 +1194,7 @@ function App() {
           ) : stageId === 'dirac-notation' ? (
             <>
               <SharedCanvas
-                camera={{ position: [4, 3, 8], fov: 50 }}
+                camera={{ position: [2.5, 1.2, 9.5], fov: 50 }}
                 gl={SCENE_GL}
                 style={{ position: 'absolute', inset: 0, zIndex: 1, willChange: 'transform', transform: 'translateZ(0)' }}
               >
