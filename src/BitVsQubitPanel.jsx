@@ -57,7 +57,7 @@ export default function BitVsQubitPanel({ bit, onFlip, result, onMeasure, onNewQ
 
   return (
     <div className="bvq-panel">
-      <section data-jelly className="bvq-card glass-card" style={{ '--j': 0 }} aria-label="Classical bit">
+      <section data-jelly className="bvq-card bvq-card-bit glass-card" style={{ '--j': 0, '--tx': '-50%' }} aria-label="Classical bit">
         <div className="bvq-card-head">
           <span className="bvq-card-title" style={{ color: C0 }}>Classical bit</span>
           <span className="bvq-big" style={{ color: bitColor, textShadow: `0 0 18px ${bitColor}` }} aria-live="polite">{bit}</span>
@@ -67,11 +67,10 @@ export default function BitVsQubitPanel({ bit, onFlip, result, onMeasure, onNewQ
         <button type="button" className="bvq-btn glass-btn glass-interactive" style={{ '--bvq-accent': C0 }} onClick={onFlip}>
           Flip it (NOT gate)
         </button>
+        <div className="bvq-tally">Reads the same every time you look</div>
       </section>
 
-      <div aria-hidden="true" />
-
-      <section data-jelly className="bvq-card glass-card" style={{ '--j': 1 }} aria-label="Qubit">
+      <section data-jelly className="bvq-card bvq-card-qubit glass-card" style={{ '--j': 1, '--tx': '-50%' }} aria-label="Qubit">
         <div className="bvq-card-head">
           <span className="bvq-card-title" style={{ color: C1 }}>Qubit</span>
           <span className="bvq-big" style={{ color: resultColor, textShadow: result === null ? 'none' : `0 0 18px ${resultColor}` }} aria-live="polite">
