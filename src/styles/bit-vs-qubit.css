@@ -8,8 +8,8 @@
   transform: translateX(-50%);
   width: min(940px, calc(100% - 48px));
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr) minmax(0, 1fr);
-  align-items: stretch;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.7fr) minmax(0, 1fr);
+  align-items: end;
   gap: 18px;
   pointer-events: none;
   z-index: 300;
@@ -102,15 +102,3 @@
   font-variant-numeric: tabular-nums;
 }
 
-.bvq-hint.glass-card {
-  align-self: stretch;
-  justify-content: center;
-  text-align: center;
-}
-.bvq-hint-title { color: #e2e8f0; }
-.bvq-hint p {
-  margin: 0;
-  font-size: 12.5px;
-  line-height: 1.55;
-  color: var(--text-secondary, #cbd5e1);
-}

@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Billboard, Html, Line, Text } from '@react-three/drei';
+import { Html, Line, RoundedBox, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { InlineMath } from './KatexMath';
 import { useQuality } from './QualityScene';
@@ -135,13 +135,69 @@ function useRimMaterial(strength = 0.85) {
   }), [strength]);
 }
 
-function Label({ children, position, color, size = 0.34, opacity = 1 }) {
+// A name plate mounted on a model: smoked glass in a steel bezel, its label lit
+// on the face and a light strip along the bottom. The plate for the state the
+// model is in glows in that state's colour; the other one stays dim.
+function StateTag({ text, color, active, width = 0.5, height = 0.5, fontSize = 0.3, position, onPointerOver, onPointerOut }) {
+  const stripMat = useRef();
+  const rimMat = useRef();
+  const textRef = useRef();
+  const glow = useRef(active ? 1 : 0);
+  const _c = useMemo(() => new THREE.Color(color), [color]);
+  const _dim = useMemo(() => new THREE.Color('#64748b'), []);
+  useFrame((_, dt) => {
+    glow.current += ((active ? 1 : 0) - glow.current) * (1 - Math.exp(-8 * Math.min(dt, 0.1)));
+    const g = glow.current;
+    if (stripMat.current) stripMat.current.opacity = 0.18 + g * 0.82;
+    if (rimMat.current) rimMat.current.opacity = g * 0.55;
+    if (textRef.current) textRef.current.color = '#' + _col.copy(_dim).lerp(_c, g).getHexString();
+  });
   return (
-    <Billboard position={position}>
-      <Text font={labelFont} fontSize={size} color={color} anchorX="center" anchorY="middle" fillOpacity={opacity} outlineWidth={0.012} outlineColor="#020617" outlineOpacity={0.6}>
-        {children}
+    <group position={position} onPointerOver={onPointerOver} onPointerOut={onPointerOut}>
+      {/* the glow around the bezel when this is the model's state */}
+      <RoundedBox args={[width + 0.15, height + 0.15, 0.02]} radius={0.085} smoothness={4} position={[0, 0, -0.04]} raycast={() => null}>
+        <meshBasicMaterial ref={rimMat} color={color} transparent opacity={active ? 0.55 : 0} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
+      </RoundedBox>
+      <RoundedBox args={[width + 0.07, height + 0.07, 0.05]} radius={0.06} smoothness={4} position={[0, 0, -0.012]}>
+        <Metal />
+      </RoundedBox>
+      <RoundedBox args={[width, height, 0.05]} radius={0.045} smoothness={4} position={[0, 0, 0.004]}>
+        <meshStandardMaterial color="#050a14" roughness={0.55} metalness={0.15} />
+      </RoundedBox>
+      <mesh position={[0, -height / 2 + 0.045, 0.031]} raycast={() => null}>
+        <planeGeometry args={[width * 0.5, 0.018]} />
+        <meshBasicMaterial ref={stripMat} color={color} transparent opacity={active ? 1 : 0.18} toneMapped={false} />
+      </mesh>
+      <Text ref={textRef} font={labelFont} fontSize={fontSize} color={active ? color : '#64748b'} anchorX="center" anchorY="middle" position={[0, 0.045, 0.032]}>
+        {text}
       </Text>
-    </Billboard>
+    </group>
+  );
+}
+
+// A pole's crown: a steel collar around the pole's bead and a halo of light that
+// slowly turns about the axis, bright when a measurement lands on this pole.
+function PoleCrown({ y, color, active }) {
+  const halo = useRef();
+  const haloMat = useRef();
+  const lit = useRef(active ? 1 : 0);
+  useFrame((state, dt) => {
+    lit.current += ((active ? 1 : 0) - lit.current) * (1 - Math.exp(-6 * Math.min(dt, 0.1)));
+    if (halo.current) halo.current.rotation.z = state.clock.getElapsedTime() * 0.6;
+    if (haloMat.current) haloMat.current.opacity = 0.45 + lit.current * 0.55;
+  });
+  return (
+    <group position={[0, y, 0]}>
+      <mesh rotation-x={Math.PI / 2} raycast={() => null}>
+        <torusGeometry args={[0.15, 0.022, 14, 48]} />
+        <Metal />
+      </mesh>
+      {/* the halo: a broken ring, so its turning shows */}
+      <mesh ref={halo} rotation-x={Math.PI / 2} raycast={() => null}>
+        <torusGeometry args={[0.3, 0.013, 8, 64, Math.PI * 1.6]} />
+        <meshBasicMaterial ref={haloMat} color={color} transparent opacity={0.45} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
+      </mesh>
+    </group>
   );
 }
 
@@ -316,8 +372,18 @@ export function PremiumBlochSphere({ result = null, onClick, onHover, onUnhover 
         <mesh><sphereGeometry args={[0.2, 16, 16]} /><meshBasicMaterial visible={false} /></mesh>
         <mesh><sphereGeometry args={[0.075, 24, 24]} /><meshStandardMaterial color="#f093fb" emissive="#f093fb" emissiveIntensity={result === 1 ? 4 : 1.6} /></mesh>
       </group>
-      <Label position={[0.5, R + 0.42, 0]} color={result === 0 ? '#00f2fe' : '#cbd5e1'}>|0⟩</Label>
-      <Label position={[0.5, -R - 0.42, 0]} color={result === 1 ? '#f093fb' : '#cbd5e1'}>|1⟩</Label>
+      <PoleCrown y={R} color="#00f2fe" active={result === 0} />
+      <PoleCrown y={-R} color="#f093fb" active={result === 1} />
+
+      {/* Name plates on stalks from the pivots: |0> above the north pole, |1> below the south */}
+      {[1, -1].map((s) => (
+        <mesh key={s} position={[0, s * (R * 1.075 + 0.17), 0]} raycast={() => null}>
+          <cylinderGeometry args={[0.016, 0.016, 0.22, 10]} />
+          <Metal shade="#aab4c4" />
+        </mesh>
+      ))}
+      <StateTag text="|0⟩" color="#00f2fe" active={result === 0} width={0.86} height={0.5} fontSize={0.3} position={[0, R * 1.075 + 0.28 + 0.285, 0]} onPointerOver={hoverTo('north')} onPointerOut={hoverOut} />
+      <StateTag text="|1⟩" color="#f093fb" active={result === 1} width={0.86} height={0.5} fontSize={0.3} position={[0, -(R * 1.075 + 0.28 + 0.285), 0]} onPointerOver={hoverTo('south')} onPointerOut={hoverOut} />
 
       {/* The state vector: a metal shaft lit in the state's colour, a cone head and a glowing tip */}
       <group ref={vecRef}>
@@ -364,13 +430,13 @@ export function PremiumBlochSphere({ result = null, onClick, onHover, onUnhover 
         </Tooltip>
       )}
       {hover === 'north' && (
-        <Tooltip position={[0, R + 1.1, 0]} glow="cyan">
+        <Tooltip position={[1.9, R + 0.5, 0]} glow="cyan">
           <h4>North pole: <InlineMath math={String.raw`|0\rangle`} /></h4>
           <p>A measurement lands here with probability <InlineMath math={String.raw`|\alpha|^2`} />: the closer the arrow points to it, the likelier.</p>
         </Tooltip>
       )}
       {hover === 'south' && (
-        <Tooltip position={[0, -R - 1.1, 0]} glow="purple">
+        <Tooltip position={[1.9, -R - 0.5, 0]} glow="purple">
           <h4>South pole: <InlineMath math={String.raw`|1\rangle`} /></h4>
           <p>A measurement lands here with probability <InlineMath math={String.raw`|\beta|^2`} />: the closer the arrow points to it, the likelier.</p>
         </Tooltip>
@@ -459,8 +525,15 @@ export function PremiumBit({ value = 0, onToggle, onHover, onUnhover }) {
         <meshStandardMaterial ref={beadMat} emissiveIntensity={3.2} roughness={0.35} />
       </mesh>
 
-      <Label position={[0.98, SEAT, 0]} color={value === 0 ? '#00f2fe' : '#64748b'} size={0.42}>0</Label>
-      <Label position={[0.98, -SEAT, 0]} color={value === 1 ? '#f093fb' : '#64748b'} size={0.42}>1</Label>
+      {/* Name plates on arms from the collars: 0 by the 0 seat, 1 by the 1 seat */}
+      {[SEAT, -SEAT].map((h) => (
+        <mesh key={h} position={[0.73, h, 0]} rotation-z={Math.PI / 2} raycast={() => null}>
+          <cylinderGeometry args={[0.018, 0.018, 0.24, 10]} />
+          <Metal shade="#aab4c4" />
+        </mesh>
+      ))}
+      <StateTag text="0" color="#00f2fe" active={value === 0} width={0.5} height={0.5} fontSize={0.34} position={[1.12, SEAT, 0]} />
+      <StateTag text="1" color="#f093fb" active={value === 1} width={0.5} height={0.5} fontSize={0.34} position={[1.12, -SEAT, 0]} />
 
       {hover && (
         <Tooltip position={[1.9, 2.2, 0]} glow={value === 0 ? 'cyan' : 'purple'} width={220}>
