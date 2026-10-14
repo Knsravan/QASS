@@ -147,7 +147,8 @@ const tagRimFragment = /* glsl */ `
     float f = pow(clamp(1.0 - abs(dot(vN, vV)), 0.0, 1.0), 2.2);
     gl_FragColor = vec4(uColor, f * uStrength);
   }`;
-const _tagDim = new THREE.Color('#94a3b8');
+const _tagDim = new THREE.Color('#dbe4f0');
+const _coreDark = new THREE.Color('#0b1424');
 function StateTag({ text, color, active, width = 0.42, height = 0.42, fontSize = 0.26, position, onPointerOver, onPointerOut }) {
   const textRef = useRef();
   const coreMat = useRef();
@@ -165,8 +166,8 @@ function StateTag({ text, color, active, width = 0.42, height = 0.42, fontSize =
     glow.current += ((active ? 1 : 0) - glow.current) * (1 - Math.exp(-8 * Math.min(dt, 0.1)));
     const g = glow.current;
     rim.uniforms.uColor.value.copy(_tagDim).lerp(tint, g);
-    rim.uniforms.uStrength.value = 0.55 + g * 1.5;
-    if (coreMat.current) coreMat.current.opacity = g * 0.32;
+    rim.uniforms.uStrength.value = 1.1 + g * 1.6;
+    if (coreMat.current) coreMat.current.color.copy(_coreDark).lerp(tint, g * 0.35);
     if (textRef.current) textRef.current.color = '#' + _col.copy(_tagDim).lerp(tint, g).getHexString();
   });
   const r = height / 2;
@@ -182,12 +183,12 @@ function StateTag({ text, color, active, width = 0.42, height = 0.42, fontSize =
       <mesh rotation-z={Math.PI / 2} scale={[1.04, 1.04, depth * 1.04]} material={rim} raycast={() => null}>
         <capsuleGeometry args={[r, len, 12, 32]} />
       </mesh>
-      {/* the light inside, behind the label, when this is the model's state */}
-      <mesh rotation-z={Math.PI / 2} scale={[0.72, 0.72, 0.02]} raycast={() => null}>
+      {/* a frosted core so the label always reads; tinted with the state's colour when lit */}
+      <mesh rotation-z={Math.PI / 2} scale={[0.86, 0.86, 0.04]} raycast={() => null}>
         <capsuleGeometry args={[r, len, 8, 24]} />
-        <meshBasicMaterial ref={coreMat} color={color} transparent opacity={active ? 0.32 : 0} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
+        <meshBasicMaterial ref={coreMat} color="#0b1424" transparent opacity={0.82} depthWrite={false} />
       </mesh>
-      <Text ref={textRef} font={labelFont} fontSize={fontSize} color={active ? color : '#94a3b8'} anchorX="center" anchorY="middle" position={[0, 0.006, r * depth + 0.012]}>
+      <Text ref={textRef} font={labelFont} fontSize={fontSize} color={active ? color : '#dbe4f0'} anchorX="center" anchorY="middle" outlineWidth={0.006} outlineColor={color} outlineOpacity={active ? 0.6 : 0} position={[0, 0.006, r * depth + 0.012]}>
         {text}
       </Text>
     </group>
@@ -401,8 +402,8 @@ export function PremiumBlochSphere({ result = null, onClick, onHover, onUnhover 
           <Metal shade="#aab4c4" />
         </mesh>
       ))}
-      <StateTag text="|0⟩" color="#00f2fe" active={result === 0} width={0.74} height={0.38} fontSize={0.24} position={[0, R * 1.075 + 0.28 + 0.2, 0]} onPointerOver={hoverTo('north')} onPointerOut={hoverOut} />
-      <StateTag text="|1⟩" color="#f093fb" active={result === 1} width={0.74} height={0.38} fontSize={0.24} position={[0, -(R * 1.075 + 0.28 + 0.2), 0]} onPointerOver={hoverTo('south')} onPointerOut={hoverOut} />
+      <StateTag text="|0⟩" color="#00f2fe" active={result === 0} width={1.04} height={0.54} fontSize={0.36} position={[0, R * 1.075 + 0.28 + 0.28, 0]} onPointerOver={hoverTo('north')} onPointerOut={hoverOut} />
+      <StateTag text="|1⟩" color="#f093fb" active={result === 1} width={1.04} height={0.54} fontSize={0.36} position={[0, -(R * 1.075 + 0.28 + 0.28), 0]} onPointerOver={hoverTo('south')} onPointerOut={hoverOut} />
 
       {/* The state vector: a metal shaft lit in the state's colour, a cone head and a glowing tip */}
       <group ref={vecRef}>
@@ -551,8 +552,8 @@ export function PremiumBit({ value = 0, onToggle, onHover, onUnhover }) {
           <Metal shade="#aab4c4" />
         </mesh>
       ))}
-      <StateTag text="0" color="#00f2fe" active={value === 0} width={0.42} height={0.42} fontSize={0.27} position={[1.06, SEAT, 0]} />
-      <StateTag text="1" color="#f093fb" active={value === 1} width={0.42} height={0.42} fontSize={0.27} position={[1.06, -SEAT, 0]} />
+      <StateTag text="0" color="#00f2fe" active={value === 0} width={0.62} height={0.62} fontSize={0.4} position={[1.16, SEAT, 0]} />
+      <StateTag text="1" color="#f093fb" active={value === 1} width={0.62} height={0.62} fontSize={0.4} position={[1.16, -SEAT, 0]} />
 
       {hover && (
         <Tooltip position={[1.9, 2.2, 0]} glow={value === 0 ? 'cyan' : 'purple'} width={220}>
