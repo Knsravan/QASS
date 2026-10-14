@@ -75,3 +75,31 @@ test('a module named in the URL opens directly after the device test', async ({ 
   await expectModuleRendered(page, 'entanglement');
   expect(errors).toEqual([]);
 });
+
+test('Classical Bit vs Qubit: flip the bit, measure the qubit, count the results', async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto('/');
+  await page.getByText('Initialize Simulator').click();
+  await expect(page.locator('[data-module]')).toHaveCount(MODULE_COUNT, { timeout: 120_000 });
+  await page.evaluate(() => { window.location.hash = 'bit-vs-qubit'; });
+  await page.waitForTimeout(6000);
+
+  const bit = page.getByRole('region', { name: 'Classical bit' });
+  const qubit = page.getByRole('region', { name: 'Qubit' });
+  await expect(bit.locator('.bvq-big')).toHaveText('0');
+  await bit.getByRole('button', { name: 'Flip it (NOT gate)' }).click();
+  await expect(bit.locator('.bvq-big')).toHaveText('1');
+
+  await expect(qubit.locator('.bvq-big')).toHaveText('?');
+  await expect(qubit).toContainText('No measurements yet');
+  for (let i = 1; i <= 3; i++) {
+    await qubit.getByRole('button', { name: 'Measure it' }).click();
+    await expect(qubit.locator('.bvq-big')).toHaveText(/^\|[01]⟩$/);
+    await expect(qubit).toContainText(`Measured ${i} ${i === 1 ? 'time' : 'times'}`);
+    // Once measured, the odds are certain: one side reads 100%.
+    await expect(qubit.locator('.bvq-odds-value').filter({ hasText: '100%' })).toHaveCount(1);
+    await qubit.getByRole('button', { name: 'New qubit' }).click();
+    await expect(qubit.locator('.bvq-big')).toHaveText('?');
+  }
+  expect(errors).toEqual([]);
+});

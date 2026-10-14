@@ -10,6 +10,7 @@ import { BlockMath, InlineMath } from './KatexMath';
 import { useQuantumAudio } from './useQuantumAudio';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { QualityComposer } from './QualityScene';
+import { PremiumBlochSphere, PremiumBit, GrowIn } from './PremiumBitQubit';
 
 // =========================================
 // 1. CLASSICAL BIT COMPONENT (Left Side)
@@ -166,6 +167,11 @@ const _DEC_LIGHT = { amb: 0.16, c1: new THREE.Color('#14b8a6'), i1: 0.95, c2: ne
 const _DEC_UNIT_FIRST = 2.4 / 2.75;   // inside the first qubit's rig (its base scale is 1.2)
 const _DEC_UNIT_SECOND = 2 / 2.75;    // inside the second's (base scale 1)
 const _UPV = new THREE.Vector3(0, 1, 0);
+// Classical Bit vs Qubit draws its pair (PremiumBitQubit.jsx) a little smaller and higher than
+// the other modules of this scene, so its readout fits underneath and the sphere stays in view
+// with the sidebar open. (App.jsx places the header pills to match: 39vh × BVQ_SCALE.)
+const BVQ_SCALE = 0.86;
+const BVQ_Y = 0.45;
 const _EXP_LIGHT = { amb: 0.6, c1: new THREE.Color('#ffffff'), i1: 2.0, c2: new THREE.Color('#a855f7'), i2: 1.5, dist: 1000 };
 const _HUB_LIGHT = { amb: 0.5, c1: new THREE.Color('#00f2fe'), i1: 8, c2: new THREE.Color('#f093fb'), i2: 8, dist: 30 };
 const _ORIGIN_BS = new THREE.Vector3(0, 0, 0);
@@ -1150,7 +1156,7 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla,
   );
 };
 
-export default function BlochSphere({ theme, activeModule, qubitCount, isDecohering, attemptCopy, isSidebarOpen, setIsSidebarOpen, interferenceStep, interferencePhase, isGlobalMuted = false, vanishing = false, multi = null, handoverTarget, centerOnly = false }) {
+export default function BlochSphere({ theme, activeModule, qubitCount, isDecohering, attemptCopy, isSidebarOpen, setIsSidebarOpen, interferenceStep, interferencePhase, isGlobalMuted = false, vanishing = false, multi = null, handoverTarget, centerOnly = false, bvq }) {
   const isLight = theme === 'light';
   const tetherRef = useRef();
   const controlsRef = useRef();
@@ -1196,6 +1202,11 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
   const isPair = isMulti || isEnt || isDec;
   const isExp = activeModule === 'exponential';        // ... or for Exponential State Space (the lone qubit zooms in)
   const isRig = isPair || isExp;                       // the rig takes the module's size when zoomed
+  const isBvq = activeModule === 'bit-vs-qubit';       // Classical Bit vs Qubit: its own glass models, a little smaller and higher
+  // Leaving Classical Bit vs Qubit, the scene's usual bit and qubit grow back in where its models were.
+  const prevModule = useRef(activeModule);
+  const growBack = prevModule.current === 'bit-vs-qubit' && !isBvq;
+  useEffect(() => { prevModule.current = activeModule; }, [activeModule]);
   const entX0 = handoff.entPairX || 4.6;
   const targetX = useRef(multi === 'zoom' ? (isEnt ? entX0 : isDec ? 5.8 : 2) : multi === 'split' ? 2.4 : 0);
   const targetY = useRef(multi === 'zoom' && !isEnt ? (isDec ? 1.65 : 1.2) : 0);
@@ -1242,8 +1253,8 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
     const rig = rigRef.current;
     const zoomed = isRig && multi === 'zoom';
     if (rig) {
-      rig.scale.setScalar(!activeModule ? 0.7 : isRig ? (zoomed ? 1 : 0.7) : 1);
-      rig.position.y = !activeModule ? -0.8 : isMulti ? (zoomed ? -0.5 : -0.8) : isEnt || isExp || isDec ? (zoomed ? 0 : -0.8) : activeModule === 'gates' ? -0.5 : 0;
+      rig.scale.setScalar(!activeModule ? 0.7 : isRig ? (zoomed ? 1 : 0.7) : isBvq ? BVQ_SCALE : 1);
+      rig.position.y = !activeModule ? -0.8 : isMulti ? (zoomed ? -0.5 : -0.8) : isEnt || isExp || isDec ? (zoomed ? 0 : -0.8) : activeModule === 'gates' ? -0.5 : isBvq ? BVQ_Y : 0;
     }
     const solo = activeModule === 'superposition' || activeModule === 'interference' || isRig || centerOnly;
     if (leftRig.current) leftRig.current.scale.setScalar(solo ? 0.0001 : 1);
@@ -1396,8 +1407,8 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
     if (rigRef.current) {
       const rig = rigRef.current;
       const k = 1 - Math.exp(-(vanishing ? 7 : GLIDE * (2.5 / 2.6)) * Math.min(delta, 0.1));
-      const ts = vanishing ? 0.0001 : !activeModule ? 0.7 : isRig ? (mz ? 1 : 0.7) : 1;
-      const ty = !activeModule ? -0.8 : isMulti ? (mz ? -0.5 : -0.8) : isEnt || isExp || isDec ? (mz ? 0 : -0.8) : activeModule === 'gates' ? -0.5 : 0;
+      const ts = vanishing ? 0.0001 : !activeModule ? 0.7 : isRig ? (mz ? 1 : 0.7) : isBvq ? BVQ_SCALE : 1;
+      const ty = !activeModule ? -0.8 : isMulti ? (mz ? -0.5 : -0.8) : isEnt || isExp || isDec ? (mz ? 0 : -0.8) : activeModule === 'gates' ? -0.5 : isBvq ? BVQ_Y : 0;
       rig.scale.setScalar(rig.scale.x + (ts - rig.scale.x) * k);
       rig.position.y += (ty - rig.position.y) * k;
     }
@@ -1581,8 +1592,16 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
                 <ClassicalBit position={[0, 0, 0]} scale={0.6} theme={theme} onDomainHover={() => handleHoverDomain('left')} onDomainUnhover={() => handleUnhoverDomain('left')} />
                 <ClassicalBit position={[1.2, 0, 0]} scale={0.6} theme={theme} onDomainHover={() => handleHoverDomain('left')} onDomainUnhover={() => handleUnhoverDomain('left')} />
               </group>
-            ) : !bitOn ? null : (
+            ) : !bitOn ? null : isBvq ? (
+              <GrowIn>
+                <group scale={1.1}>
+                  <PremiumBit value={bvq?.bit} onToggle={bvq?.onBitToggle} onHover={() => handleHoverDomain('left')} onUnhover={() => handleUnhoverDomain('left')} />
+                </group>
+              </GrowIn>
+            ) : (
+              <GrowIn animate={growBack}>
                 <ClassicalBit position={[0, 0, 0]} scale={1.1} theme={theme} activeModule={activeModule} isDecohering={isDecohering} onDomainHover={() => handleHoverDomain('left')} onDomainUnhover={() => handleUnhoverDomain('left')} />
+              </GrowIn>
               )}
           </group>
         </PresentationControls>
@@ -1722,8 +1741,16 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
               <group scale={_DEC_UNIT_FIRST}>
                 <BlochSphereUnit posArr={[0, 0, 0]} color={CT} label="" isPure={true} noiseLevel={0} activeNoise={null} entranceRef={DEC_STATIC_ENTRANCE} posKey="pure" step="intro" tempK={300} showLabels={false} dirOverride={decDir.current.a} />
               </group>
+            ) : isBvq ? (
+              <GrowIn>
+                <group scale={1.2}>
+                  <PremiumBlochSphere result={bvq?.result ?? null} onClick={bvq?.onQubitClick} onHover={() => handleHoverDomain('right')} onUnhover={() => handleUnhoverDomain('right')} />
+                </group>
+              </GrowIn>
             ) : (
-              <QubitCore position={[0, 0, 0]} scale={1.2} theme={theme} activeModule={activeModule} isDecohering={isDecohering} vectorOut={vecOut} startDir={wasDec.current ? _decStartLocal.copy(decDir.current.a).applyAxisAngle(_AXIS_Y, -clock.getElapsedTime() * 0.04) : undefined} customVectorQuat={isRig || centerOnly ? _Q_UP : undefined} showCustomVector={isRig || centerOnly || undefined} emissiveColor={isMulti ? '#eab308' : isEnt || isExp ? '#00f2fe' : isDec ? '#14b8a6' : undefined} fadeExtras={isMulti} onDomainHover={() => handleHoverDomain('right')} onDomainUnhover={() => handleUnhoverDomain('right')} />
+              <GrowIn animate={growBack}>
+                <QubitCore position={[0, 0, 0]} scale={1.2} theme={theme} activeModule={activeModule} isDecohering={isDecohering} vectorOut={vecOut} startDir={wasDec.current ? _decStartLocal.copy(decDir.current.a).applyAxisAngle(_AXIS_Y, -clock.getElapsedTime() * 0.04) : undefined} customVectorQuat={isRig || centerOnly ? _Q_UP : undefined} showCustomVector={isRig || centerOnly || undefined} emissiveColor={isMulti ? '#eab308' : isEnt || isExp ? '#00f2fe' : isDec ? '#14b8a6' : undefined} fadeExtras={isMulti} onDomainHover={() => handleHoverDomain('right')} onDomainUnhover={() => handleUnhoverDomain('right')} />
+              </GrowIn>
             )}
           </group>
         </PresentationControls>

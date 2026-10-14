@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Stars, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
@@ -50,6 +50,7 @@ import './styles/controls-accessibility.css';
 import './styles/boot.css';
 import './styles/display-panel.css';
 import './styles/webgl-glass.css';
+import './styles/bit-vs-qubit.css';
 import { SCENE_GL } from './sceneGl';
 import { QualityCanvas, QualityComposer, useCount } from './QualityScene';
 import { setLandingMode, deviceProfile } from './quality';
@@ -60,6 +61,8 @@ import { curriculumData, IDLE_FACTS } from './curriculum';
 import { CircuitVisualizer } from './CircuitDiagrams';
 import { MODULE_LOADERS } from './moduleLoaders';
 import { useStageChoreography } from './useStageChoreography';
+import BitVsQubitPanel from './BitVsQubitPanel';
+import { bvqLive } from './bitVsQubitLive';
 
 const InterferenceModule = lazy(MODULE_LOADERS.interference);
 const EntanglementModule = lazy(MODULE_LOADERS.entanglement);
@@ -289,6 +292,33 @@ function App() {
   const [listFor, setListFor] = useState(null); // the module the sidebar went "back" from
   const openModulePage = useCallback((id) => { setListFor(null); setActiveModuleId(id); }, []);
   const [lastClosedModuleId, setLastClosedModuleId] = useState(() => readModuleSetting('quantumUI_lastModule'));
+
+  // Classical Bit vs Qubit: the bit, the qubit's last measurement (null until
+  // measured) and the tally of measurements, shared by its scene and readout.
+  const [bvqBit, setBvqBit] = useState(0);
+  const [bvqResult, setBvqResult] = useState(null);
+  const [bvqCounts, setBvqCounts] = useState({ 0: 0, 1: 0 });
+  const flipBvqBit = useCallback(() => setBvqBit((b) => 1 - b), []);
+  const measureBvqQubit = useCallback(() => {
+    // The odds the qubit's arrow gives right now (Born rule: P(1) = sin²(θ/2)).
+    const outcome = Math.random() < bvqLive.p1 ? 1 : 0;
+    setBvqResult(outcome);
+    setBvqCounts((c) => ({ ...c, [outcome]: c[outcome] + 1 }));
+  }, []);
+  const newBvqQubit = useCallback(() => setBvqResult(null), []);
+  const clickBvqQubit = useCallback(() => {
+    if (bvqResult === null) measureBvqQubit(); else newBvqQubit();
+  }, [bvqResult, measureBvqQubit, newBvqQubit]);
+  useEffect(() => {
+    if (stageId === 'bit-vs-qubit') return;
+    setBvqBit(0);
+    setBvqResult(null);
+    setBvqCounts({ 0: 0, 1: 0 });
+  }, [stageId]);
+  const bvqScene = useMemo(
+    () => ({ bit: bvqBit, onBitToggle: flipBvqBit, result: bvqResult, onQubitClick: clickBvqQubit }),
+    [bvqBit, flipBvqBit, bvqResult, clickBvqQubit],
+  );
 
   const [qubitCount, setQubitCount] = useState(1);
   const [attemptCopy, setAttemptCopy] = useState(false);
@@ -1038,13 +1068,13 @@ function App() {
 
             {stageId && stageId !== 'superposition' && stageId !== 'dirac-notation' && stageId !== 'multi-qubit-gates' && stageId !== 'interference' && stageId !== 'entanglement' && stageId !== 'exponential' && stageId !== 'nocloning' && stageId !== 'decoherence' && stageId !== 'error-correction' && (
               <div className="module-appear" style={{ position: 'absolute', top: '80px', left: '50%', width: '0px', display: 'flex', justifyContent: 'center', zIndex: 10, pointerEvents: 'none' }}>
-                <div className="section-title classical" style={{ position: 'absolute', left: '-39vh', transform: 'translateX(-50%)' }}>
+                <div className="section-title classical" style={{ position: 'absolute', left: stageId === 'bit-vs-qubit' ? '-33.5vh' : '-39vh', transform: 'translateX(-50%)' }}>
                   <div className="section-title-dot" />
-                  <span>CLASSICAL PHYSICS</span>
+                  <span>{stageId === 'bit-vs-qubit' ? 'CLASSICAL BIT' : 'CLASSICAL PHYSICS'}</span>
                 </div>
-                <div className="section-title quantum" style={{ position: 'absolute', left: '39vh', transform: 'translateX(-50%)' }}>
+                <div className="section-title quantum" style={{ position: 'absolute', left: stageId === 'bit-vs-qubit' ? '33.5vh' : '39vh', transform: 'translateX(-50%)' }}>
                   <div className="section-title-dot" />
-                  <span>QUANTUM PHYSICS</span>
+                  <span>{stageId === 'bit-vs-qubit' ? 'QUBIT' : 'QUANTUM PHYSICS'}</span>
                 </div>
               </div>
             )}
@@ -1223,11 +1253,25 @@ function App() {
                 isSidebarOpen={isSidebarOpen}
                 setIsSidebarOpen={setIsSidebarOpen}
                 isGlobalMuted={isGlobalMuted}
+                bvq={bvqScene}
               />
             </SharedCanvas>
           )}
           </Suspense>
           </ModuleErrorBoundary>
+
+          {stageId === 'bit-vs-qubit' && (
+            <div style={uiBoundsStyle}>
+              <BitVsQubitPanel
+                bit={bvqBit}
+                onFlip={flipBvqBit}
+                result={bvqResult}
+                onMeasure={measureBvqQubit}
+                onNewQubit={newBvqQubit}
+                counts={bvqCounts}
+              />
+            </div>
+          )}
 
           {hubShown && (
             <div style={uiBoundsStyle} className={`idle-hud ${activeModuleId ? 'idle-hud-leaving' : ''}`}>

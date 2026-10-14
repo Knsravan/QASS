@@ -66,7 +66,7 @@ async function timeTier(tier, onFrame) {
   let renderer = null;
   let composer = null;
   try {
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: tier === 'high', powerPreference: 'high-performance', alpha: false });
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance', alpha: false });
     renderer.setPixelRatio(k.dpr());
     renderer.setSize(window.innerWidth, window.innerHeight, false);
     const { scene, camera, tick } = buildScene();

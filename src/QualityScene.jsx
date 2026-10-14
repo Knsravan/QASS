@@ -120,9 +120,9 @@ export function QualityCanvas({ background = false, children, ...props }) {
     <Canvas
       {...props}
       className={[props.className, background && 'scene-bg'].filter(Boolean).join(' ') || undefined}
-      // Antialiasing is fixed when the canvas is made: only the high tier
-      // pays for it (bloom scenes are drawn through the composer anyway).
-      gl={{ ...props.gl, antialias: props.gl?.antialias !== false && q.tier === 'high' }}
+      // The 3D is antialiased at every level (a canvas that asks for none,
+      // like the star field, keeps it off).
+      gl={{ ...props.gl, antialias: props.gl?.antialias !== false }}
       dpr={q.dpr}
       // The scenes fill a fixed stage that never scrolls, so the canvas needn't
       // be measured again on every scroll in the page (by default it is: each

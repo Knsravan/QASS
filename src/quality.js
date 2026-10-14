@@ -1,14 +1,15 @@
 /*
  * Quality: how the simulator looks and runs on this device.
  *
- * Three levels, each a set of knobs the scenes and the glass read:
+ * Three levels, each a set of knobs the scenes and the glass read. The 3D is
+ * equally sharp at every level (up to 1.5x pixels, antialiased); the levels
+ * differ in everything else:
  *
- *   high    sharp (up to 1.5x pixels, antialiased), full glow, the colour
- *           fringe, every liquid glass lens
- *   medium  1x pixels with edge smoothing, glow worked out at half size,
- *           a small lens on big glass, fewer stars
- *   low     0.85x pixels with edge smoothing, glow at a third of the size,
- *           frosted glass without bending, fewer stars still
+ *   high    full glow, the colour fringe, every liquid glass lens
+ *   medium  glow worked out at half size, a small lens on big glass, fewer
+ *           stars
+ *   low     glow at a third of the size, frosted glass without bending,
+ *           fewer stars still
  *
  * The level is chosen once, by the loading screen's device test (BootLoader,
  * deviceBench.js), and saved with the device's GPU name (localStorage). It
@@ -16,8 +17,8 @@
  * device stands.
  *
  * On top of it, the Display & Accessibility panel (DisplayPanel.jsx) lets
- * people pick another level, or set single parts (glow, frame rate,
- * sharpness, glass, stars, motion, solid surfaces); those choices are saved
+ * people pick another level, or set single parts (glow, frame rate, glass,
+ * stars, motion, solid surfaces); those choices are saved
  * too and win over the level.
  *
  * The landing page always shows everything at high (setLandingMode). The
@@ -29,18 +30,19 @@ const DISPLAY_KEY = 'quantumUI_display'; // the person's own display choices
 export const TIERS = ['low', 'medium', 'high'];
 
 const deviceDpr = () => (typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1);
+// Every level draws the 3D this sharp: up to 1.5x pixels, multisampled.
+const sharpDpr = () => Math.min(deviceDpr(), 1.5);
 
 export const SETTINGS = {
-  high: { dpr: () => Math.min(deviceDpr(), 1.5), bloom: true, bloomScale: 1, bloomLevels: 8, fxaa: false, aberration: true, msaa: 4, stars: 1, lens: 'all', beamMs: 200, bgFps: 60 },
-  medium: { dpr: () => Math.min(deviceDpr(), 1), bloom: true, bloomScale: 0.5, bloomLevels: 6, fxaa: true, aberration: false, msaa: 0, stars: 0.6, lens: 'small', beamMs: 400, bgFps: 30 },
-  low: { dpr: () => Math.min(deviceDpr(), 0.85), bloom: true, bloomScale: 0.34, bloomLevels: 5, fxaa: true, aberration: false, msaa: 0, stars: 0.35, lens: 'none', beamMs: 800, bgFps: 20 },
+  high: { dpr: sharpDpr, bloom: true, bloomScale: 1, bloomLevels: 8, fxaa: false, aberration: true, msaa: 4, stars: 1, lens: 'all', beamMs: 200, bgFps: 60 },
+  medium: { dpr: sharpDpr, bloom: true, bloomScale: 0.5, bloomLevels: 6, fxaa: false, aberration: false, msaa: 4, stars: 0.6, lens: 'small', beamMs: 400, bgFps: 30 },
+  low: { dpr: sharpDpr, bloom: true, bloomScale: 0.34, bloomLevels: 5, fxaa: false, aberration: false, msaa: 4, stars: 0.35, lens: 'none', beamMs: 800, bgFps: 20 },
 };
 
 // The single parts the panel can set, and what each choice means.
 export const PARTS = {
   glow: { label: 'Glow', options: { full: 'Full', soft: 'Soft', off: 'Off' }, of: (k) => (!k.bloom ? 'off' : k.bloomScale >= 1 ? 'full' : 'soft') },
   fps: { label: 'Frame rate', options: { max: 'Display', 60: '60 fps', 30: '30 fps' }, of: (k) => (k.fpsCap ? String(k.fpsCap) : 'max') },
-  sharp: { label: 'Sharpness', options: { sharp: 'Sharp', standard: 'Standard', light: 'Light' }, of: (k) => (k.msaa ? 'sharp' : k.dprScale >= 1 ? 'standard' : 'light') },
   lens: { label: 'Liquid glass', options: { all: 'Full lens', small: 'Small lens', none: 'Frosted' }, of: (k) => k.lens },
   stars: { label: 'Stars', options: { many: 'Many', some: 'Fewer', few: 'Few' }, of: (k) => (k.stars >= 1 ? 'many' : k.stars >= 0.6 ? 'some' : 'few') },
   motion: { label: 'Motion', options: { full: 'Full', reduced: 'Reduced' }, of: (k) => k.motion },
@@ -52,7 +54,7 @@ const reducedTransparencyMedia = () => !!window.matchMedia?.('(prefers-reduced-t
 
 // Applies the person's single-part choices over a level's settings.
 function withParts(base, parts) {
-  const k = { ...base, dprScale: base.dpr() / Math.min(deviceDpr(), 1), fpsCap: 0, motion: reducedMotionMedia() ? 'reduced' : 'full', surface: reducedTransparencyMedia() ? 'solid' : 'glass' };
+  const k = { ...base, fpsCap: 0, motion: reducedMotionMedia() ? 'reduced' : 'full', surface: reducedTransparencyMedia() ? 'solid' : 'glass' };
   const p = parts || {};
   if (p.glow === 'full') Object.assign(k, { bloom: true, bloomScale: 1, bloomLevels: 8 });
   if (p.glow === 'soft') Object.assign(k, { bloom: true, bloomScale: 0.34, bloomLevels: 5 });
@@ -60,16 +62,12 @@ function withParts(base, parts) {
   if (p.fps === '60') k.fpsCap = 60;
   if (p.fps === '30') k.fpsCap = 30;
   if (p.fps === 'max') k.fpsCap = 0;
-  if (p.sharp === 'sharp') Object.assign(k, { dpr: () => Math.min(deviceDpr(), 1.5), msaa: 4, fxaa: false });
-  if (p.sharp === 'standard') Object.assign(k, { dpr: () => Math.min(deviceDpr(), 1), msaa: 0, fxaa: true });
-  if (p.sharp === 'light') Object.assign(k, { dpr: () => Math.min(deviceDpr(), 0.85), msaa: 0, fxaa: true });
   if (p.lens) k.lens = p.lens;
   if (p.stars) k.stars = { many: 1, some: 0.6, few: 0.35 }[p.stars] ?? k.stars;
   if (p.motion) k.motion = p.motion;
   if (p.surface) k.surface = p.surface;
   if (k.surface === 'solid') k.lens = 'none';
   if (k.fpsCap) k.bgFps = Math.min(k.bgFps, k.fpsCap);
-  k.dprScale = k.dpr() / Math.min(deviceDpr(), 1);
   return k;
 }
 
