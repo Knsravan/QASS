@@ -35,7 +35,7 @@ const _col = new THREE.Color();
 // clear-coated veil where it doesn't. Its finish is never mirror-smooth: a
 // near-zero roughness concentrates the scene's point lights into highlights
 // brighter than the glow pass can hold, which it then smears into black blots.
-function GlassMaterial({ tint = '#e6f7ff' }) {
+export function GlassMaterial({ tint = '#e6f7ff' }) {
   const q = useQuality();
   if (q.tier === 'low') {
     return <meshPhysicalMaterial color={tint} transparent opacity={0.14} roughness={0.16} metalness={0} clearcoat={1} clearcoatRoughness={0.2} depthWrite={false} />;
@@ -93,7 +93,7 @@ function getMetalMatcap() {
   metalMatcap.colorSpace = THREE.SRGBColorSpace;
   return metalMatcap;
 }
-function Metal({ shade = '#ffffff' }) {
+export function Metal({ shade = '#ffffff' }) {
   return <meshMatcapMaterial matcap={getMetalMatcap()} color={shade} />;
 }
 

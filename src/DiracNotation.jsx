@@ -5,7 +5,8 @@ import { InlineMath } from './KatexMath';
 import { bornProbabilities } from './quantumMath';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { QualityComposer } from './QualityScene';
-import { PremiumBlochSphere, GlassPill } from './PremiumBitQubit';
+import { DiracSpace } from './DiracSpace';
+import { diracLive, useDiracTheta } from './diracLive';
 
 // ─── CONFIG ────────────────────────────────────────────────────────────────
 const STEPS = [
@@ -19,8 +20,8 @@ const STEPS = [
     math: '|0\\rangle = \\begin{bmatrix} 1 \\\\ 0 \\end{bmatrix}',
     theta: 0,         // vector points UP (+Y)
     phi: 0,
-    desc: <>The symbol <InlineMath math={String.raw`|\,\rangle`} /> (Ket) is a physicist's way of writing a column vector. Notice how the arrow is pointing perfectly to the North Pole (the <InlineMath math={String.raw`|0\rangle`} /> axis). Look at the matrix: the top number is 1 (meaning 100% <InlineMath math={String.raw`|0\rangle`} />), and the bottom number is 0.</>,
-    hint: <>Top number = amount of UP (<InlineMath math={String.raw`|0\rangle`} />). Bottom number = amount of DOWN (<InlineMath math={String.raw`|1\rangle`} />).</>,
+    desc: <>The symbol <InlineMath math={String.raw`|\,\rangle`} /> (ket) is a physicist's way of writing a column vector. A qubit's states live in a space with two directions, <InlineMath math={String.raw`|0\rangle`} /> and <InlineMath math={String.raw`|1\rangle`} />. The arrow points straight along <InlineMath math={String.raw`|0\rangle`} />, so the column holds 1 (all of it along <InlineMath math={String.raw`|0\rangle`} />) on top and 0 below.</>,
+    hint: <>Top number = how much <InlineMath math={String.raw`|0\rangle`} />. Bottom number = how much <InlineMath math={String.raw`|1\rangle`} />.</>,
     vectorLabel: <InlineMath math={String.raw`|0\rangle`} />,
   },
   {
@@ -33,8 +34,8 @@ const STEPS = [
     math: '|1\\rangle = \\begin{bmatrix} 0 \\\\ 1 \\end{bmatrix}',
     theta: Math.PI,   // vector points DOWN (-Y)
     phi: 0,
-    desc: <>Now the arrow swung 180° to point directly at the South Pole (the <InlineMath math={String.raw`|1\rangle`} /> axis). Look at the matrix again: the 1 has moved to the bottom position.</>,
-    hint: 'Top number is now 0. Bottom number is 1, meaning 100% chance of measuring 1.',
+    desc: <>Now the arrow lies along <InlineMath math={String.raw`|1\rangle`} />: a quarter turn from <InlineMath math={String.raw`|0\rangle`} />. The two are at right angles (orthogonal), so they share nothing, which is why a qubit in <InlineMath math={String.raw`|1\rangle`} /> can never read 0. In the column, the 1 has moved to the bottom.</>,
+    hint: <>Right angle = no overlap: <InlineMath math={String.raw`\langle 0|1\rangle = 0`} />.</>,
     vectorLabel: <InlineMath math={String.raw`|1\rangle`} />,
   },
   {
@@ -47,7 +48,7 @@ const STEPS = [
     math: '|\\psi\\rangle = \\alpha|0\\rangle + \\beta|1\\rangle',
     theta: Math.PI / 2, // vector points sideways (+X)
     phi: 0,
-    desc: <>When a qubit is in superposition, its vector points between states. <InlineMath math={String.raw`\alpha`} /> and <InlineMath math={String.raw`\beta`} /> are complex numbers called "amplitudes" — they encode the probability of each outcome.</>,
+    desc: <>In superposition the arrow points between the two directions. Its shadows on the axes are the amplitudes <InlineMath math={String.raw`\alpha`} /> and <InlineMath math={String.raw`\beta`} />, the column's two numbers. The glass squares built on them are the odds, and together they always fill exactly one square. Drag the arrow's tip to try it.</>,
     hint: <>The Born Rule: the probability of measuring 0 is <InlineMath math={String.raw`|\alpha|^2`} />, and for 1 it is <InlineMath math={String.raw`|\beta|^2`} />.</>,
     vectorLabel: <InlineMath math={String.raw`|+\rangle`} />,
   },
@@ -59,9 +60,9 @@ const STEPS = [
     glowColor: 'rgba(67,233,123,0.3)',
     borderColor: 'rgba(67,233,123,0.4)',
     math: '\\langle\\psi| = [\\alpha^* \\;\\; \\beta^*]',
-    theta: Math.PI * 0.3,   // ~54deg from vertical — clearly distinct diagonal
-    phi: Math.PI * 1.25,    // points upper-left-back — visually dramatic
-    desc: <>Why a row vector with an asterisk (*)? To find probabilities, we multiply a state by itself (inner product). In linear algebra, multiplying two column vectors doesn't work. We must turn the first into a row vector (transpose) and flip its imaginary parts (complex conjugate, the *) so the result is always a real, positive probability.</>,
+    theta: Math.PI * 0.3,   // α ≈ 0.89, β ≈ 0.45: leans toward |0>
+    phi: Math.PI * 1.25,    // β's phase: 225°, shown on its tile's dial
+    desc: <>To find probabilities we multiply a state by itself (the inner product), but two columns can't be multiplied. So the column turns into a row (transpose) and passes through a mirror that flips each amplitude's phase dial (complex conjugate, the *). That row is the bra <InlineMath math={String.raw`\langle\psi|`} />. Row times column gives <InlineMath math={String.raw`\langle\psi|\psi\rangle = |\alpha|^2 + |\beta|^2 = 1`} />.</>,
     hint: <><InlineMath math={String.raw`\langle\psi|\varphi\rangle`} /> = "bracket" → that is literally where the word came from!</>,
     vectorLabel: <InlineMath math={String.raw`\langle\psi|`} />,
   },
@@ -71,18 +72,17 @@ const STEPS = [
   return { ...step, probTop: p0, probBottom: p1 };
 });
 
-// The state each step's arrow names at its tip (the poles' own pills name |0> and |1>).
-const TIP_LABEL = [null, null, '|+⟩', '⟨ψ|'];
-
 // ─── MAIN 3D SCENE ───────────────────────────────────────────────────
-// The same glass Bloch sphere as Classical Bit vs Qubit (PremiumBitQubit.jsx),
-// holding each step's state: the arrow glides there, the pole it rests on
-// lights its pill, and a glass pill at the tip names states off the poles.
-// In the amplitudes step, α and β get pills of their own.
+// The qubit's state space, column vector and bra (DiracSpace.jsx). In the
+// amplitudes step the viewer can drag the arrow; the state is shared with the
+// overlay's matrix card through diracLive.
 export function DiracScene({ step }) {
   const stepData = STEPS[step];
-  const alpha = Math.sqrt(stepData.probTop);
-  const beta = Math.sqrt(stepData.probBottom);
+  const live = useDiracTheta();
+  React.useEffect(() => {
+    if (step === 2) diracLive.set(Math.PI / 2);
+  }, [step]);
+  const theta = step === 2 ? live : stepData.theta;
 
   return (
     <>
@@ -94,21 +94,9 @@ export function DiracScene({ step }) {
       <pointLight position={[6, 6, 6]} color="#00f2fe" intensity={6} distance={30} />
       <pointLight position={[-6, -6, -6]} color="#f093fb" intensity={6} distance={30} />
 
-      <group position={[0, -0.3, 0]} scale={1.15}>
-        <PremiumBlochSphere
-          direction={{ theta: stepData.theta, phi: stepData.phi }}
-          tipLabel={TIP_LABEL[step]}
-          interactive={false}
-        />
-        {step === 2 && (
-          <>
-            <GlassPill text={`α ≈ ${alpha.toFixed(2)}`} state="zero" active position={[-1.05, 0.95, 0]} label={`Amplitude alpha, about ${alpha.toFixed(2)}`} />
-            <GlassPill text={`β ≈ ${beta.toFixed(2)}`} state="one" active position={[-1.05, -0.95, 0]} label={`Amplitude beta, about ${beta.toFixed(2)}`} />
-          </>
-        )}
-      </group>
+      <DiracSpace step={step} theta={theta} phase={stepData.phi} />
 
-      <OrbitControls enablePan={false} enableZoom={true} minDistance={5} maxDistance={14} dampingFactor={0.08} enableDamping />
+      <OrbitControls makeDefault enablePan={false} enableZoom={true} minDistance={4} maxDistance={16} dampingFactor={0.08} enableDamping />
     </>
   );
 }
@@ -268,6 +256,24 @@ function ProbBar({ value, color, label }) {
   );
 }
 
+// The amplitudes step's card follows the arrow as it's dragged.
+function LiveSuperposition() {
+  const theta = useDiracTheta();
+  const alpha = Math.cos(theta / 2);
+  const beta = Math.sin(theta / 2);
+  return (
+    <div style={{ fontFamily: "'Fira Code',monospace" }}>
+      <span style={{ fontSize: '14px', color: '#f8fafc', lineHeight: 2 }}>
+        <InlineMath math={String.raw`|\psi\rangle`} /> = <span style={{ color: '#00f2fe' }}>{alpha.toFixed(2)}</span><InlineMath math={String.raw`|0\rangle`} /> + <span style={{ color: '#f093fb' }}>{beta.toFixed(2)}</span><InlineMath math={String.raw`|1\rangle`} />
+      </span>
+      <div style={{ marginTop: '10px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '10px' }}>
+        <ProbBar value={alpha * alpha} color="#00f2fe" label={<InlineMath math={String.raw`|\alpha|^2`} />} />
+        <ProbBar value={beta * beta} color="#f093fb" label={<InlineMath math={String.raw`|\beta|^2`} />} />
+      </div>
+    </div>
+  );
+}
+
 function MathDisplay({ math, color, step }) {
   const renders = {
     '|0\\rangle = \\begin{bmatrix} 1 \\\\ 0 \\end{bmatrix}': (
@@ -306,17 +312,7 @@ function MathDisplay({ math, color, step }) {
         </div>
       </div>
     ),
-    '|\\psi\\rangle = \\alpha|0\\rangle + \\beta|1\\rangle': (
-      <div style={{ fontFamily: "'Fira Code',monospace" }}>
-        <span style={{ fontSize: '14px', color: '#f8fafc', lineHeight: 2 }}>
-          <InlineMath math={String.raw`|\psi\rangle`} /> = <span style={{ color: '#00f2fe' }}>α</span><InlineMath math={String.raw`|0\rangle`} /> + <span style={{ color: '#f7971e' }}>β</span><InlineMath math={String.raw`|1\rangle`} />
-        </span>
-        <div style={{ marginTop: '10px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '10px' }}>
-          <ProbBar value={0.5} color="#00f2fe" label={<InlineMath math={String.raw`|0\rangle`} />} />
-          <ProbBar value={0.5} color="#f7971e" label={<InlineMath math={String.raw`|1\rangle`} />} />
-        </div>
-      </div>
-    ),
+    '|\\psi\\rangle = \\alpha|0\\rangle + \\beta|1\\rangle': <LiveSuperposition />,
     '\\langle\\psi| = [\\alpha^* \\;\\; \\beta^*]': (
       <span style={{ fontFamily: "'Fira Code',monospace", fontSize: '14px', color: '#f8fafc', lineHeight: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <div>⟨ψ| = [<span style={{ color }}>α*</span>  <span style={{ color }}>β*</span>]</div>
