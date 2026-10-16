@@ -58,6 +58,7 @@ export function createDiracStory(renderer) {
   envScene.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } });
   pmrem.dispose();
 
+  const world = new THREE.Group(); root.add(world); // everything the story moves
   root.add(new THREE.AmbientLight('#ffffff', 0.25));
   const key = new THREE.DirectionalLight('#ffffff', 1.2);
   key.position.set(3, 5, 6);
@@ -165,10 +166,9 @@ export function createDiracStory(renderer) {
     const frame = new THREE.Mesh(slotGeo, glass);
     const edges = new THREE.LineSegments(slotEdges, own(new THREE.LineBasicMaterial({ color: '#cfe9ff', transparent: true, opacity: 0.35 })));
     const liquid = new THREE.Mesh(boxGeo, own(new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(0.85), transparent: true, opacity: 0.92, toneMapped: false })));
-    const halo = glow(color, 1);
     const digitMat = own(new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, toneMapped: false }));
     const digit = new THREE.Mesh(planeGeo, digitMat); digit.position.z = 0.29; digit.renderOrder = 5;
-    g.add(halo, liquid, frame, edges, digit);
+    g.add(liquid, frame, edges, digit);
     const glowHex = '#' + new THREE.Color(color).getHexString();
     return {
       set(fill, d) {
@@ -176,8 +176,6 @@ export function createDiracStory(renderer) {
         liquid.visible = f > 0.004;
         liquid.scale.set(0.88, Math.max(f, 0.001) * 0.98, 0.36);
         liquid.position.y = -0.49 + (f * 0.98) / 2;
-        halo.position.set(0, liquid.position.y, -0.05);
-        halo.scale.setScalar(0.6 + 1.6 * f); halo.material.opacity = 0.75 * f;
         if (d && d.o > 0.01) {
           const k = d.k || 0;
           digit.visible = true;
@@ -193,7 +191,7 @@ export function createDiracStory(renderer) {
   // m = 0: the ket (a bar and an angle bracket); m = 1: a column (two square brackets
   // around two glass slots). The angle bracket's arms swing upright to become "]".
   function makeGlyph() {
-    const g0 = new THREE.Group(); root.add(g0);
+    const g0 = new THREE.Group(); world.add(g0);
     const barG = new THREE.Group(); g0.add(barG);
     const bar = rod(0.085); barG.add(bar.obj);
     const sl = [rod(0.068), rod(0.068)]; sl.forEach((s) => { s.obj.rotation.z = Math.PI / 2; barG.add(s.obj); });
@@ -231,14 +229,14 @@ export function createDiracStory(renderer) {
 
   // ── The cast ──────────────────────────────────────────────────────────────
   const ket = makeGlyph(), colA = makeGlyph(), colB = makeGlyph(), bra = makeGlyph();
-  const orbA = makeOrb(root), orbB = makeOrb(root);
-  const trail = Array.from({ length: 14 }, () => { const s = glow('#ffffff', 0.5); root.add(s); return s; });
+  const orbA = makeOrb(world), orbB = makeOrb(world);
+  const trail = Array.from({ length: 14 }, () => { const s = glow('#ffffff', 0.5); world.add(s); return s; });
   const trailPts = [];
 
-  const plus = new THREE.Group(); root.add(plus);
+  const plus = new THREE.Group(); world.add(plus);
   { const h = rod(0.06), v = rod(0.06); h.len(0.5); v.len(0.5); h.obj.rotation.z = Math.PI / 2; plus.add(h.obj, v.obj, glow('#f7971e', 1.6)); }
 
-  const mirror = new THREE.Group(); mirror.position.set(-0.5, 0, 0.6); root.add(mirror);
+  const mirror = new THREE.Group(); mirror.position.set(-0.5, 0, 0.6); world.add(mirror);
   const mirrorBox = own(new THREE.BoxGeometry(0.05, 3.1, 2.5));
   const mirrorSheen = glow('#43e97b', 1); mirrorSheen.scale.set(1.2, 3.6, 1);
   mirror.add(
@@ -247,7 +245,7 @@ export function createDiracStory(renderer) {
     new THREE.LineSegments(own(new THREE.EdgesGeometry(mirrorBox)), own(new THREE.LineBasicMaterial({ color: '#43e97b', transparent: true, opacity: 0.95 }))),
   );
 
-  const eqOne = new THREE.Group(); eqOne.position.set(3.05, 0, 0); root.add(eqOne);
+  const eqOne = new THREE.Group(); eqOne.position.set(3.05, 0, 0); world.add(eqOne);
   const eqGlow = glow('#43e97b', 2.6);
   const eqPlane = new THREE.Mesh(own(new THREE.PlaneGeometry(2, 1)), own(new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, toneMapped: false })));
   eqOne.add(eqGlow, eqPlane);
@@ -325,6 +323,7 @@ export function createDiracStory(renderer) {
   ].map((keys) => keys.map(([t, p, q]) => ({ t, p: new THREE.Vector3(...p), q: new THREE.Vector3(...q) })));
   const camPos = new THREE.Vector3(0, 0.8, 16), camTgt = new THREE.Vector3();
   let entry = { p: camPos.clone(), q: camTgt.clone() }; // the camera where the shot began
+  let firstPlay = true;
   function catmull(p0, p1, p2, p3, u) {
     const u2 = u * u, u3 = u2 * u;
     return new THREE.Vector3().addScaledVector(p0, -0.5 * u3 + u2 - 0.5 * u)
@@ -334,7 +333,8 @@ export function createDiracStory(renderer) {
   }
   function cameraAt(step, t) {
     const keys = CAMS[step];
-    const list = keys[0].t === 0 ? keys : [{ t: 0, p: entry.p, q: entry.q }, ...keys];
+    const own = keys.filter((k) => k.t > 0 || firstPlay);
+    const list = own[0].t === 0 ? own : [{ t: 0, p: entry.p, q: entry.q }, ...own];
     const last = list[list.length - 1];
     if (t >= last.t) return { p: last.p.clone(), q: last.q.clone() };
     let i = 0; while (i < list.length - 2 && t > list[i + 1].t) i++;
@@ -374,29 +374,68 @@ export function createDiracStory(renderer) {
   el.addEventListener('wheel', onWheel, { passive: false });
 
   // ── Playing ───────────────────────────────────────────────────────────────
+  // Changing step never cuts: Next fast-forwards the rest of this shot (its last frame is the
+  // next shot's first), Back rewinds it (its first frame is the previous shot's last), Replay
+  // rewinds then plays, and any other jump (Start over) shrinks the scene away and begins afresh.
   let step = 0, t = 0, frozen = false;
+  let target = 0, mode = 'play', replayAsked = false, shrink = 1;
+  function begin(n, at) {
+    step = n; t = at; firstPlay = false;
+    entry = { p: camPos.clone(), q: camTgt.clone() };
+    trailPts.length = 0;
+  }
+  function plan(reduced) {
+    if (reduced) { begin(target, SHOT_LENGTHS[target]); mode = 'play'; replayAsked = false; return; }
+    if (target === step) mode = replayAsked ? 'rewind' : 'play';
+    else if (target === step + 1) mode = 'ff';
+    else if (target === step - 1) mode = 'rewind';
+    else mode = 'out';
+  }
+  function advance(dt, reduced) {
+    const dur = SHOT_LENGTHS[step];
+    if (mode === 'play') { t = Math.min(dur, t + dt); shrink = Math.min(1, shrink + dt / 0.35); return; }
+    if (mode === 'ff') {
+      t = Math.min(dur, t + dt * Math.max(4, (dur - t) / 0.8));
+      if (t >= dur) { begin(step + 1, 0); plan(reduced); }
+    } else if (mode === 'rewind') {
+      t = Math.max(0, t - dt * Math.max(3, t / 0.9));
+      if (t <= 0) {
+        if (replayAsked && target === step) { replayAsked = false; begin(step, 0); mode = 'play'; }
+        else { begin(step - 1, SHOT_LENGTHS[step - 1]); plan(reduced); }
+      }
+    } else if (mode === 'out') {
+      shrink = Math.max(0, shrink - dt / 0.35);
+      if (shrink === 0) { begin(target, 0); mode = 'play'; }
+    }
+  }
   const off = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0), side = new THREE.Vector3(), view = new THREE.Vector3();
 
   return {
     root,
     environment,
-    /** Starts shot `n` from its beginning (or, with reduced motion, at its end). */
-    play(n, reduced) {
-      step = n;
-      t = reduced ? SHOT_LENGTHS[n] : 0;
+    /** Moves the story to step `n`, flowing there from wherever it is now. */
+    goTo(n, reduced) {
       frozen = false;
-      entry = { p: camPos.clone(), q: camTgt.clone() };
-      trailPts.length = 0;
+      if (n === target && !replayAsked) return;
+      target = n; replayAsked = false;
+      plan(reduced);
     },
-    /** Holds shot `n` at `at` seconds (for tests and screenshots). */
-    seek(n, at) { if (n !== step) this.play(n); t = at; frozen = true; },
+    /** Rewinds the current step and plays it again. */
+    replay(reduced) {
+      frozen = false;
+      replayAsked = true;
+      plan(reduced);
+    },
+    /** Holds step `n` at `at` seconds (for tests and screenshots). */
+    seek(n, at) { target = n; begin(n, at); mode = 'play'; shrink = 1; frozen = true; },
     /**
      * Advances the story by `dt` and points `camera` at it. `capFrac` and `topFrac` are the
      * shares of the screen's height the caption and the header cover: the scene centres in
      * the band between them, stepping back if that band is shorter than the shots allow for.
      */
     frame(dt, now, camera, capFrac, topFrac, reduced) {
-      if (!frozen) t = Math.min(SHOT_LENGTHS[step], t + dt);
+      if (!frozen) advance(dt, reduced);
+      world.scale.setScalar(Math.max(shrink, 0.001));
       const S = { ket: glyphState(), colA: glyphState(), colB: glyphState(), bra: glyphState(), orbA: null, orbB: null, plus: 0, mirror: 0, eq: 0, trail: false };
       SHOTS[step](t, S);
       ket.set(S.ket); colA.set(S.colA); colB.set(S.colB); bra.set(S.bra);

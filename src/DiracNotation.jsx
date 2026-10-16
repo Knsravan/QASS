@@ -67,12 +67,12 @@ export function DiracScene({ step }) {
     };
   }, [scene, story]);
 
-  useEffect(() => { story.play(step, motionReduced()); }, [story, step]);
+  useEffect(() => { story.goTo(step, motionReduced()); }, [story, step]);
   useEffect(() => {
-    const replay = () => story.play(step, motionReduced());
+    const replay = () => story.replay(motionReduced());
     replayListeners.add(replay);
     return () => replayListeners.delete(replay);
-  }, [story, step]);
+  }, [story]);
 
   useFrame((state, dt) => {
     // Where the caption's top is, now and then (it changes height between steps), and the header's bottom.
