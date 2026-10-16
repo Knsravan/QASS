@@ -1,336 +1,128 @@
-import React from 'react';
-import { OrbitControls } from '@react-three/drei';
-import { Bloom } from '@react-three/postprocessing';
-import { InlineMath } from './KatexMath';
-import { bornProbabilities } from './quantumMath';
-import { QuantumNavButtons } from './QuantumNavButtons';
-import { QualityComposer } from './QualityScene';
-import { DiracSpace } from './DiracSpace';
-import { diracLive, useDiracTheta } from './diracLive';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
+import { createDiracStory } from './diracStory';
+import { motionReduced } from './quality';
 
-// ─── CONFIG ────────────────────────────────────────────────────────────────
-const STEPS = [
-  {
-    id: 0,
-    title: <><InlineMath math={String.raw`|\,\rangle`} /> The Ket Notation</>,
-    subtitle: <><InlineMath math={String.raw`|0\rangle`} /> — Ground State</>,
-    color: '#00f2fe',
-    glowColor: 'rgba(0,242,254,0.3)',
-    borderColor: 'rgba(0,242,254,0.4)',
-    math: '|0\\rangle = \\begin{bmatrix} 1 \\\\ 0 \\end{bmatrix}',
-    theta: 0,         // vector points UP (+Y)
-    phi: 0,
-    desc: <>The symbol <InlineMath math={String.raw`|\,\rangle`} /> (ket) is a physicist's way of writing a column vector. A qubit's states live in a space with two directions, <InlineMath math={String.raw`|0\rangle`} /> and <InlineMath math={String.raw`|1\rangle`} />. The arrow points straight along <InlineMath math={String.raw`|0\rangle`} />, so the column holds 1 (all of it along <InlineMath math={String.raw`|0\rangle`} />) on top and 0 below.</>,
-    hint: <>Top number = how much <InlineMath math={String.raw`|0\rangle`} />. Bottom number = how much <InlineMath math={String.raw`|1\rangle`} />.</>,
-    vectorLabel: <InlineMath math={String.raw`|0\rangle`} />,
-  },
-  {
-    id: 1,
-    title: <>The Ket <InlineMath math={String.raw`|1\rangle`} /></>,
-    subtitle: <><InlineMath math={String.raw`|1\rangle`} /> — Excited State</>,
-    color: '#f093fb',
-    glowColor: 'rgba(240,147,251,0.3)',
-    borderColor: 'rgba(240,147,251,0.4)',
-    math: '|1\\rangle = \\begin{bmatrix} 0 \\\\ 1 \\end{bmatrix}',
-    theta: Math.PI,   // vector points DOWN (-Y)
-    phi: 0,
-    desc: <>Now the arrow lies along <InlineMath math={String.raw`|1\rangle`} />: a quarter turn from <InlineMath math={String.raw`|0\rangle`} />. The two are at right angles (orthogonal), so they share nothing, which is why a qubit in <InlineMath math={String.raw`|1\rangle`} /> can never read 0. In the column, the 1 has moved to the bottom.</>,
-    hint: <>Right angle = no overlap: <InlineMath math={String.raw`\langle 0|1\rangle = 0`} />.</>,
-    vectorLabel: <InlineMath math={String.raw`|1\rangle`} />,
-  },
-  {
-    id: 2,
-    title: <><InlineMath math={String.raw`\alpha`} /> & <InlineMath math={String.raw`\beta`} /> — Amplitudes</>,
-    subtitle: <>Superposition State <InlineMath math={String.raw`|+\rangle`} /></>,
-    color: '#f7971e',
-    glowColor: 'rgba(247,151,30,0.3)',
-    borderColor: 'rgba(247,151,30,0.4)',
-    math: '|\\psi\\rangle = \\alpha|0\\rangle + \\beta|1\\rangle',
-    theta: Math.PI / 2, // vector points sideways (+X)
-    phi: 0,
-    desc: <>In superposition the arrow points between the two directions. Its shadows on the axes are the amplitudes <InlineMath math={String.raw`\alpha`} /> and <InlineMath math={String.raw`\beta`} />, the column's two numbers. The glass squares built on them are the odds, and together they always fill exactly one square. Drag the arrow's tip to try it.</>,
-    hint: <>The Born Rule: the probability of measuring 0 is <InlineMath math={String.raw`|\alpha|^2`} />, and for 1 it is <InlineMath math={String.raw`|\beta|^2`} />.</>,
-    vectorLabel: <InlineMath math={String.raw`|+\rangle`} />,
-  },
-  {
-    id: 3,
-    title: <><InlineMath math={String.raw`\langle\,|`} /> The Bra Notation</>,
-    subtitle: <><InlineMath math={String.raw`\langle\psi|`} /> — Row Vector</>,
-    color: '#43e97b',
-    glowColor: 'rgba(67,233,123,0.3)',
-    borderColor: 'rgba(67,233,123,0.4)',
-    math: '\\langle\\psi| = [\\alpha^* \\;\\; \\beta^*]',
-    theta: Math.PI * 0.3,   // α ≈ 0.89, β ≈ 0.45: leans toward |0>
-    phi: Math.PI * 1.25,    // β's phase: 225°, shown on its tile's dial
-    desc: <>To find probabilities we multiply a state by itself (the inner product), but two columns can't be multiplied. So the column turns into a row (transpose) and passes through a mirror that flips each amplitude's phase dial (complex conjugate, the *). That row is the bra <InlineMath math={String.raw`\langle\psi|`} />. Row times column gives <InlineMath math={String.raw`\langle\psi|\psi\rangle = |\alpha|^2 + |\beta|^2 = 1`} />.</>,
-    hint: <><InlineMath math={String.raw`\langle\psi|\varphi\rangle`} /> = "bracket" → that is literally where the word came from!</>,
-    vectorLabel: <InlineMath math={String.raw`\langle\psi|`} />,
-  },
-].map((step) => {
-  // Each step's measurement odds follow from where its vector points (the Born rule).
-  const { p0, p1 } = bornProbabilities(step.theta);
-  return { ...step, probTop: p0, probBottom: p1 };
-});
+// ─── The four steps' captions ────────────────────────────────────────────────
+// The 3D story (diracStory.js) does the explaining; one glass caption under it
+// carries a sentence and the formula for each step.
+const Z = ({ children }) => <span className="dirac-z">{children}</span>;
+const O = ({ children }) => <span className="dirac-o">{children}</span>;
+const P = ({ children }) => <span className="dirac-p">{children}</span>;
+const Note = ({ children }) => <span className="dirac-note">{children}</span>;
+const Col = ({ top, bottom }) => <span className="dirac-col"><span>{top}</span><span>{bottom}</span></span>;
+const Row = ({ children }) => <span className="dirac-row">{children}</span>;
 
-// ─── MAIN 3D SCENE ───────────────────────────────────────────────────
-// The qubit's state space, column vector and bra (DiracSpace.jsx). In the
-// amplitudes step the viewer can drag the arrow; the state is shared with the
-// overlay's matrix card through diracLive.
+export const DIRAC_STEPS = [
+  {
+    title: 'The ket',
+    accent: '#00f2fe',
+    text: 'A ket, written | ⟩, holds a quantum state. Fold its two sides square and it becomes a column of two numbers: how much of |0⟩ and how much of |1⟩.',
+    formula: <><Z>|0⟩</Z> = <Col top={<Z>1</Z>} bottom="0" /> <Note>all of it is |0⟩</Note></>,
+  },
+  {
+    title: 'The ket |1⟩',
+    accent: '#f093fb',
+    text: 'Now all of the state moves to the bottom entry. |0⟩ and |1⟩ share nothing, so a qubit in |1⟩ never reads 0.',
+    formula: <><O>|1⟩</O> = <Col top="0" bottom={<O>1</O>} /> <Note>⟨0|1⟩ = 0</Note></>,
+  },
+  {
+    title: 'Superposition',
+    accent: '#f7971e',
+    text: 'A qubit can hold both at once. α and β are amplitudes, and the light in each slot is the chance of reading that result: |α|² and |β|². The column is just α of |0⟩ plus β of |1⟩.',
+    formula: <><P>|ψ⟩</P> = <Z>α</Z>|0⟩ + <O>β</O>|1⟩ = <Col top={<Z>α</Z>} bottom={<O>β</O>} /> <Note>α = β ≈ 0.71 → 50% each</Note></>,
+  },
+  {
+    title: 'The bra ⟨ψ|',
+    accent: '#43e97b',
+    text: 'Mirror a ket and flip its phases (the complex conjugate, *) and you get the bra ⟨ψ|, a row. Joined bar to bar, bra and ket make a bracket: the state compared with itself, which is always 1.',
+    formula: <><P>⟨ψ|</P> = <Row><Z>α*</Z><O>β*</O></Row> <span className="dirac-gap" /> <P>⟨ψ|ψ⟩</P> = |α|² + |β|² = 1</>,
+  },
+];
+
+// Replay is pressed in the caption (outside the canvas) and heard by the scene.
+const replayListeners = new Set();
+const requestReplay = () => replayListeners.forEach((fn) => fn());
+
+// ─── The 3D scene ────────────────────────────────────────────────────────────
 export function DiracScene({ step }) {
-  const stepData = STEPS[step];
-  const live = useDiracTheta();
-  React.useEffect(() => {
-    if (step === 2) diracLive.set(Math.PI / 2);
-  }, [step]);
-  const theta = step === 2 ? live : stepData.theta;
+  const gl = useThree((s) => s.gl);
+  const scene = useThree((s) => s.scene);
+  const story = useMemo(() => createDiracStory(gl), [gl]);
+  const capFrac = useRef(0.25);
+  const topFrac = useRef(0.08); // the header pills along the top
+  const sinceMeasure = useRef(1);
 
-  return (
-    <>
-      <QualityComposer disableNormalPass>
-        <Bloom luminanceThreshold={0.3} mipmapBlur intensity={0.4} />
-      </QualityComposer>
+  useEffect(() => {
+    const prevEnv = scene.environment;
+    scene.add(story.root);
+    scene.environment = story.environment;
+    // Lets a browser test hold any moment of any shot.
+    window.__qassDiracSeek = (n, at) => story.seek(n, at);
+    return () => {
+      scene.remove(story.root);
+      if (scene.environment === story.environment) scene.environment = prevEnv;
+      if (window.__qassDiracSeek) delete window.__qassDiracSeek;
+      story.dispose();
+    };
+  }, [scene, story]);
 
-      <ambientLight intensity={0.35} />
-      <pointLight position={[6, 6, 6]} color="#00f2fe" intensity={6} distance={30} />
-      <pointLight position={[-6, -6, -6]} color="#f093fb" intensity={6} distance={30} />
+  useEffect(() => { story.play(step, motionReduced()); }, [story, step]);
+  useEffect(() => {
+    const replay = () => story.play(step, motionReduced());
+    replayListeners.add(replay);
+    return () => replayListeners.delete(replay);
+  }, [story, step]);
 
-      <DiracSpace step={step} theta={theta} phase={stepData.phi} />
+  useFrame((state, dt) => {
+    // Where the caption's top is, now and then (it changes height between steps), and the header's bottom.
+    sinceMeasure.current += dt;
+    if (sinceMeasure.current > 0.25) {
+      sinceMeasure.current = 0;
+      const cap = document.querySelector('.dirac-caption');
+      const h = state.gl.domElement.clientHeight || window.innerHeight;
+      if (cap && h) {
+        const box = cap.getBoundingClientRect();
+        const canvasBox = state.gl.domElement.getBoundingClientRect();
+        capFrac.current = Math.min(0.5, Math.max(0, (canvasBox.bottom - box.top) / h));
+        topFrac.current = Math.min(0.2, 72 / h);
+      }
+    }
+    story.frame(Math.min(dt, 0.05), state.clock.elapsedTime, state.camera, capFrac.current, topFrac.current, motionReduced());
+  });
 
-      <OrbitControls makeDefault enablePan={false} enableZoom={true} minDistance={4} maxDistance={16} dampingFactor={0.08} enableDamping />
-    </>
-  );
+  return null;
 }
 
-// ─── 2D HTML OVERLAY (rendered outside canvas) ────────────────────────────
-export function DiracOverlay({ step, onNext, onPrev, theme, isMuted, onToggleMute }) {
-  const isLight = theme === 'light';
-  const stepData = STEPS[step];
-  const isLast = step === STEPS.length - 1;
-
+// ─── The caption (rendered outside the canvas) ───────────────────────────────
+export function DiracOverlay({ step, onNext, onPrev }) {
+  const s = DIRAC_STEPS[step];
+  const isLast = step === DIRAC_STEPS.length - 1;
   return (
-    <>
-      <style>{`
-        @keyframes diracFadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes diracSlideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes diracPulse { 0%,100%{box-shadow:0 0 0 0 ${stepData.glowColor};} 60%{box-shadow:0 0 20px 6px ${stepData.glowColor};} }
-      `}</style>
-
-      {/* ── Step Indicator ── */}
-      <div style={{
-        position: 'absolute', top: '64px', left: '50%', transform: 'translateX(-50%)',
-        display: 'flex', gap: '6px', zIndex: 300, alignItems: 'center', pointerEvents: 'none',
-      }} data-jelly-fade>
-        {STEPS.map((s, i) => (
-          <div key={i} style={{
-            width: i === step ? '24px' : '7px',
-            height: '7px', borderRadius: '4px',
-            background: i === step ? stepData.color : (i < step ? `${stepData.color}70` : 'rgba(255,255,255,0.18)'),
-            transition: 'all 0.35s cubic-bezier(0.16,1,0.3,1)',
-            boxShadow: i === step ? `0 0 12px ${stepData.color}` : 'none',
-          }} />
-        ))}
-      </div>
-
-      {/* ── Top-left: Title card ── */}
-      <div style={{
-        position: 'absolute', top: '80px', left: '50px',
-        animation: 'diracSlideUp 0.5s ease both', zIndex: 300, '--j': 0,
-      }} data-jelly>
-        <div className="glass-interactive" style={{
-          background: 'var(--glass-bg-base)',
-          backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)',
-          border: isLight ? '1px solid rgba(0,0,0,0.1)' : 'var(--glass-border-base)',
-          borderRadius: '24px', padding: '18px 22px',
-          boxShadow: isLight
-            ? `inset 0 1.2px 1.5px rgba(255,255,255,0.95), 0 20px 48px -10px rgba(0,0,0,0.15)`
-            : `var(--glass-highlight), var(--glass-shadow-base)`,
-          minWidth: '200px',
-          fontFamily: "'Inter', sans-serif",
-        }}>
-          <div style={{
-            fontSize: '10px', fontWeight: '800', letterSpacing: '1.5px',
-            color: stepData.color, textTransform: 'uppercase', marginBottom: '4px',
-          }}>Dirac Notation</div>
-          <div style={{
-            fontSize: '20px', fontWeight: '900', color: isLight ? '#0f172a' : '#ffffff',
-            lineHeight: 1.3, marginBottom: '4px',
-          }}>{stepData.title}</div>
-          <div style={{
-            fontSize: '12px', color: stepData.color, fontFamily: "'Fira Code', monospace",
-            fontWeight: '600',
-          }}>{stepData.subtitle}</div>
-        </div>
-      </div>
-
-      {/* ── Top-right: Description card ── */}
-      <div style={{
-        position: 'absolute', top: '80px', right: '50px',
-        animation: 'diracSlideUp 0.5s ease 0.1s both', zIndex: 300, '--j': 1,
-      }} data-jelly>
-        <div className="glass-interactive" style={{
-          background: 'var(--glass-bg-base)',
-          backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)',
-          border: isLight ? '1px solid rgba(0,0,0,0.1)' : 'var(--glass-border-base)',
-          borderRadius: '24px', padding: '18px 22px',
-          boxShadow: isLight
-            ? `inset 0 1.2px 1.5px rgba(255,255,255,0.95), 0 20px 48px -10px rgba(0,0,0,0.15)`
-            : `var(--glass-highlight), var(--glass-shadow-base)`,
-          maxWidth: '300px',
-          fontFamily: "'Inter', sans-serif",
-        }}>
-          <p style={{
-            margin: '0 0 10px', fontSize: '13px', lineHeight: '1.65',
-            color: isLight ? '#334155' : '#cbd5e1',
-          }}>{stepData.desc}</p>
-          <div style={{
-            borderTop: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`, paddingTop: '10px',
-            fontSize: '11px', color: stepData.color, fontWeight: '600',
-            fontFamily: "'Fira Code', monospace",
-          }}>
-            💡 {stepData.hint}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Bottom-left: Math card ── */}
-      <div style={{
-        position: 'absolute', bottom: '120px', left: '50px',
-        animation: 'diracSlideUp 0.5s ease 0.2s both', zIndex: 300, '--j': 2,
-      }} data-jelly>
-        <div className="glass-interactive" style={{
-          background: 'var(--glass-bg-base)',
-          backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)',
-          border: isLight ? '1px solid rgba(0,0,0,0.1)' : 'var(--glass-border-base)',
-          borderRadius: '24px', padding: '18px 22px',
-          boxShadow: isLight
-            ? `inset 0 1.2px 1.5px rgba(255,255,255,0.95), 0 20px 48px -10px rgba(0,0,0,0.15)`
-            : `var(--glass-highlight), var(--glass-shadow-base)`,
-          minWidth: '180px',
-          fontFamily: "'Inter', sans-serif",
-        }}>
-          <div style={{
-            fontSize: '10px', fontWeight: '800', letterSpacing: '1.5px',
-            color: stepData.color, textTransform: 'uppercase', marginBottom: '10px',
-          }}>Matrix Form</div>
-          <div style={{ textAlign: 'center', color: isLight ? '#0f172a' : '#f8fafc' }}>
-            <MathDisplay math={stepData.math} color={stepData.color} />
-          </div>
-        </div>
-      </div>
-
-      {/* 🚀 Dynamic Navigation Buttons 🚀 */}
-      <QuantumNavButtons
-        canPrev={step > 0}
-        canNext={true}
-        onPrev={onPrev}
-        onNext={onNext}
-        prevLabel="Back"
-        nextLabel={isLast ? "Complete" : "Next"}
-        isLast={isLast}
-        accentColor={stepData.color || "#00f2fe"}
-        containerStyle={{
-          position: 'absolute',
-          bottom: '40px',
-          right: '40px',
-          zIndex: 300,
-        }}
-      />
-    </>
-  );
-}
-
-function ProbBar({ value, color, label }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
-      <span style={{ fontFamily: "'Fira Code',monospace", fontSize: '11px', color: '#64748b', minWidth: '26px' }}>{label}</span>
-      <div style={{ flex: 1, height: '7px', background: 'rgba(255,255,255,0.07)', borderRadius: '4px', overflow: 'hidden' }}>
-        <div style={{
-          width: `${value * 100}%`, height: '100%',
-          background: `linear-gradient(90deg, ${color}, ${color}88)`,
-          borderRadius: '4px', transition: 'width 0.9s cubic-bezier(0.34,1.2,0.64,1)',
-          boxShadow: `0 0 8px ${color}`,
-        }} />
-      </div>
-      <span style={{ fontFamily: "'Fira Code',monospace", fontSize: '12px', color, fontWeight: '700', minWidth: '34px' }}>{Math.round(value * 100)}%</span>
-    </div>
-  );
-}
-
-// The amplitudes step's card follows the arrow as it's dragged.
-function LiveSuperposition() {
-  const theta = useDiracTheta();
-  const alpha = Math.cos(theta / 2);
-  const beta = Math.sin(theta / 2);
-  return (
-    <div style={{ fontFamily: "'Fira Code',monospace" }}>
-      <span style={{ fontSize: '14px', color: '#f8fafc', lineHeight: 2 }}>
-        <InlineMath math={String.raw`|\psi\rangle`} /> = <span style={{ color: '#00f2fe' }}>{alpha.toFixed(2)}</span><InlineMath math={String.raw`|0\rangle`} /> + <span style={{ color: '#f093fb' }}>{beta.toFixed(2)}</span><InlineMath math={String.raw`|1\rangle`} />
-      </span>
-      <div style={{ marginTop: '10px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '10px' }}>
-        <ProbBar value={alpha * alpha} color="#00f2fe" label={<InlineMath math={String.raw`|\alpha|^2`} />} />
-        <ProbBar value={beta * beta} color="#f093fb" label={<InlineMath math={String.raw`|\beta|^2`} />} />
-      </div>
-    </div>
-  );
-}
-
-function MathDisplay({ math, color, step }) {
-  const renders = {
-    '|0\\rangle = \\begin{bmatrix} 1 \\\\ 0 \\end{bmatrix}': (
-      <div style={{ fontFamily: "'Fira Code',monospace" }}>
-        <span style={{ fontSize: '16px', lineHeight: 1.6, display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <InlineMath math={String.raw`|0\rangle`} /> =
-          <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', verticalAlign: 'middle',
-            borderLeft: `2px solid ${color}`, borderRight: `2px solid ${color}`,
-            padding: '3px 10px', borderRadius: '4px', margin: '0 2px',
-            background: `${color}0a` }}>
-            <span style={{ color, fontSize: '16px', fontWeight: '800', textShadow: `0 0 12px ${color}` }}>1</span>
-            <span style={{ color: '#475569', fontSize: '14px', fontWeight: '400' }}>0</span>
-          </span>
+    <section
+      data-jelly
+      className="dirac-caption glass-card"
+      style={{ '--j': 0, '--tx': '-50%', '--dirac-accent': s.accent }}
+      aria-label="Dirac notation"
+      aria-live="polite"
+    >
+      <div className="dirac-cap-top">
+        <span className="dirac-eyebrow">Step {step + 1} of {DIRAC_STEPS.length} · {s.title}</span>
+        <span className="dirac-dots" aria-hidden="true">
+          {DIRAC_STEPS.map((_, i) => <i key={i} className={i === step ? 'on' : i < step ? 'done' : ''} />)}
         </span>
-        <div style={{ marginTop: '10px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '10px' }}>
-          <ProbBar value={1.0} color="#00f2fe" label={<InlineMath math={String.raw`|0\rangle`} />} />
-          <ProbBar value={0.0} color="#f093fb" label={<InlineMath math={String.raw`|1\rangle`} />} />
-        </div>
       </div>
-    ),
-    '|1\\rangle = \\begin{bmatrix} 0 \\\\ 1 \\end{bmatrix}': (
-      <div style={{ fontFamily: "'Fira Code',monospace" }}>
-        <span style={{ fontSize: '16px', lineHeight: 1.6, display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <InlineMath math={String.raw`|1\rangle`} /> =
-          <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', verticalAlign: 'middle',
-            borderLeft: `2px solid ${color}`, borderRight: `2px solid ${color}`,
-            padding: '3px 10px', borderRadius: '4px', margin: '0 2px',
-            background: `${color}0a` }}>
-            <span style={{ color: '#475569', fontSize: '14px', fontWeight: '400' }}>0</span>
-            <span style={{ color, fontSize: '16px', fontWeight: '800', textShadow: `0 0 12px ${color}` }}>1</span>
-          </span>
-        </span>
-        <div style={{ marginTop: '10px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '10px' }}>
-          <ProbBar value={0.0} color="#00f2fe" label={<InlineMath math={String.raw`|0\rangle`} />} />
-          <ProbBar value={1.0} color="#f093fb" label={<InlineMath math={String.raw`|1\rangle`} />} />
-        </div>
+      <div className="dirac-cap-body" key={step}>
+        <p className="dirac-text">{s.text}</p>
+        <div className="dirac-formula">{s.formula}</div>
       </div>
-    ),
-    '|\\psi\\rangle = \\alpha|0\\rangle + \\beta|1\\rangle': <LiveSuperposition />,
-    '\\langle\\psi| = [\\alpha^* \\;\\; \\beta^*]': (
-      <span style={{ fontFamily: "'Fira Code',monospace", fontSize: '14px', color: '#f8fafc', lineHeight: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <div>⟨ψ| = [<span style={{ color }}>α*</span>  <span style={{ color }}>β*</span>]</div>
-        <div style={{ marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span>⟨ψ<InlineMath math={String.raw`|\psi\rangle`} /> =</span>
-          <span>[<span style={{ color }}>α*</span> <span style={{ color }}>β*</span>]</span>
-          <span>·</span>
-          <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', verticalAlign: 'middle', borderLeft: '1px solid rgba(255,255,255,0.3)', borderRight: '1px solid rgba(255,255,255,0.3)', padding: '0 4px', lineHeight: 1.3 }}>
-            <span>α</span>
-            <span>β</span>
-          </span>
-          <span>= 1</span>
-        </div>
-      </span>
-    ),
-  };
-
-  return renders[math] || <span style={{ fontFamily: "'Fira Code',monospace", color, fontSize: '14px' }}>{math}</span>;
+      <div className="dirac-controls">
+        <button type="button" className="dirac-btn glass-btn glass-interactive" onClick={onPrev} disabled={step === 0}>Back</button>
+        <button type="button" className="dirac-btn glass-btn glass-interactive" onClick={requestReplay}>Replay</button>
+        <button type="button" className="dirac-btn dirac-btn-primary glass-btn glass-interactive" onClick={onNext}>{isLast ? 'Start over' : 'Next'}</button>
+      </div>
+    </section>
+  );
 }
 
 export default DiracScene;

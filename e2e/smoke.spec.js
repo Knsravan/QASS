@@ -104,26 +104,22 @@ test('Classical Bit vs Qubit: flip the bit, measure the qubit, count the results
   expect(errors).toEqual([]);
 });
 
-test('Dirac Notation: the steps fill the column, and the bra closes the bracket', async ({ page }) => {
+test('Dirac Notation: the caption walks the four shots, replays and starts over', async ({ page }) => {
   const errors = collectErrors(page);
   await page.addInitScript(() => localStorage.setItem('quantumUI_initialized', 'true'));
   await page.goto('/#dirac-notation');
   await expect(page.locator('[data-module]')).toHaveCount(MODULE_COUNT, { timeout: 120_000 });
   await page.waitForTimeout(4000);
 
-  const next = page.locator('.quantum-nav-btn').last();
-  await expect(page.locator('.bvq-pill', { hasText: 'α 1.00' })).toHaveCount(1);
-  await next.click();
-  await expect(page.locator('.bvq-pill', { hasText: 'β 1.00' })).toHaveCount(1);
-  await expect(page.locator('.bvq-pill', { hasText: '90°' })).toHaveCount(1);
-  await next.click();
-  await expect(page.locator('.bvq-pill', { hasText: '|α|² + |β|² = 1' })).toHaveCount(1);
-  await next.click();
-  // The bra flies through the mirror (its amplitudes become α*, β*) and lands against the ket.
-  await expect(page.locator('.bvq-pill', { hasText: 'β* 0.45' })).toHaveCount(1, { timeout: 15_000 });
-  const replay = page.getByRole('button', { name: 'Play the bra animation again' });
-  await expect(replay).toBeVisible({ timeout: 15_000 });
-  await replay.click();
-  await expect(page.locator('.bvq-pill', { hasText: 'β 0.45' })).toHaveCount(2);
+  const caption = page.getByRole('region', { name: 'Dirac notation' });
+  const titles = ['The ket', 'The ket |1⟩', 'Superposition', 'The bra ⟨ψ|'];
+  await expect(caption.getByRole('button', { name: 'Back' })).toBeDisabled();
+  for (let i = 0; i < titles.length; i++) {
+    await expect(caption).toContainText(`Step ${i + 1} of 4 · ${titles[i]}`);
+    await caption.getByRole('button', { name: 'Replay' }).click();
+    if (i < titles.length - 1) await caption.getByRole('button', { name: 'Next' }).click();
+  }
+  await caption.getByRole('button', { name: 'Start over' }).click();
+  await expect(caption).toContainText('Step 1 of 4 · The ket');
   expect(errors).toEqual([]);
 });
