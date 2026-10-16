@@ -103,3 +103,23 @@ test('Classical Bit vs Qubit: flip the bit, measure the qubit, count the results
   }
   expect(errors).toEqual([]);
 });
+
+test('Dirac Notation: the caption walks the four shots, replays and starts over', async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.addInitScript(() => localStorage.setItem('quantumUI_initialized', 'true'));
+  await page.goto('/#dirac-notation');
+  await expect(page.locator('[data-module]')).toHaveCount(MODULE_COUNT, { timeout: 120_000 });
+  await page.waitForTimeout(4000);
+
+  const caption = page.getByRole('region', { name: 'Dirac notation' });
+  const titles = ['The ket', 'The ket |1⟩', 'Superposition', 'The bra ⟨ψ|'];
+  await expect(caption.getByRole('button', { name: 'Back' })).toBeDisabled();
+  for (let i = 0; i < titles.length; i++) {
+    await expect(caption).toContainText(`Step ${i + 1} of 4 · ${titles[i]}`);
+    await caption.getByRole('button', { name: 'Replay' }).click();
+    if (i < titles.length - 1) await caption.getByRole('button', { name: 'Next' }).click();
+  }
+  await caption.getByRole('button', { name: 'Start over' }).click();
+  await expect(caption).toContainText('Step 1 of 4 · The ket');
+  expect(errors).toEqual([]);
+});

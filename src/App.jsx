@@ -51,6 +51,7 @@ import './styles/boot.css';
 import './styles/display-panel.css';
 import './styles/webgl-glass.css';
 import './styles/bit-vs-qubit.css';
+import './styles/dirac.css';
 import { SCENE_GL } from './sceneGl';
 import { QualityCanvas, QualityComposer, useCount } from './QualityScene';
 import { setLandingMode, deviceProfile } from './quality';
@@ -1194,7 +1195,7 @@ function App() {
           ) : stageId === 'dirac-notation' ? (
             <>
               <SharedCanvas
-                camera={{ position: [4, 3, 8], fov: 50 }}
+                camera={{ position: [2.5, 1.2, 9.5], fov: 50 }}
                 gl={SCENE_GL}
                 style={{ position: 'absolute', inset: 0, zIndex: 1, willChange: 'transform', transform: 'translateZ(0)' }}
               >
@@ -1205,7 +1206,7 @@ function App() {
                 <DiracOverlay
                   step={diracStep}
                   theme={theme}
-                  onNext={() => setDiracStep(s => Math.min(s + 1, 3))}
+                  onNext={() => setDiracStep(s => (s + 1) % 4)}
                   onPrev={() => setDiracStep(s => Math.max(s - 1, 0))}
                 />
               </div>

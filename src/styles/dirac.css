@@ -1,0 +1,86 @@
+/* =============================================================================
+    DIRAC NOTATION: the caption under the 3D story (DiracNotation.jsx)
+   ============================================================================= */
+.dirac-caption.glass-card {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  width: min(640px, calc(100% - 48px));
+  transform: translateX(-50%);
+  z-index: 300;
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px 14px;
+  border-radius: 24px;
+  font-family: 'Inter', sans-serif;
+  pointer-events: auto;
+}
+
+.dirac-cap-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.dirac-eyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--dirac-accent);
+}
+.dirac-dots { display: flex; gap: 6px; }
+.dirac-dots i {
+  width: 7px; height: 7px; border-radius: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1), background 0.35s;
+}
+.dirac-dots i.on { width: 22px; background: var(--dirac-accent); box-shadow: 0 0 10px var(--dirac-accent); }
+.dirac-dots i.done { background: color-mix(in srgb, var(--dirac-accent) 45%, transparent); }
+
+.dirac-cap-body { display: grid; gap: 8px; animation: diracCaptionIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes diracCaptionIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+.dirac-text { margin: 0; font-size: 14.5px; line-height: 1.55; color: var(--text-secondary, #cfd7e6); max-width: 62ch; text-wrap: pretty; }
+.dirac-formula {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  min-height: 46px;
+  font-family: 'Fira Code', monospace; font-size: 16px; font-weight: 600;
+  color: var(--text-primary, #eef2fa);
+}
+.dirac-z { color: #00f2fe; }
+.dirac-o { color: #f093fb; }
+.dirac-p { color: #b6a8ff; }
+.dirac-note { color: var(--text-secondary, #94a3b8); font-weight: 500; font-size: 13px; }
+.dirac-gap { width: 8px; }
+.dirac-col, .dirac-row {
+  border-left: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  border-radius: 5px;
+}
+.dirac-col { display: inline-grid; gap: 1px; padding: 2px 9px; line-height: 1.25; text-align: center; }
+.dirac-row { display: inline-flex; gap: 10px; padding: 1px 9px; }
+
+.dirac-controls { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.dirac-btn {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary, #eef2fa);
+  font: 600 13.5px 'Inter', sans-serif;
+  cursor: pointer;
+}
+.dirac-btn:hover { background: rgba(255, 255, 255, 0.11); }
+.dirac-btn:disabled { opacity: 0.35; cursor: default; }
+.dirac-btn:focus-visible { outline: 2px solid var(--dirac-accent); outline-offset: 3px; }
+.dirac-btn-primary {
+  border-color: color-mix(in srgb, var(--dirac-accent) 60%, transparent);
+  color: var(--dirac-accent);
+  box-shadow: inset 0 1px 1.5px rgba(255, 255, 255, 0.35), 0 0 20px color-mix(in srgb, var(--dirac-accent) 22%, transparent);
+}
+
+@media (max-width: 560px) {
+  .dirac-caption.glass-card { bottom: 12px; width: calc(100% - 24px); padding: 14px 14px 12px; }
+  .dirac-text { font-size: 13.5px; }
+  .dirac-formula { font-size: 14.5px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dirac-cap-body, .dirac-dots i { animation: none; transition: none; }
+}
