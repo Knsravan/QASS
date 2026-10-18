@@ -123,3 +123,28 @@ test('Dirac Notation: the caption walks the four shots, replays and starts over'
   await expect(caption).toContainText('Step 1 of 4 · The ket');
   expect(errors).toEqual([]);
 });
+
+test('Superposition: the cards build up, the sphere measures, and the state can be prepared again', async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.addInitScript(() => localStorage.setItem('quantumUI_initialized', 'true'));
+  await page.goto('/#superposition');
+  await expect(page.locator('[data-module]')).toHaveCount(MODULE_COUNT, { timeout: 120_000 });
+  await page.waitForTimeout(4000);
+
+  const next = page.locator('.quantum-nav-btn.next-btn');
+  await expect(page.locator('.sp-card.sp-tl')).toContainText('The Ground State');
+  await expect(page.locator('.sp-card.sp-bl')).toBeHidden();
+  await next.click();
+  await expect(page.locator('.sp-card.sp-bl')).toBeVisible();
+  await expect(page.locator('.sp-card.sp-bl')).toContainText('Classical Limit');
+  await next.click();
+  await expect(page.locator('.sp-card.sp-tr')).toContainText('Infinite Possibilities');
+  await next.click();
+  await expect(page.locator('.sp-card.sp-br')).toContainText('Collapse: Your Turn');
+  // Measure State: the state collapses to |0> or |1>
+  await next.click();
+  await expect(page.locator('.sp-card.sp-br')).toContainText('Wave Function Collapsed', { timeout: 15_000 });
+  await page.locator('.sp-again').click();
+  await expect(page.locator('.sp-card.sp-br')).toContainText('Collapse: Your Turn');
+  expect(errors).toEqual([]);
+});
