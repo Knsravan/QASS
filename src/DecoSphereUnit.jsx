@@ -5,6 +5,8 @@ import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { handoff } from './handoff';
+import { Metal, useRimMaterial } from './PremiumBitQubit';
+import { SphereLines, LightLine, Halo } from './GlassBlochParts';
 
 export const CT = '#14b8a6'; // Teal - Pure
 export const CA = '#f59e0b'; // Amber - Noisy / Thermal
@@ -76,6 +78,7 @@ function DecayRibbon3D({ isVisible, noiseLevel }) {
 export function BlochSphereUnit({ posArr, color, label, isPure, noiseLevel, activeNoise, noiseBurstId, entranceRef, posKey, step, tempK, showLabels = true, dirOverride = null, startDir = null }) {
   const outerRef     = useRef();
   const shellRef     = useRef();
+  const rimMat = useRimMaterial(0.8);
   const vectorGrpRef = useRef();
   const ghostRefs    = useRef([]);
 
@@ -199,45 +202,22 @@ export function BlochSphereUnit({ posArr, color, label, isPure, noiseLevel, acti
 
   return (
     <group ref={outerRef}>
-      {/* Outer Wireframe Sphere */}
-      <mesh ref={shellRef}>
-        <sphereGeometry args={[SPHERE_R, 30, 22]} />
-        <meshBasicMaterial color={activeUnitColor} wireframe transparent opacity={0.16} depthWrite={false} />
+      {/* A glass shell (it flickers with the noise on the noisy qubit) and its glowing rim */}
+      <mesh ref={shellRef} raycast={() => null}>
+        <sphereGeometry args={[SPHERE_R, 64, 40]} />
+        <meshPhysicalMaterial color={activeUnitColor} transparent opacity={0.12} roughness={0.08} clearcoat={1} clearcoatRoughness={0.15} depthWrite={false} />
+      </mesh>
+      <mesh raycast={() => null}>
+        <sphereGeometry args={[SPHERE_R * 1.005, 64, 40]} />
+        <primitive object={rimMat} attach="material" />
       </mesh>
 
-      {/* Equatorial Ring */}
-      <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[SPHERE_R, 0.016, 12, 90]} />
-        <meshBasicMaterial color={activeUnitColor} transparent opacity={0.35} depthWrite={false} />
-      </mesh>
+      {/* Fine lines of latitude and longitude, in the qubit's colour */}
+      <SphereLines radius={SPHERE_R} color={activeUnitColor} equatorColor={activeUnitColor} opacity={0.2} equatorOpacity={0.5} />
 
-      {/* Latitudinal Rings */}
-      <mesh position={[0, SPHERE_R * 0.5, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[SPHERE_R * 0.866, 0.008, 8, 60]} />
-        <meshBasicMaterial color={activeUnitColor} transparent opacity={0.15} depthWrite={false} />
-      </mesh>
-      <mesh position={[0, -SPHERE_R * 0.5, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[SPHERE_R * 0.866, 0.008, 8, 60]} />
-        <meshBasicMaterial color={activeUnitColor} transparent opacity={0.15} depthWrite={false} />
-      </mesh>
-
-      {/* Vertical Meridian Ring */}
-      <mesh rotation={[0, Math.PI / 2, 0]}>
-        <torusGeometry args={[SPHERE_R, 0.010, 8, 80]} />
-        <meshBasicMaterial color={activeUnitColor} transparent opacity={0.18} depthWrite={false} />
-      </mesh>
-
-      {/* Z Axis (Green, Vertical) */}
-      <mesh>
-        <cylinderGeometry args={[0.016, 0.016, SPHERE_R * 2.25, 8]} />
-        <meshBasicMaterial color="#22c55e" transparent opacity={0.32} />
-      </mesh>
-
-      {/* X Axis (Red, Horizontal) */}
-      <mesh rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.016, 0.016, SPHERE_R * 2.25, 8]} />
-        <meshBasicMaterial color="#ef4444" transparent opacity={0.32} />
-      </mesh>
+      {/* The |0>–|1> axis and the horizontal one: lines of light */}
+      <LightLine length={SPHERE_R * 2.25} opacity={0.35} />
+      <LightLine length={SPHERE_R * 2.25} opacity={0.14} rotation={[0, 0, Math.PI / 2]} />
 
       {showLabels && (
         <>
@@ -273,16 +253,16 @@ export function BlochSphereUnit({ posArr, color, label, isPure, noiseLevel, acti
 
       {/* State Vector Arrow (Shaft + Pointed Cone Arrowhead) */}
       <group ref={vectorGrpRef}>
-        {/* Vector Shaft */}
-        <mesh position={[0, 0.44, 0]}>
-          <cylinderGeometry args={[0.034, 0.034, 0.88, 12]} />
-          <meshStandardMaterial color={activeUnitColor} emissive={activeUnitColor} emissiveIntensity={0.85} />
+        {/* A steel shaft ending in a glowing pearl (the group is scaled to the arrow's reach) */}
+        <mesh position={[0, 0.44, 0]} raycast={() => null}>
+          <cylinderGeometry args={[0.015, 0.015, 0.88, 16]} />
+          <Metal />
         </mesh>
-        {/* Pointed Arrowhead */}
-        <mesh position={[0, 0.98, 0]}>
-          <coneGeometry args={[0.15, 0.34, 16]} />
-          <meshStandardMaterial color={activeUnitColor} emissive={activeUnitColor} emissiveIntensity={2.2} />
+        <mesh position={[0, 0.94, 0]} raycast={() => null}>
+          <sphereGeometry args={[0.062, 32, 20]} />
+          <meshPhysicalMaterial color={activeUnitColor} emissive={activeUnitColor} emissiveIntensity={0.7} roughness={0.12} clearcoat={1} clearcoatRoughness={0.1} />
         </mesh>
+        <Halo radius={0.11} color={activeUnitColor} opacity={0.18} position={[0, 0.94, 0]} />
       </group>
 
       {/* Ghost Tips (Noisy Sphere Only) */}
