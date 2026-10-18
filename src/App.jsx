@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { Bloom } from '@react-three/postprocessing';
 import BlochSphere from './BlochSphere';
 import { DiracScene, DiracOverlay } from './DiracNotation';
+import { SuperpositionScene, SuperpositionOverlay } from './Superposition';
 import { GatesScene, GatesOverlay, GATES_STEPS } from './QuantumGates';
 import { MultiGatesScene, MultiGatesOverlay, MULTI_GATES_STEPS } from './MultiQubitGates';
 import { isResultEntangled } from './quantumMath';
@@ -52,6 +53,7 @@ import './styles/display-panel.css';
 import './styles/webgl-glass.css';
 import './styles/bit-vs-qubit.css';
 import './styles/dirac.css';
+import './styles/superposition.css';
 import { SCENE_GL } from './sceneGl';
 import { QualityCanvas, QualityComposer, useCount } from './QualityScene';
 import { setLandingMode, deviceProfile } from './quality';
@@ -1082,9 +1084,9 @@ function App() {
           </div>
 
           <ModuleErrorBoundary
-            // The hub, the first module and superposition share one scene (the
+            // The hub and the first module share one scene (the
             // bit and the qubit), so moving between them morphs it in place.
-            key={!stageId || stageId === 'bit-vs-qubit' || stageId === 'superposition' || stageId === 'gates' || stageId === 'multi-qubit-gates' || stageId === 'interference' || stageId === 'entanglement' || stageId === 'exponential' || stageId === 'decoherence' ? 'bit-scene' : stageId}
+            key={!stageId || stageId === 'bit-vs-qubit' || stageId === 'gates' || stageId === 'multi-qubit-gates' || stageId === 'interference' || stageId === 'entanglement' || stageId === 'exponential' || stageId === 'decoherence' ? 'bit-scene' : stageId}
             moduleTitle={curriculumData.find(m => m.id === stageId)?.title}
             boundsStyle={uiBoundsStyle}
             onRetry={() => window.location.reload()}
@@ -1190,6 +1192,20 @@ function App() {
                     setMultiGateApplied(false);
                   }}
                 />
+              </div>
+            </>
+          ) : stageId === 'superposition' ? (
+            <>
+              <SharedCanvas
+                camera={{ position: [2.8, 1.7, 12.6], fov: 42 }}
+                gl={SCENE_GL}
+                style={{ position: 'absolute', inset: 0, zIndex: 1, willChange: 'transform', transform: 'translateZ(0)' }}
+              >
+                <CameraShifter isSidebarOpen={isSidebarOpen} />
+                <SuperpositionScene />
+              </SharedCanvas>
+              <div style={uiBoundsStyle}>
+                <SuperpositionOverlay isGlobalMuted={isGlobalMuted} />
               </div>
             </>
           ) : stageId === 'dirac-notation' ? (

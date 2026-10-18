@@ -41,7 +41,7 @@ export function useStageChoreography({ activeModuleId, isSidebarOpen, multiGates
   const [pairModule, setPairModule] = useState('multi-qubit-gates');
   useEffect(() => {
     if (activeModuleId === stageId) return undefined;
-    if (stageId === null && activeModuleId === 'dirac-notation') {
+    if (stageId === null && (activeModuleId === 'dirac-notation' || activeModuleId === 'superposition')) {
       let done = false;
       setStagePhase('vanish');
       fadeOutSharedCanvas(520);
@@ -273,7 +273,7 @@ export function useStageChoreography({ activeModuleId, isSidebarOpen, multiGates
       // either the shared scene morphs back (the bit-and-qubit scene), or the
       // scene fades out and the hub's fades in; then the hub's text pops.
       let done = false;
-      const shared = stageId === 'bit-vs-qubit' || stageId === 'superposition';
+      const shared = stageId === 'bit-vs-qubit';
       setStagePhase('closing');
       setJellyState('out');
       const t1 = shared ? 0 : setTimeout(() => fadeOutSharedCanvas(450), 550);
@@ -286,13 +286,6 @@ export function useStageChoreography({ activeModuleId, isSidebarOpen, multiGates
         setStageId(null);
       }, shared ? 600 : 1050);
       return () => { clearTimeout(t1); clearTimeout(t2); if (!done) { setStagePhase('idle'); setJellyState(''); showSharedCanvas(); } };
-    }
-    if (stageId === null && activeModuleId === 'superposition') {
-      setJellyState('wait');
-      setStagePhase('morph');
-      setStageSeq((n) => n + 1);
-      setStageId(activeModuleId);
-      return undefined;
     }
     setStagePhase('idle');
     setJellyState('');
