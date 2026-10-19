@@ -96,7 +96,7 @@ function AnimatedQubitItem({
       />
 
       {/* 3D Floating Name Badge */}
-      <Html position={[0, 2.25, 0]} center zIndexRange={[60, 0]}>
+      <Html position={[0, 2.85, 0]} center zIndexRange={[60, 0]}>
         <div data-jelly style={{
           '--j': 1,
           padding: '4px 12px',

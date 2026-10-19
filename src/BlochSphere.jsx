@@ -10,7 +10,9 @@ import { BlockMath, InlineMath } from './KatexMath';
 import { useQuantumAudio } from './useQuantumAudio';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { QualityComposer } from './QualityScene';
-import { PremiumBlochSphere, PremiumBit, GrowIn } from './PremiumBitQubit';
+import { PremiumBlochSphere, PremiumBit, GrowIn, Metal, GlassMaterial, useRimMaterial } from './PremiumBitQubit';
+import { SphereLines, LightLine, Halo } from './GlassBlochParts';
+import { MathChip } from './MathChip';
 
 // =========================================
 // 1. CLASSICAL BIT COMPONENT (Left Side)
@@ -23,7 +25,7 @@ export const ClassicalBit = ({ position, scale = 1, theme, activeModule, flipMod
 
   const [value, setValue] = useState(0);
   const [hovered, setHovered] = useState(false);
-  const gridColor = customGridColor || (isLight ? "#0d9488" : "#14b8a6");
+  const rimMat = useRimMaterial(0.7);
 
   const born = useRef(null);
   useFrame((state) => {
@@ -77,39 +79,39 @@ export const ClassicalBit = ({ position, scale = 1, theme, activeModule, flipMod
       onPointerOver={(e) => { e.stopPropagation(); setHovered(true); if (onDomainHover) onDomainHover(); }}
       onPointerOut={(e) => { setHovered(false); if (onDomainUnhover) onDomainUnhover(); }}
     >
-      {/* Outer Cyber Wireframe Capsule */}
+      {/* A glass capsule, its rim glowing at the silhouette */}
       <mesh>
-        <capsuleGeometry args={[0.6, 2.2, 16, 24]} />
-        <meshBasicMaterial color={gridColor} wireframe={true} transparent={true} opacity={isLight ? 0.3 : 0.22} blending={isLight ? THREE.NormalBlending : THREE.AdditiveBlending} />
+        <capsuleGeometry args={[0.6, 2.2, 16, 32]} />
+        <GlassMaterial />
       </mesh>
-      {/* Inner Frosted Capsule */}
-      <mesh>
-        <capsuleGeometry args={[0.58, 2.18, 32, 48]} />
-        <meshPhysicalMaterial color={isLight ? "#e2e8f0" : "#ffffff"} transparent={true} transmission={0.92} roughness={0.12} clearcoat={1} ior={1.4} opacity={0.1} />
+      <mesh raycast={() => null}>
+        <capsuleGeometry args={[0.605, 2.2, 16, 32]} />
+        <primitive object={rimMat} attach="material" />
       </mesh>
-      {/* Central Guide Rail */}
-      <mesh position={[0, 0, 0]}>
-        <cylinderGeometry args={[0.016, 0.016, 2.2, 8]} />
-        <meshBasicMaterial color="#22c55e" transparent opacity={0.35} />
-      </mesh>
-      {/* Subtle Equator Ring */}
-      <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.6, 0.012, 10, 40]} />
-        <meshBasicMaterial color={gridColor} transparent opacity={0.35} />
-      </mesh>
+      {/* the two seats the bead can sit in, rings of light: 0 and 1, nothing between */}
+      {[1, -1].map((sgn) => (
+        <mesh key={sgn} position={[0, sgn * 1.1, 0]} rotation={[Math.PI / 2, 0, 0]} raycast={() => null}>
+          <torusGeometry args={[0.3, 0.014, 8, 48]} />
+          <meshBasicMaterial color={sgn > 0 ? '#00f2fe' : '#f093fb'} transparent opacity={0.85} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
+        </mesh>
+      ))}
+      {/* the rail the bead runs on, a line of light */}
+      <LightLine length={2.2} opacity={0.35} />
 
       {!isBlank && (
         <>
-          <Html position={[0.9, 1.1, 0]} center>
-            <div style={{ fontSize: '22px', fontFamily: "'Fira Code', monospace", fontWeight: '800', color: value === 0 ? "#00f2fe" : 'var(--text-secondary)', textShadow: value === 0 ? `0 0 15px #00f2fe` : 'none', transition: 'all 0.2s', opacity: 'var(--bit-fade, 1)' }}>0</div>
+          <Html position={[1.05, 1.1, 0]} center>
+            <MathChip tex="0" tone="zero" round active={value === 0} style={{ opacity: 'var(--bit-fade, 1)' }} />
           </Html>
-          <Html position={[0.9, -1.1, 0]} center>
-            <div style={{ fontSize: '22px', fontFamily: "'Fira Code', monospace", fontWeight: '800', color: value === 1 ? "#f093fb" : 'var(--text-secondary)', textShadow: value === 1 ? `0 0 15px #f093fb` : 'none', transition: 'all 0.2s', opacity: 'var(--bit-fade, 1)' }}>1</div>
+          <Html position={[1.05, -1.1, 0]} center>
+            <MathChip tex="1" tone="one" round active={value === 1} style={{ opacity: 'var(--bit-fade, 1)' }} />
           </Html>
 
+          {/* the bead: a glowing pearl */}
           <mesh ref={orbRef} position={[0, 1.1, 0]}>
-            <sphereGeometry args={[0.11, 32, 32]} />
-            <meshStandardMaterial color={activeColor} emissive={activeColor} emissiveIntensity={3.5} />
+            <sphereGeometry args={[0.22, 32, 20]} />
+            <meshPhysicalMaterial color={activeColor} emissive={activeColor} emissiveIntensity={0.7} roughness={0.12} clearcoat={1} clearcoatRoughness={0.1} />
+            <Halo radius={0.4} color={activeColor} opacity={0.18} />
             <pointLight ref={lightRef} color={activeColor} intensity={isLight ? 5 : 2.5} distance={3} />
           </mesh>
         </>
@@ -257,10 +259,12 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla,
   }, [activeModule, superpositionStep, measuredValue]);
 
   const isLight = theme === 'light';
-  const defaultGrid = isLight ? "#0d9488" : "#14b8a6";
-  const gridColor = customGridColor || defaultGrid;
-  const ringColor = customRingColor || gridColor;
+  // The glass's lines: pale blue, unless a module tints its sphere (then in that tint).
+  const lineColor = customRingColor || customGridColor || '#9fd8ff';
+  const equatorColor = customRingColor || customGridColor || '#b6e9ff';
+  const rimMat = useRimMaterial(0.85);
   const axisColor = isLight ? "#cbd5e1" : "#64748b";
+  const axisOut = activeModule === 'gates' ? 2.95 : 2.25;
 
   const targetSphereOpacity = 1;
 
@@ -479,7 +483,7 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla,
             }
             // Step 2: phase-pulse the vector glow
             if (superpositionStep === 2 && lockedGlowRef.current) {
-              lockedGlowRef.current.emissiveIntensity = 4 + Math.sin(vectorRef.current.rotation.y * 1.5) * 2.5;
+              lockedGlowRef.current.emissiveIntensity = 0.9 + Math.sin(vectorRef.current.rotation.y * 1.5) * 0.4;
             }
             // Step 3: vibrate sphere + ripple
             if (superpositionStep === 3) {
@@ -587,7 +591,7 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla,
       }
       // Slow glow on the vector itself
       if (lockedGlowRef.current) {
-        lockedGlowRef.current.emissiveIntensity = 3 + Math.sin(time * 9) * 1.5;
+        lockedGlowRef.current.emissiveIntensity = 0.9 + Math.sin(time * 9) * 0.3;
       }
     } else {
       // ── Reset all Step-0 effects when not in step 0 ──
@@ -655,16 +659,10 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla,
   return (
     <group ref={coreGroupRef} position={position} scale={scale} visible={visible !== false}>
       <a.group ref={sphereRef} scale={sOpacity} rotation={sphereRotation || [0, 0, 0]}>
-        {/* ── 1. Geometric Wireframe Sphere (Decoherence style) ── */}
-        <mesh>
-          <sphereGeometry args={[2, 30, 22]} />
-          <meshBasicMaterial
-            color={gridColor}
-            wireframe={true}
-            transparent={true}
-            opacity={isLight ? 0.28 : 0.16}
-            blending={isLight ? THREE.NormalBlending : THREE.AdditiveBlending}
-          />
+        {/* ── 1. The glass's rim, glowing at its silhouette (cyan above, purple below) ── */}
+        <mesh raycast={() => null}>
+          <sphereGeometry args={[2.01, 64, 40]} />
+          <primitive object={rimMat} attach="material" />
         </mesh>
 
         {/* ── 2. Frosted Inner Glass Core ── */}
@@ -705,26 +703,8 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla,
 
         {/* ── 3. Depth Rings (Equator, Upper/Lower Parallels, Vertical Meridian) ── */}
         <group onPointerOver={(e) => { e.stopPropagation(); setHoveredState('equator'); if (onDomainHover) onDomainHover(); }} onPointerOut={(e) => { setHoveredState(null); if (onDomainUnhover) onDomainUnhover(); }}>
-          {/* Main Equatorial Ring */}
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[2, 0.016, 12, 90]} />
-            <meshBasicMaterial color={attemptCopy ? "#ef4444" : ringColor} transparent opacity={0.35} />
-          </mesh>
-          {/* Upper Latitudinal Parallel (y = +1.0, radius = 1.732) */}
-          <mesh position={[0, 1.0, 0]} rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[1.732, 0.012, 10, 80]} />
-            <meshBasicMaterial color={ringColor} transparent opacity={0.22} />
-          </mesh>
-          {/* Lower Latitudinal Parallel (y = -1.0, radius = 1.732) */}
-          <mesh position={[0, -1.0, 0]} rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[1.732, 0.012, 10, 80]} />
-            <meshBasicMaterial color={ringColor} transparent opacity={0.22} />
-          </mesh>
-          {/* Vertical Meridian Ring */}
-          <mesh rotation={[0, Math.PI / 2, 0]}>
-            <torusGeometry args={[2, 0.014, 12, 90]} />
-            <meshBasicMaterial color={ringColor} transparent opacity={0.25} />
-          </mesh>
+          {/* Fine lines of latitude and longitude, and a brighter equator */}
+          <SphereLines radius={2} color={lineColor} equatorColor={attemptCopy ? '#ef4444' : equatorColor} />
           {/* Invisible hit area for equator hover */}
           <mesh rotation={[Math.PI / 2, 0, 0]}>
             <torusGeometry args={[2, 0.15, 8, 64]} />
@@ -762,35 +742,24 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla,
           {/* Z, X, Y Coordinate Axes (Hidden in error-correction to prioritize CNOT beams) */}
           {activeModule !== 'error-correction' && (
             <>
-              {/* Z Axis (Green Vertical) */}
-              <mesh position={[0, 0, 0]}>
-                <cylinderGeometry args={[0.016, 0.016, 4.5, 8]} />
-                <meshBasicMaterial color="#22c55e" transparent opacity={0.32} />
-              </mesh>
-              {/* X Axis (Red Horizontal) */}
-              <mesh rotation={[0, 0, Math.PI / 2]}>
-                <cylinderGeometry args={[0.016, 0.016, 4.5, 8]} />
-                <meshBasicMaterial color="#ef4444" transparent opacity={0.32} />
-              </mesh>
-              {/* Y Axis (Depth Axis) */}
-              <mesh rotation={[Math.PI / 2, 0, 0]}>
-                <cylinderGeometry args={[0.014, 0.014, 4.5, 8]} />
-                <meshBasicMaterial color={isLight ? "#94a3b8" : "#64748b"} transparent opacity={0.22} />
-              </mesh>
+              {/* The |0>–|1> axis, and the two others fainter: lines of light */}
+              <LightLine length={4.5} opacity={0.35} />
+              <LightLine length={4.5} opacity={0.14} rotation={[0, 0, Math.PI / 2]} />
+              <LightLine length={4.5} opacity={0.1} rotation={[Math.PI / 2, 0, 0]} />
             </>
           )}
 
-          {/* Axis Labels (Gates & Multi-Gates modules) */}
+          {/* Axis Labels (Gates & Multi-Gates modules): clear of the |+>/|i> chips on one sphere, inside a pair's gap on two */}
           {(activeModule === 'gates' || activeModule === 'multi-qubit-gates') && (
             <group>
-              <Html position={[0, 0, 2.25]} center>
-                <div className={fadeExtras ? 'mq-extra' : undefined} style={{ color: '#ef4444', fontFamily: "'Fira Code', monospace", fontWeight: 'bold', fontSize: '14px', textShadow: '0 0 5px rgba(0,0,0,0.8)' }}>X</div>
+              <Html position={[0, 0, axisOut]} center>
+                <MathChip tex="X" tone="red" small round className={fadeExtras ? 'mq-extra' : undefined} />
               </Html>
-              <Html position={[2.25, 0, 0]} center>
-                <div className={fadeExtras ? 'mq-extra' : undefined} style={{ color: axisColor, fontFamily: "'Fira Code', monospace", fontWeight: 'bold', fontSize: '14px', textShadow: '0 0 5px rgba(0,0,0,0.8)' }}>Y</div>
+              <Html position={[axisOut, 0, 0]} center>
+                <MathChip tex="Y" small round className={fadeExtras ? 'mq-extra' : undefined} style={{ '--chip-c': axisColor }} />
               </Html>
-              <Html position={[0, 2.25, 0]} center>
-                <div className={fadeExtras ? 'mq-extra' : undefined} style={{ color: '#22c55e', fontFamily: "'Fira Code', monospace", fontWeight: 'bold', fontSize: '14px', textShadow: '0 0 5px rgba(0,0,0,0.8)' }}>Z</div>
+              <Html position={[0.55, 2.42, 0]} center>
+                <MathChip tex="Z" tone="green" small round className={fadeExtras ? 'mq-extra' : undefined} />
               </Html>
             </group>
           )}
@@ -799,25 +768,25 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla,
           {/* 'YXZ' euler order: phi (rotation.y) rotates about world Y after theta (rotation.x) tips the +Y-aligned arrow */}
           <group ref={(el) => { vectorRef.current = el; if (el) el.rotation.order = 'YXZ'; }} position={[0, 0, 0]}>
             <group position={[0, 0, 0]}>
-              {/* Solid Vector Shaft */}
-              <mesh position={[0, 0.88, 0]}>
-                <cylinderGeometry args={[0.034, 0.034, 1.76, 12]} />
-                <meshStandardMaterial
+              {/* A steel shaft… */}
+              <mesh position={[0, 0.86, 0]} raycast={() => null}>
+                <cylinderGeometry args={[0.04, 0.04, 1.72, 20]} />
+                <Metal />
+              </mesh>
+              {/* …ending in a glowing pearl, in the state's colour */}
+              <mesh position={[0, 1.86, 0]} raycast={() => null}>
+                <sphereGeometry args={[0.17, 32, 20]} />
+                <meshPhysicalMaterial
                   ref={lockedGlowRef}
                   color={vectorColor}
                   emissive={vectorColor}
-                  emissiveIntensity={activeModule === 'superposition' && superpositionStep === 0 ? 3.5 : (isLight ? 2 : 0.85)}
+                  emissiveIntensity={0.7}
+                  roughness={0.12}
+                  clearcoat={1}
+                  clearcoatRoughness={0.1}
                 />
               </mesh>
-              {/* Pointed Cone Arrowhead */}
-              <mesh position={[0, 1.88, 0]}>
-                <coneGeometry args={[0.15, 0.34, 16]} />
-                <meshStandardMaterial
-                  color={vectorColor}
-                  emissive={vectorColor}
-                  emissiveIntensity={2.2}
-                />
-              </mesh>
+              <Halo radius={0.32} color={vectorColor} opacity={0.18} position={[0, 1.86, 0]} />
             </group>
 
             {/* Icy shimmer particles (Step 0 only) */}
@@ -867,8 +836,9 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla,
         {/* ── 7. North & South Pole Interactive Nodes and Standardized Labels ── */}
         <group position={[0, 2.1, 0]} ref={northPoleRef} onPointerOver={(e) => { e.stopPropagation(); setHoveredState('north'); if (onDomainHover) onDomainHover(); }} onPointerOut={(e) => { setHoveredState(null); if (onDomainUnhover) onDomainUnhover(); }}>
           <mesh><sphereGeometry args={[0.15, 16, 16]} /><meshBasicMaterial visible={false} /></mesh>
-          <mesh><sphereGeometry args={[0.03, 16, 16]} /><meshBasicMaterial color="#ffffff" /></mesh>
-          <mesh><sphereGeometry args={[0.08, 32, 32]} /><meshPhysicalMaterial color={vectorColor} transmission={1} roughness={0} clearcoat={1} emissive={vectorColor} emissiveIntensity={hoveredState === 'north' ? 3 : 1} /></mesh>
+          {/* |0>: a bead of light */}
+          <mesh raycast={() => null}><sphereGeometry args={[0.06, 16, 16]} /><meshBasicMaterial color="#00f2fe" toneMapped={false} /></mesh>
+          <Halo radius={0.2} color="#00f2fe" opacity={hoveredState === 'north' ? 0.5 : 0.25} />
           {hoveredState === 'north' && activeModule !== 'superposition' && (
             <Html position={[0, 0.4, 0]} center zIndexRange={[100, 0]}>
               <div
@@ -895,14 +865,15 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla,
             </Html>
           )}
         </group>
-        <Html position={[0, 2.34, 0]} center style={{ pointerEvents: 'none' }}>
-          <span style={{ color: '#64748b', fontSize: '11px', fontWeight: '700', fontFamily: 'Inter, sans-serif' }}>|0⟩</span>
+        <Html position={[0, 2.42, 0]} center style={{ pointerEvents: 'none' }}>
+          <MathChip tex={String.raw`\lvert 0\rangle`} tone="zero" small />
         </Html>
 
         <group position={[0, -2.1, 0]} ref={southPoleRef} onPointerOver={(e) => { e.stopPropagation(); setHoveredState('south'); if (onDomainHover) onDomainHover(); }} onPointerOut={(e) => { setHoveredState(null); if (onDomainUnhover) onDomainUnhover(); }}>
           <mesh><sphereGeometry args={[0.15, 16, 16]} /><meshBasicMaterial visible={false} /></mesh>
-          <mesh><sphereGeometry args={[0.03, 16, 16]} /><meshBasicMaterial color="#ffffff" /></mesh>
-          <mesh><sphereGeometry args={[0.08, 32, 32]} /><meshPhysicalMaterial color="#f093fb" transmission={1} roughness={0} clearcoat={1} emissive="#f093fb" emissiveIntensity={hoveredState === 'south' ? 3 : 1} /></mesh>
+          {/* |1>: a bead of light */}
+          <mesh raycast={() => null}><sphereGeometry args={[0.06, 16, 16]} /><meshBasicMaterial color="#f093fb" toneMapped={false} /></mesh>
+          <Halo radius={0.2} color="#f093fb" opacity={hoveredState === 'south' ? 0.5 : 0.25} />
           {hoveredState === 'south' && activeModule !== 'superposition' && (
             <Html position={[0, -0.4, 0]} center zIndexRange={[100, 0]}>
               <div
@@ -929,8 +900,8 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla,
             </Html>
           )}
         </group>
-        <Html position={[0, -2.40, 0]} center style={{ pointerEvents: 'none' }}>
-          <span style={{ color: '#64748b', fontSize: '11px', fontWeight: '700', fontFamily: 'Inter, sans-serif' }}>|1⟩</span>
+        <Html position={[0, -2.46, 0]} center style={{ pointerEvents: 'none' }}>
+          <MathChip tex={String.raw`\lvert 1\rangle`} tone="one" small />
         </Html>
 
         {hoveredState === 'qubit' && activeModule === 'bit-vs-qubit' && measuredValue !== null && (
@@ -1634,7 +1605,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
         <>
           {isMulti && (
             <group ref={ctlLabel}>
-              <Html position={[0, -2.6, 0]} center>
+              <Html position={[0, -3.0, 0]} center>
                 <div className="mq-extra" style={{ color: '#eab308', fontWeight: 'bold', fontSize: '15px', textShadow: '0 0 10px #eab30880', whiteSpace: 'nowrap', letterSpacing: '1px', opacity: multi === 'merge' ? 0 : 1, transition: 'opacity 0.35s' }}>Control</div>
               </Html>
             </group>
@@ -1663,7 +1634,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
               </group>
               {isMulti && (
                 <group ref={tgtLabel} position={[targetX.current, targetY.current, 0]} scale={targetS.current}>
-                  <Html position={[0, -2.6, 0]} center>
+                  <Html position={[0, -3.0, 0]} center>
                     <div className="mq-extra" style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '15px', textShadow: '0 0 10px #38bdf880', whiteSpace: 'nowrap', letterSpacing: '1px', opacity: mSplit ? 1 : 0, transition: 'opacity 0.35s' }}>Target</div>
                   </Html>
                 </group>

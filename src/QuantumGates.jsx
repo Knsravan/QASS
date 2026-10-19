@@ -10,6 +10,7 @@ import { BlendFunction } from 'postprocessing';
 import { GATE_ROTATIONS } from './quantumMath';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { QualityComposer } from './QualityScene';
+import { MathChip } from './MathChip';
 
 // --- DATA DEFINITION ---
 const q0 = new THREE.Quaternion().identity(); 
@@ -420,11 +421,9 @@ function QuantumSphereStage({ stepData, applied, isLight, setProgress, setAberra
         sphereRotation={[0, Math.atan2(4.2, 13), 0]}
       />
 
-      {/* Labels */}
-      <Html position={[0, radius + 0.35, 0]} center><div className="gates-extra" style={{ color: isLight ? '#334155' : '#cbd5e1', fontSize: '14px' }}><InlineMath math={String.raw`|0\rangle`} /></div></Html>
-      <Html position={[0, -radius - 0.35, 0]} center><div className="gates-extra" style={{ color: isLight ? '#334155' : '#cbd5e1', fontSize: '14px' }}><InlineMath math={String.raw`|1\rangle`} /></div></Html>
-      <Html position={[0, 0, radius + 0.35]} center><div className="gates-extra" style={{ color: isLight ? '#334155' : '#cbd5e1', fontSize: '14px' }}><InlineMath math={String.raw`|+\rangle`} /></div></Html>
-      <Html position={[radius + 0.35, 0, 0]} center><div className="gates-extra" style={{ color: isLight ? '#334155' : '#cbd5e1', fontSize: '14px' }}><InlineMath math={String.raw`|i\rangle`} /></div></Html>
+      {/* Labels (the poles' |0> and |1> chips come with the sphere) */}
+      <Html position={[0, 0, radius + 0.35]} center><MathChip className="gates-extra" tex={String.raw`\lvert +\rangle`} small /></Html>
+      <Html position={[radius + 0.35, 0, 0]} center><MathChip className="gates-extra" tex={String.raw`\lvert i\rangle`} small /></Html>
 
       {/* Rotation Axis Line */}
       <Line ref={axisLineRef} points={[axisStart, axisEnd]} position={[0, 0, 0]} color={stepData.color} lineWidth={2} transparent opacity={0} dashed dashScale={5} />

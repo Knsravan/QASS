@@ -542,7 +542,7 @@ function QECScene({ step, errorQubit, onErrorQubitChange, theme, isSidebarOpen, 
               scale={2.2}
             />
             {/* Interactive Floating Label with Custom Target Highlight */}
-            <Html center position={[0, 5.8, 0]} zIndexRange={[60, 0]}>
+            <Html center position={[0, 6.4, 0]} zIndexRange={[60, 0]}>
               <div
                 onClick={() => {
                   if (['intro', 'encode', 'noise'].includes(step) && onErrorQubitChange) {
@@ -647,7 +647,7 @@ function QECScene({ step, errorQubit, onErrorQubitChange, theme, isSidebarOpen, 
             emissiveColor={ancilla1Syndrome === 1 ? CE : CA}
             scale={1.6}
           />
-          <Html center position={[0, 4.4, 0]} zIndexRange={[60, 0]}>
+          <Html center position={[0, 4.75, 0]} zIndexRange={[60, 0]}>
             <div style={{
               padding: '4px 14px',
               borderRadius: '16px',
@@ -684,7 +684,7 @@ function QECScene({ step, errorQubit, onErrorQubitChange, theme, isSidebarOpen, 
             emissiveColor={ancilla2Syndrome === 1 ? CE : CA}
             scale={1.6}
           />
-          <Html center position={[0, 4.4, 0]} zIndexRange={[60, 0]}>
+          <Html center position={[0, 4.75, 0]} zIndexRange={[60, 0]}>
             <div style={{
               padding: '4px 14px',
               borderRadius: '16px',

@@ -733,7 +733,7 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted, f
                 flipMode={step === 'intro' || step === 'classical_focus' ? 'slow' : 'force-1'}
                 attemptCopy={false}
               />
-              <Html center position={[0, 4.0, 0]} zIndexRange={[50, 0]}>
+              <Html center position={[0, 4.95, 0]} zIndexRange={[50, 0]}>
                 <div data-jelly style={{ '--j': 1,
                   padding: '4px 14px',
                   borderRadius: '18px',
@@ -764,7 +764,7 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted, f
                 attemptCopy={isCopied}
                 customGridColor={isCopied ? CG : '#f59e0b'}
               />
-              <Html center position={[0, 4.0, 0]} zIndexRange={[50, 0]}>
+              <Html center position={[0, 4.95, 0]} zIndexRange={[50, 0]}>
                 <div data-jelly style={{ '--j': 1,
                   padding: '4px 14px',
                   borderRadius: '18px',
@@ -807,7 +807,7 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted, f
                 customRingColor={step === 'quantum_collapse' || step === 'summary' ? CR : CP}
                 emissiveColor={step === 'quantum_collapse' || step === 'summary' ? CR : CP}
               />
-              <Html center position={[0, 4.2, 0]} zIndexRange={[50, 0]}>
+              <Html center position={[0, 4.45, 0]} zIndexRange={[50, 0]}>
                 <div data-jelly style={{ '--j': 1,
                   padding: '4px 14px',
                   borderRadius: '20px',
@@ -842,7 +842,7 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted, f
                 customRingColor={step === 'quantum_cnot' ? CP : (step === 'quantum_collapse' || step === 'summary' ? CR : '#fbbf24')}
                 emissiveColor={step === 'quantum_cnot' ? CP : (step === 'quantum_collapse' || step === 'summary' ? CR : '#f59e0b')}
               />
-              <Html center position={[0, 4.2, 0]} zIndexRange={[50, 0]}>
+              <Html center position={[0, 4.45, 0]} zIndexRange={[50, 0]}>
                 <div data-jelly style={{ '--j': 1,
                   padding: '4px 14px',
                   borderRadius: '20px',

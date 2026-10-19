@@ -133,7 +133,7 @@ export function createDiracStory(renderer) {
     const label = new THREE.Sprite(own(new THREE.SpriteMaterial({ transparent: true, depthTest: false, depthWrite: false })));
     label.renderOrder = 10;
     const dial = new THREE.Group();
-    const ring = new THREE.Mesh(ringGeo, metal);
+    const ring = new THREE.Mesh(ringGeo, own(new THREE.MeshBasicMaterial({ color: '#cfefff', transparent: true, opacity: 0.6, toneMapped: false, depthWrite: false, blending: THREE.AdditiveBlending })));
     const handPivot = new THREE.Group();
     const hand = new THREE.Mesh(boxGeo, own(new THREE.MeshBasicMaterial({ color: '#ffffff', toneMapped: false })));
     hand.scale.set(0.22, 0.035, 0.035); hand.position.x = 0.5 + 0.11;
