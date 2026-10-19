@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { createSuperpositionStory } from './superpositionStory';
+import katex from 'katex';
 import { InlineMath, BlockMath } from './KatexMath';
+import './styles/math-chip.css';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { useQuantumAudio } from './useQuantumAudio';
 import { motionReduced } from './quality';
@@ -63,7 +65,7 @@ function hintFor(kind, step, done) {
   if (kind === 'pearl') return [
     ['Locked at |0⟩', 'Drag me away from |0⟩. Let go and I spring straight back: the ground state is rigid.', 'cyan'],
     ['The qubit', 'Drag me anywhere. Unlike the bit beside me, I can rest between |0⟩ and |1⟩.', 'purple'],
-    ['Grab the state', 'Move me anywhere on the sphere. The gauges and the card show the amplitudes and the odds.', 'cyan'],
+    ['Grab the state', 'Move me anywhere on the sphere. The pole chips and the card show the odds as you move.', 'cyan'],
     done ? ['Collapsed', 'Tap again: the same answer every time. Prepare |ψ⟩ again in the card to start over.', 'red'] : ['Tap to measure', 'Observe the state: it must choose |0⟩ or |1⟩, with the odds shown in the card.', 'red'],
   ][step];
   if (kind === 'shell') return [
@@ -74,7 +76,6 @@ function hintFor(kind, step, done) {
   ][step];
   if (kind === 'bead' || kind === 'capsule') return ['Classical bit', 'Drag the bead and let go halfway: it can’t stop there, it jumps to 0 or 1. Tap to flip it.', 'purple'];
   if (kind === 'h') return ['Hadamard gate', 'Tap to apply H again. H twice brings the qubit back: H·H = I.', 'gold'];
-  if (kind === 'tube') return step === 2 ? ['Probability gauge', 'Each gauge fills to |amplitude|². The two always add up to 100%.', 'cyan'] : ['Results', 'Each measurement drops a pearl into the tube of its result.', 'cyan'];
   return null;
 }
 
@@ -99,6 +100,7 @@ export function SuperpositionOverlay({ isGlobalMuted }) {
   const [, setTick] = useState(0);
   const [s, setS] = useState(null);
   const host = useRef(null);
+  const chipHost = useRef(null);
   const cardRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
   const lineRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
   const dotRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
@@ -150,6 +152,21 @@ export function SuperpositionOverlay({ isGlobalMuted }) {
       const box = h.getBoundingClientRect();
       const narrow = box.width <= 760;
       const sphere = cam ? story.sphereOnScreen(cam) : null;
+      // the labels on the models: liquid-glass chips, typeset in KaTeX, kept on their models
+      const layer = chipHost.current;
+      if (layer && cam) {
+        story.chips(cam).forEach((c, i) => {
+          let e = layer.children[i];
+          if (!e) { e = document.createElement('span'); e.className = 'math-chip sp-chip'; layer.appendChild(e); }
+          if (!c) { e.style.display = 'none'; return; }
+          e.style.display = '';
+          if (e.dataset.tex !== c.tex) { e.dataset.tex = c.tex; e.innerHTML = katex.renderToString(c.tex, { throwOnError: false }); }
+          if (e.dataset.color !== c.color) { e.dataset.color = c.color; e.style.setProperty('--chip-c', c.color); }
+          e.classList.toggle('math-chip-round', c.size === 'round');
+          e.style.opacity = Math.max(0, (c.s - 0.25) / 0.75); // gone before its model has shrunk away
+          e.style.transform = `translate(${c.x - box.left}px, ${c.y - box.top}px) translate(-50%, -50%) scale(${0.7 + 0.3 * c.s})`;
+        });
+      }
       cardRefs.forEach((ref, i) => {
         const line = lineRefs[i].current, dot = dotRefs[i].current, card = ref.current;
         if (!line || !dot) return;
@@ -197,6 +214,7 @@ export function SuperpositionOverlay({ isGlobalMuted }) {
 
   return (
     <div ref={host} className="sp-overlay">
+      <div ref={chipHost} className="sp-chips" aria-hidden="true" />
       <svg className="sp-arrows" aria-hidden="true">
         <defs>
           <marker id="sp-ah-cyan" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#00f2fe" /></marker>

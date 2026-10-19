@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { handoff } from './handoff';
 import { Metal, useRimMaterial } from './PremiumBitQubit';
 import { SphereLines, LightLine, Halo } from './GlassBlochParts';
+import { MathChip } from './MathChip';
 
 export const CT = '#14b8a6'; // Teal - Pure
 export const CA = '#f59e0b'; // Amber - Noisy / Thermal
@@ -238,12 +239,12 @@ export function BlochSphereUnit({ posArr, color, label, isPure, noiseLevel, acti
       </Html>
 
       {/* |0⟩ Pole Label */}
-      <Html position={[0, SPHERE_R + 0.32, 0]} center style={{ pointerEvents: 'none' }}>
-        <span data-jelly style={{ '--j': 1, display: 'inline-block', color: '#64748b', fontSize: '11px', fontWeight: '700', fontFamily: 'Inter, sans-serif' }}>|0⟩</span>
+      <Html position={[0, SPHERE_R + 0.36, 0]} center style={{ pointerEvents: 'none' }}>
+        <span data-jelly style={{ '--j': 1, display: 'inline-block' }}><MathChip tex={String.raw`\lvert 0\rangle`} tone="zero" small /></span>
       </Html>
       {/* |1⟩ Pole Label */}
       <Html position={[0, -SPHERE_R - 0.38, 0]} center style={{ pointerEvents: 'none' }}>
-        <span data-jelly style={{ '--j': 1, display: 'inline-block', color: '#64748b', fontSize: '11px', fontWeight: '700', fontFamily: 'Inter, sans-serif' }}>|1⟩</span>
+        <span data-jelly style={{ '--j': 1, display: 'inline-block' }}><MathChip tex={String.raw`\lvert 1\rangle`} tone="one" small /></span>
       </Html>
         </>
       )}

@@ -8,15 +8,15 @@ import * as THREE from 'three';
  * directly:
  *
  * 0 · The ground state: drag the arrow and an elastic tether of light pulls it back to
- *     |0>; tap the sphere to measure, and every pearl lands in the |0> tube.
+ *     |0>; tap the sphere to measure, and every result counts up on the |0> chip.
  * 1 · The classical limit: the Hadamard gate, drawn in light (a hologram that pours into
  *     the pearl as sparks, a beam along its axis, the path lit ahead, shockwaves on
  *     landing), takes |0> to |+>. Beside it a glass classical bit whose bead can't stop
  *     between its seats; the qubit's arrow rests wherever it is left; tap H to apply it again.
  * 2 · Infinite possibilities: the arrow sweeps the equator; grab the pearl and move it,
- *     and two glass gauges fill to P(0) and P(1).
+ *     and the pole chips read P(0) and P(1).
  * 3 · Collapse: tap the sphere to measure the state set in step 2, with its real odds;
- *     the pearl drops into its tube. "Prepare again" sets it up for another measurement.
+ *     the result counts up on its pole's chip. "Prepare again" sets it up for another measurement.
  *
  * Plain three.js, so the scene stays exactly as approved; the overlay (Superposition.jsx)
  * draws the cards, buttons and hover hints from what this reports.
@@ -31,7 +31,6 @@ const RED = new THREE.Color('#ff4d6d');
 const WHITE = new THREE.Color('#ffffff');
 const UP = new THREE.Vector3(0, 1, 0);
 const SEAT = 0.85;
-const TUBE_X = R + 1.3, TUBE_H = 3.6, TUBE_BASE = -1.8, PER_TUBE = 64;
 const nH = new THREE.Vector3(1, 1, 0).normalize(); // H: half a turn about the axis between |0> and |+>
 
 const clamp01 = (x) => Math.min(1, Math.max(0, x));
@@ -47,10 +46,10 @@ const slerpDir = (a, b, k) => {
 
 // Each step's camera, layout and what is shown.
 const LAYOUT = [
-  { qx: 0, bx: -6, cam: [[2.8, 1.7, 12.6], [0, 0.1, 0]], show: { sphere: 1, tubes: 1, pearls: 1 } },
+  { qx: 0, bx: -6, cam: [[2.8, 1.7, 12.6], [0, 0.1, 0]], show: { sphere: 1 } },
   { qx: 1.5, bx: -2.6, cam: [[0.8, 1.4, 11.8], [-0.4, 0.15, 0]], show: { sphere: 1, bit: 1, holo: 1 } },
-  { qx: 0, bx: -6, cam: [[2.4, 1.3, 14.8], [0, 0.1, 0]], show: { sphere: 1, tubes: 1, liquid: 1 } },
-  { qx: 0, bx: -6, cam: [[2.6, 1.0, 15.8], [0, 0.1, 0]], show: { sphere: 1, tubes: 1, pearls: 1, ripple: 1 } },
+  { qx: 0, bx: -6, cam: [[2.4, 1.3, 12.8], [0, 0.1, 0]], show: { sphere: 1 } },
+  { qx: 0, bx: -6, cam: [[2.6, 1.0, 13.0], [0, 0.1, 0]], show: { sphere: 1, ripple: 1 } },
 ];
 
 export function createSuperpositionStory(renderer, { onChange = () => {}, onHover = () => {}, onEvent = () => {} } = {}) {
@@ -118,29 +117,14 @@ export function createSuperpositionStory(renderer, { onChange = () => {}, onHove
     o.add(c, a, b);
     return { obj: o, len(l) { l = Math.max(l, 1e-4); c.scale.y = l; a.position.y = l / 2; b.position.y = -l / 2; } };
   }
-  function roundedBox(w, h, d, r) {
-    const s = new THREE.Shape(), x = -w / 2, y = -h / 2;
-    s.moveTo(x + r, y); s.lineTo(x + w - r, y); s.quadraticCurveTo(x + w, y, x + w, y + r);
-    s.lineTo(x + w, y + h - r); s.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-    s.lineTo(x + r, y + h); s.quadraticCurveTo(x, y + h, x, y + h - r);
-    s.lineTo(x, y + r); s.quadraticCurveTo(x, y, x + r, y);
-    const g = new THREE.ExtrudeGeometry(s, { depth: Math.max(d - 0.04, 0.01), bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.02, bevelSegments: 3, curveSegments: 10 });
-    g.center(); return own(g);
-  }
-  // a small liquid-glass plate carrying a label, always turned to the viewer
+  // a label pinned to a model: the overlay draws it as a liquid-glass chip with
+  // the label typeset in KaTeX (see chips() below); here it is just a point
   const plates = [];
-  function makePlate(parent, width = 1.1) {
-    const g = new THREE.Group(); parent.add(g);
-    const body = new THREE.Mesh(roundedBox(width, 0.46, 0.08, 0.2), glassMat(0.22));
-    const edge = new THREE.LineSegments(own(new THREE.EdgesGeometry(body.geometry, 30)), own(new THREE.LineBasicMaterial({ color: '#cfe9ff', transparent: true, opacity: 0.5 })));
-    const textMat = own(new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, toneMapped: false }));
-    const text = new THREE.Mesh(own(new THREE.PlaneGeometry(width * 0.92, width * 0.46)), textMat); text.position.z = 0.06; text.renderOrder = 6;
-    g.add(body, edge, text);
-    const p = { g, set(label, color, x, y, z, s) {
-      g.visible = s > 0.01 && !!label;
-      if (!g.visible) return;
-      g.position.set(x, y, z); g.scale.setScalar(s);
-      textMat.map = textTex(label, color); edge.material.color.set(color);
+  function makePlate(parent, size = 'md') {
+    const g = new THREE.Object3D(); parent.add(g);
+    const p = { g, tex: '', color: '#ffffff', s: 0, size, set(label, color, x, y, z, k) {
+      p.tex = label; p.color = color; p.s = label ? k : 0;
+      g.position.set(x, y, z);
     } };
     plates.push(p); return p;
   }
@@ -156,8 +140,8 @@ export function createSuperpositionStory(renderer, { onChange = () => {}, onHove
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
   }));
   sphereG.add(new THREE.Mesh(own(new THREE.SphereGeometry(R, 64, 40)), glassMat(0.1)), new THREE.Mesh(own(new THREE.SphereGeometry(R * 1.005, 64, 40)), rimMat));
-  const lineMat = own(new THREE.LineBasicMaterial({ color: '#9fd8ff', transparent: true, opacity: 0.18 }));
-  const equatorMat = own(new THREE.LineBasicMaterial({ color: '#b6e9ff', transparent: true, opacity: 0.45 }));
+  const lineMat = own(new THREE.LineBasicMaterial({ color: '#9fd8ff', transparent: true, opacity: 0.18, depthWrite: false, blending: THREE.AdditiveBlending }));
+  const equatorMat = own(new THREE.LineBasicMaterial({ color: '#b6e9ff', transparent: true, opacity: 0.45, depthWrite: false, blending: THREE.AdditiveBlending }));
   const circle = (r, y, rotX, mat) => {
     const pts = []; for (let i = 0; i <= 96; i++) { const a = (i / 96) * Math.PI * 2; pts.push(new THREE.Vector3(Math.cos(a) * r, Math.sin(a) * r, 0)); }
     const l = new THREE.Line(own(new THREE.BufferGeometry().setFromPoints(pts)), mat); l.rotation.x = rotX; l.position.y = y; return l;
@@ -175,7 +159,7 @@ export function createSuperpositionStory(renderer, { onChange = () => {}, onHove
     g.add(bead);
     return { halo };
   });
-  const poleLabels = [makePlate(qubitG, 0.9), makePlate(qubitG, 0.9)];
+  const poleLabels = [makePlate(qubitG), makePlate(qubitG)];
 
   // the state: a steel arrow ending in a glowing pearl
   const arrow = new THREE.Group(); qubitG.add(arrow);
@@ -186,7 +170,7 @@ export function createSuperpositionStory(renderer, { onChange = () => {}, onHove
   const grabRing = new THREE.Mesh(own(new THREE.TorusGeometry(0.3, 0.014, 8, 48, Math.PI * 1.5)), additive('#ffffff', 0));
   grabRing.position.y = R - 0.12;
   arrow.add(pearl, grabRing);
-  const hub = new THREE.Mesh(capGeo, metal); hub.scale.setScalar(0.09); qubitG.add(hub);
+  const hub = new THREE.Mesh(capGeo, additive('#dff6ff', 0.9)); hub.scale.setScalar(0.06); qubitG.add(hub);
   const trail = Array.from({ length: 16 }, () => glow('#ffffff', 0.4, qubitG));
   const trailPts = [];
   // the ground state's pull: an elastic tether of light back to |0> while the arrow is dragged away
@@ -211,7 +195,7 @@ export function createSuperpositionStory(renderer, { onChange = () => {}, onHove
 
   // the measurement scanner, and the ripple that invites a tap
   const scanner = new THREE.Group(); qubitG.add(scanner);
-  const scanRing = new THREE.Mesh(own(new THREE.TorusGeometry(R * 1.16, 0.035, 14, 120)), metal); scanRing.rotation.x = Math.PI / 2;
+  const scanRing = new THREE.Mesh(own(new THREE.TorusGeometry(R * 1.16, 0.016, 8, 120)), additive('#eafff4', 0.9)); scanRing.rotation.x = Math.PI / 2;
   const scanBand = new THREE.Mesh(own(new THREE.TorusGeometry(R * 1.16, 0.075, 10, 120)), additive(GREEN, 0.55)); scanBand.rotation.x = Math.PI / 2;
   scanner.add(scanRing, scanBand);
   const ripple = new THREE.Mesh(own(new THREE.TorusGeometry(R * 1.08, 0.02, 8, 120)), additive('#ff4d6d', 0)); ripple.rotation.x = Math.PI / 2; qubitG.add(ripple);
@@ -223,37 +207,18 @@ export function createSuperpositionStory(renderer, { onChange = () => {}, onHove
   [1, -1].forEach((s) => {
     const cap = new THREE.Mesh(own(new THREE.SphereGeometry(0.42, 40, 20, 0, Math.PI * 2, 0, Math.PI / 2)), glassMat(0.14));
     cap.position.y = s * 0.95; if (s < 0) cap.rotation.x = Math.PI; capsule.add(cap);
-    const collar = new THREE.Mesh(own(new THREE.TorusGeometry(0.43, 0.03, 12, 48)), metal); collar.rotation.x = Math.PI / 2; collar.position.y = s * 0.95; capsule.add(collar);
-    const seat = new THREE.Mesh(own(new THREE.TorusGeometry(0.27, 0.026, 12, 40)), metal); seat.rotation.x = Math.PI / 2; seat.position.y = s * SEAT; capsule.add(seat);
+    const collar = new THREE.Mesh(own(new THREE.TorusGeometry(0.43, 0.012, 8, 48)), additive('#bfe9ff', 0.45)); collar.rotation.x = Math.PI / 2; collar.position.y = s * 0.95; capsule.add(collar);
+    const seat = new THREE.Mesh(own(new THREE.TorusGeometry(0.27, 0.014, 8, 40)), additive(s > 0 ? CYAN : PURPLE, 0.8)); seat.rotation.x = Math.PI / 2; seat.position.y = s * SEAT; capsule.add(seat);
   });
   const railRod = rod(0.012); railRod.len(2 * SEAT); capsule.add(railRod.obj);
   const beadMat = own(new THREE.MeshPhysicalMaterial({ color: '#00f2fe', emissive: '#00f2fe', emissiveIntensity: 0.6, roughness: 0.12, clearcoat: 1, envMap: environment }));
   const bead = new THREE.Mesh(capGeo, beadMat); bead.scale.setScalar(0.24); capsule.add(bead);
   const beadHalo = glow('#00f2fe', 1, capsule);
   const jumpFlash = [glow('#ffffff', 1, capsule), glow('#ffffff', 1, capsule)];
-  const bitLabels = [makePlate(bitG, 0.6), makePlate(bitG, 0.6), makePlate(bitG, 1.5)];
+  const bitLabels = [makePlate(bitG, 'round'), makePlate(bitG, 'round'), makePlate(bitG)];
 
-  // ── the tubes: a measurement's pearl drops in; in step 2 they show the odds as liquid ──
-  const tubesG = new THREE.Group(); world.add(tubesG);
-  const liquids = [], tubePicks = [];
-  [-1, 1].forEach((sgn, i) => {
-    const g = new THREE.Group(); g.position.set(sgn * TUBE_X, 0, 0); tubesG.add(g);
-    const base = new THREE.Mesh(own(new THREE.CylinderGeometry(0.42, 0.42, 0.08, 40)), metal); base.position.y = -TUBE_H / 2 - 0.04;
-    const lip = new THREE.Mesh(own(new THREE.TorusGeometry(0.37, 0.025, 10, 48)), metal); lip.rotation.x = Math.PI / 2; lip.position.y = TUBE_H / 2;
-    const liquid = new THREE.Mesh(own(new THREE.CylinderGeometry(0.3, 0.3, 1, 40)), own(new THREE.MeshBasicMaterial({ color: (i ? PURPLE : CYAN).clone().multiplyScalar(0.85), transparent: true, opacity: 0.85, toneMapped: false })));
-    liquids.push(liquid);
-    const pickM = new THREE.Mesh(own(new THREE.CylinderGeometry(0.5, 0.5, TUBE_H + 0.6, 12)), hidden());
-    tubePicks.push(pickM);
-    g.add(new THREE.Mesh(own(new THREE.CylinderGeometry(0.36, 0.36, TUBE_H, 40, 1, true)), glassMat()), base, lip, liquid, pickM);
-  });
-  const tubeLabels = [makePlate(tubesG, 1.6), makePlate(tubesG, 1.6)];
-  const tallyGeo = own(new THREE.SphereGeometry(0.1, 20, 12));
-  const tallyMats = [CYAN, PURPLE].map((c) => own(new THREE.MeshPhysicalMaterial({ color: c, emissive: c, emissiveIntensity: 0.5, roughness: 0.15, clearcoat: 1 })));
-  const tallyPool = Array.from({ length: 140 }, () => { const m = new THREE.Mesh(tallyGeo, tallyMats[0]); m.visible = false; world.add(m); return m; });
-  const slotPos = (r, k, out) => {
-    const layer = Math.floor(k / 4), w = k % 4;
-    return out.set((r ? 1 : -1) * TUBE_X + (w % 2 ? 0.12 : -0.12), TUBE_BASE + 0.14 + layer * 0.215, w < 2 ? 0.12 : -0.12);
-  };
+  // a measurement's result: a spark of light that rises from its pole into the pole's chip
+  const sparkPool = Array.from({ length: 12 }, () => glow('#ffffff', 0.45, qubitG));
 
   // ── state ──
   let step = 0, now = 0;
@@ -264,7 +229,7 @@ export function createSuperpositionStory(renderer, { onChange = () => {}, onHove
   let bitY = SEAT, bitValue = 0, bitJump = -10, bitJumpFrom = SEAT;
   let collapsed = null;
   let tallies = { 0: [], 3: [] };
-  const vis = { sphere: 0, bit: 0, tubes: 0, liquid: 0, holo: 0, ripple: 0, pearls: 0 };
+  const vis = { sphere: 0, bit: 0, holo: 0, ripple: 0 };
   let flash = 0, flashGold = 0, queued = 0, pull = 0, holdU = null, reduced = false;
 
   function startH() { anim = { kind: 'h', t0: now, dur: reduced ? 0.01 : 3.0, from: dir.clone() }; onEvent('h'); }
@@ -323,7 +288,6 @@ export function createSuperpositionStory(renderer, { onChange = () => {}, onHove
     if (step === 1 && vis.bit > 0.5) order.push(['bead', beadPick], ['capsule', capsulePick]);
     if (step === 1 && vis.holo > 0.3) order.push(['h', holoPick]);
     if (vis.sphere > 0.5) order.push(['shell', shellPick]);
-    if (vis.tubes > 0.5) order.push(['tube', tubePicks[0]], ['tube', tubePicks[1]]);
     for (const [kind, obj] of order) if (rc.intersectObject(obj, false).length) return kind;
     return null;
   }
@@ -346,7 +310,7 @@ export function createSuperpositionStory(renderer, { onChange = () => {}, onHove
   const onHoverMove = (e) => {
     if (pointers.size) return;
     const k = pick(e);
-    el.style.cursor = k && k !== 'tube' && k !== 'capsule' ? 'pointer' : 'grab';
+    el.style.cursor = k && k !== 'capsule' ? 'pointer' : 'grab';
     onHover(e.pointerType === 'mouse' && k ? { kind: k, x: e.clientX, y: e.clientY } : null);
   };
   const onLeave = () => onHover(null);
@@ -355,7 +319,7 @@ export function createSuperpositionStory(renderer, { onChange = () => {}, onHove
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY });
     const kind = pointers.size === 1 ? pick(e) : null;
     onHover(null);
-    if (kind && kind !== 'tube') { held = { kind, moved: false, busy: !!anim }; el.style.cursor = 'grabbing'; }
+    if (kind) { held = { kind, moved: false, busy: !!anim }; el.style.cursor = 'grabbing'; }
     else orbiting = true;
   };
   const onMove = (e) => {
@@ -465,11 +429,9 @@ export function createSuperpositionStory(renderer, { onChange = () => {}, onHove
     if (hU >= 0) col.lerp(GOLD, Math.sin(Math.PI * ease(0.25, 0.95, hU)) * 0.7);
     pearlMat.color.copy(col); pearlMat.emissive.copy(col); pearlHalo.material.color.copy(col);
     const grabbable = !anim && (step !== 3 || collapsed === null);
-    grabRing.material.opacity = grabbable ? 0.25 + 0.25 * Math.sin(now * 3) : 0; grabRing.rotation.z = now;
+    grabRing.material.opacity = grabbable ? 0.12 + 0.1 * Math.sin(now * 3) : 0; grabRing.rotation.z = now;
     crowns[0].halo.material.opacity = (0.2 + 0.8 * (1 - P1)) * vis.sphere; crowns[0].halo.scale.setScalar(0.5 + 1.1 * (1 - P1));
     crowns[1].halo.material.opacity = (0.2 + 0.8 * P1) * vis.sphere; crowns[1].halo.scale.setScalar(0.5 + 1.1 * P1);
-    poleLabels[0].set('|0⟩', '#00f2fe', 0, R + 0.62, 0, vis.sphere);
-    poleLabels[1].set('|1⟩', '#f093fb', 0, -R - 0.62, 0, vis.sphere);
 
     // the ground state's tether: stretched while dragged, redder the further it goes
     const tip = tmp.copy(dir).multiplyScalar(R - 0.12), home = tmp2.copy(UP).multiplyScalar(R - 0.12);
@@ -566,37 +528,34 @@ export function createSuperpositionStory(renderer, { onChange = () => {}, onHove
     jumpFlash.forEach((f) => { f.material.opacity = (1 - jumpK) * 0.9; f.scale.setScalar(0.6 + 1.2 * jumpK); });
     bitLabels[0].set('0', '#00f2fe', 0.85, SEAT, 0, vis.bit);
     bitLabels[1].set('1', '#f093fb', 0.85, -SEAT, 0, vis.bit);
-    bitLabels[2].set('Classical bit', '#ffffff', 0, 1.85, 0, vis.bit);
+    bitLabels[2].set(String.raw`\text{Classical bit}`, '#ffffff', 0, 1.85, 0, vis.bit);
 
-    // ── tubes ──
-    tubesG.visible = vis.tubes > 0.01; tubesG.scale.set(1, Math.max(vis.tubes, 0.001), 1);
-    const odds = [1 - P1, P1];
-    liquids.forEach((m, i) => { const h = Math.max(0.001, odds[i] * TUBE_H * vis.liquid); m.visible = vis.liquid > 0.01; m.scale.y = h; m.position.y = -TUBE_H / 2 + h / 2; });
+    // ── results: each measurement's spark rises into its pole's chip, which counts it ──
     const list = step === 0 || step === 3 ? tallies[step] : [];
-    const c = [0, 0];
+    const landed = [0, 0], landK = [0, 0];
     let used = 0;
     for (const p of list) {
-      const k = c[p.r]++;
-      if (k >= PER_TUBE || used >= tallyPool.length) continue;
-      const m = tallyPool[used++];
-      m.visible = vis.pearls > 0.3; m.material = tallyMats[p.r];
-      const f = clamp01((now - p.t0) / 0.9);
-      const dest = slotPos(p.r, k, new THREE.Vector3());
-      const start = new THREE.Vector3(qubitG.position.x, p.r ? -R - 0.1 : R + 0.1, 0);
-      const top = new THREE.Vector3(dest.x, TUBE_H / 2 + 0.5, 0);
-      if (f < 0.6) m.position.copy(start).lerp(top, ease(0, 0.6, f)).add(new THREE.Vector3(0, Math.sin(Math.PI * ease(0, 0.6, f)) * 0.8, 0));
-      else m.position.copy(top).lerp(dest, ease(0.6, 1, f));
+      const f = (now - p.t0) / 0.9;
+      if (f >= 1) { landed[p.r]++; landK[p.r] = Math.max(landK[p.r], 1 - (f - 1) / 0.7); continue; }
+      if (used >= sparkPool.length) continue;
+      const m = sparkPool[used++], sg = p.r ? -1 : 1;
+      m.visible = true; m.material.color.copy(p.r ? PURPLE : CYAN);
+      m.position.set(0, sg * (R + 0.62 * ease(0, 1, f)), 0);
+      m.material.opacity = Math.sin(Math.PI * Math.min(1, f * 1.15)) * vis.sphere;
     }
-    for (let i = used; i < tallyPool.length; i++) tallyPool[i].visible = false;
-    const landed = [0, 0]; list.forEach((p) => { if (now >= p.t0 + 0.9) landed[p.r]++; });
-    const pctT = (p) => `${Math.round(p * 100)}%`;
-    if (vis.liquid > 0.5) {
-      tubeLabels[0].set(`P(0) ${pctT(odds[0])}`, '#00f2fe', -TUBE_X, TUBE_BASE - 0.55, 0, vis.tubes);
-      tubeLabels[1].set(`P(1) ${pctT(odds[1])}`, '#f093fb', TUBE_X, TUBE_BASE - 0.55, 0, vis.tubes);
-    } else {
-      tubeLabels[0].set(`|0⟩  ${landed[0]}`, '#00f2fe', -TUBE_X, TUBE_BASE - 0.55, 0, vis.tubes);
-      tubeLabels[1].set(`|1⟩  ${landed[1]}`, '#f093fb', TUBE_X, TUBE_BASE - 0.55, 0, vis.tubes);
-    }
+    for (let i = used; i < sparkPool.length; i++) sparkPool[i].visible = false;
+    [0, 1].forEach((r) => {
+      const k = Math.max(0, landK[r]);
+      if (k > 0) { crowns[r].halo.material.opacity += k * 0.8; crowns[r].halo.scale.multiplyScalar(1 + 0.6 * k); }
+    });
+    const pctT = (p) => `${Math.round(p * 100)}\\%`;
+    const counting = list.length > 0;
+    [0, 1].forEach((r) => {
+      const ket = `\\lvert ${r}\\rangle`;
+      const odds = r ? P1 : 1 - P1;
+      const tex = step === 2 ? `${ket}\\;\\; ${pctT(odds)}` : counting ? `${ket} \\times ${landed[r]}` : ket;
+      poleLabels[r].set(tex, r ? '#f093fb' : '#00f2fe', 0, (r ? -1 : 1) * (R + 0.62), 0, vis.sphere);
+    });
 
     // ── camera: glide to this step's view; drift; the viewer's look-around ──
     camera.fov = camera.aspect < 1 ? 58 : 42;
@@ -616,7 +575,6 @@ export function createSuperpositionStory(renderer, { onChange = () => {}, onHove
     const lift = off.length() * Math.tan((camera.fov * Math.PI) / 360) * (opts.lift || 0);
     camera.position.y -= lift;
     camera.lookAt(look.copy(camTgt).setY(camTgt.y - lift));
-    plates.forEach((p) => p.g.quaternion.copy(camera.quaternion));
   }
 
   return {
@@ -652,6 +610,17 @@ export function createSuperpositionStory(renderer, { onChange = () => {}, onHove
         bit: bitValue,
         bitBetween: !!(held && held.kind === 'bead' && held.moved && Math.abs(bitY) < SEAT - 0.12),
       };
+    },
+    /** The labels pinned to the models, in client pixels, for the overlay's glass chips. */
+    chips(camera) {
+      const r = el.getBoundingClientRect(), v = new THREE.Vector3();
+      return plates.map((p) => {
+        const visible = p.s > 0.01 && !!p.tex && p.g.parent.visible;
+        if (!visible) return null;
+        p.g.getWorldPosition(v); v.project(camera);
+        if (v.z > 1) return null;
+        return { tex: p.tex, color: p.color, size: p.size, s: Math.min(1, p.s), x: r.left + ((v.x + 1) / 2) * r.width, y: r.top + ((1 - v.y) / 2) * r.height };
+      });
     },
     /** Where the sphere is on screen (for the cards' arrows), in client pixels. */
     sphereOnScreen(camera) {

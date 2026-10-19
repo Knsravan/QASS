@@ -174,7 +174,7 @@ function EntanglementScene({
         />
 
         {/* 3D Floating Name Badge */}
-        <Html position={[0, 2.6, 0]} center zIndexRange={[50, 0]}>
+        <Html position={[0, 3.35, 0]} center zIndexRange={[50, 0]}>
           <div
             data-jelly
             onClick={() => { if (canMeasure) onMeasureQubit('A'); }}
@@ -207,7 +207,7 @@ function EntanglementScene({
 
         {/* Measurement Result Glow Badge */}
         {measuredState && (
-          <Html position={[0, -2.6, 0]} center zIndexRange={[50, 0]}>
+          <Html position={[0, -3.0, 0]} center zIndexRange={[50, 0]}>
             <div style={{
               background: measuredState[0] === '0' ? 'rgba(0, 242, 254, 0.25)' : 'rgba(240, 147, 251, 0.25)',
               border: `1.5px solid ${measuredState[0] === '0' ? '#00f2fe' : '#f093fb'}`,
@@ -251,7 +251,7 @@ function EntanglementScene({
         />
 
         {/* 3D Floating Name Badge */}
-        <Html position={[0, 2.6, 0]} center zIndexRange={[50, 0]}>
+        <Html position={[0, 3.35, 0]} center zIndexRange={[50, 0]}>
           <div
             data-jelly
             onClick={() => { if (canMeasure) onMeasureQubit('B'); }}
@@ -284,7 +284,7 @@ function EntanglementScene({
 
         {/* Measurement Result Glow Badge */}
         {measuredState && (
-          <Html position={[0, -2.6, 0]} center zIndexRange={[50, 0]}>
+          <Html position={[0, -3.0, 0]} center zIndexRange={[50, 0]}>
             <div style={{
               background: measuredState[1] === '0' ? 'rgba(0, 242, 254, 0.25)' : 'rgba(240, 147, 251, 0.25)',
               border: `1.5px solid ${measuredState[1] === '0' ? '#00f2fe' : '#f093fb'}`,

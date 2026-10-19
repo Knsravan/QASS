@@ -9,6 +9,7 @@ import gsap from 'gsap';
 import { getInitialState, GATES_MATRICES, applyMatrix, calculateProbabilities, gateNumQubits, getFinalState, calculateGateLogic, formatStateKet } from './quantumMath';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { QualityComposer } from './QualityScene';
+import { MathChip } from './MathChip';
 
 // --- DATA DEFINITION ---
 export const MULTI_GATES_STEPS = [
@@ -272,9 +273,7 @@ export function QSphere({ visible, numQubits, gateId, inputs, progress }) {
           </mesh>
 
           <Html center position={[0, node.nodeScale + 0.2, 0]} style={{ opacity: Math.min(1, p * 3) }}>
-            <div style={{ color: '#fff', fontSize: '15px', textShadow: '0 0 5px #000, 0 0 10px #000' }}>
-              <InlineMath math={`|${node.i.toString(2).padStart(numQubits, '0')}\\rangle`} />
-            </div>
+            <MathChip tex={`\\lvert ${node.i.toString(2).padStart(numQubits, '0')}\\rangle`} small style={{ '--chip-c': node.color }} />
           </Html>
         </group>
       ))}
@@ -507,7 +506,7 @@ export function MultiGatesScene({ step, applied, theme, setProgress, inputs }) {
                 emissiveColor={i === targetIndex ? '#0ea5e9' : '#eab308'}
                 sphereRotation={[0, pos[0] < 0 ? -Math.atan2(Math.abs(pos[0]), 15) : Math.atan2(pos[0], 15), 0]}
              />
-             <Html position={[0, -2.6, 0]} center style={{ opacity, transition: 'opacity 0.1s' }}>
+             <Html position={[0, -3.0, 0]} center style={{ opacity, transition: 'opacity 0.1s' }}>
                <div style={{ 
                  color: i === targetIndex ? '#38bdf8' : '#eab308', 
                  fontWeight: 'bold', fontSize: '15px', textShadow: `0 0 10px ${i === targetIndex ? '#38bdf8' : '#eab308'}80`,

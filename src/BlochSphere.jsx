@@ -12,6 +12,7 @@ import { QuantumNavButtons } from './QuantumNavButtons';
 import { QualityComposer } from './QualityScene';
 import { PremiumBlochSphere, PremiumBit, GrowIn, Metal, GlassMaterial, useRimMaterial } from './PremiumBitQubit';
 import { SphereLines, LightLine, Halo } from './GlassBlochParts';
+import { MathChip } from './MathChip';
 
 // =========================================
 // 1. CLASSICAL BIT COMPONENT (Left Side)
@@ -87,32 +88,23 @@ export const ClassicalBit = ({ position, scale = 1, theme, activeModule, flipMod
         <capsuleGeometry args={[0.605, 2.2, 16, 32]} />
         <primitive object={rimMat} attach="material" />
       </mesh>
-      {/* steel collars at its ends, and the two seats the bead can sit in: 0 and 1, nothing between */}
+      {/* the two seats the bead can sit in, rings of light: 0 and 1, nothing between */}
       {[1, -1].map((sgn) => (
-        <group key={sgn}>
-          <mesh position={[0, sgn * 1.1, 0]} rotation={[Math.PI / 2, 0, 0]} raycast={() => null}>
-            <torusGeometry args={[0.3, 0.026, 12, 40]} />
-            <Metal />
-          </mesh>
-          <mesh position={[0, sgn * 1.45, 0]} rotation={[Math.PI / 2, 0, 0]} raycast={() => null}>
-            <torusGeometry args={[0.6, 0.03, 12, 48]} />
-            <Metal />
-          </mesh>
-        </group>
+        <mesh key={sgn} position={[0, sgn * 1.1, 0]} rotation={[Math.PI / 2, 0, 0]} raycast={() => null}>
+          <torusGeometry args={[0.3, 0.014, 8, 48]} />
+          <meshBasicMaterial color={sgn > 0 ? '#00f2fe' : '#f093fb'} transparent opacity={0.85} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
+        </mesh>
       ))}
-      {/* the rail the bead runs on */}
-      <mesh raycast={() => null}>
-        <cylinderGeometry args={[0.012, 0.012, 2.2, 8]} />
-        <Metal />
-      </mesh>
+      {/* the rail the bead runs on, a line of light */}
+      <LightLine length={2.2} opacity={0.35} />
 
       {!isBlank && (
         <>
-          <Html position={[0.9, 1.1, 0]} center>
-            <div style={{ fontSize: '22px', fontFamily: "'Fira Code', monospace", fontWeight: '800', color: value === 0 ? "#00f2fe" : 'var(--text-secondary)', textShadow: value === 0 ? `0 0 15px #00f2fe` : 'none', transition: 'all 0.2s', opacity: 'var(--bit-fade, 1)' }}>0</div>
+          <Html position={[1.05, 1.1, 0]} center>
+            <MathChip tex="0" tone="zero" round active={value === 0} style={{ opacity: 'var(--bit-fade, 1)' }} />
           </Html>
-          <Html position={[0.9, -1.1, 0]} center>
-            <div style={{ fontSize: '22px', fontFamily: "'Fira Code', monospace", fontWeight: '800', color: value === 1 ? "#f093fb" : 'var(--text-secondary)', textShadow: value === 1 ? `0 0 15px #f093fb` : 'none', transition: 'all 0.2s', opacity: 'var(--bit-fade, 1)' }}>1</div>
+          <Html position={[1.05, -1.1, 0]} center>
+            <MathChip tex="1" tone="one" round active={value === 1} style={{ opacity: 'var(--bit-fade, 1)' }} />
           </Html>
 
           {/* the bead: a glowing pearl */}
@@ -272,6 +264,7 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla,
   const equatorColor = customRingColor || customGridColor || '#b6e9ff';
   const rimMat = useRimMaterial(0.85);
   const axisColor = isLight ? "#cbd5e1" : "#64748b";
+  const axisOut = activeModule === 'gates' ? 2.95 : 2.25;
 
   const targetSphereOpacity = 1;
 
@@ -756,17 +749,17 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla,
             </>
           )}
 
-          {/* Axis Labels (Gates & Multi-Gates modules) */}
+          {/* Axis Labels (Gates & Multi-Gates modules): clear of the |+>/|i> chips on one sphere, inside a pair's gap on two */}
           {(activeModule === 'gates' || activeModule === 'multi-qubit-gates') && (
             <group>
-              <Html position={[0, 0, 2.25]} center>
-                <div className={fadeExtras ? 'mq-extra' : undefined} style={{ color: '#ef4444', fontFamily: "'Fira Code', monospace", fontWeight: 'bold', fontSize: '14px', textShadow: '0 0 5px rgba(0,0,0,0.8)' }}>X</div>
+              <Html position={[0, 0, axisOut]} center>
+                <MathChip tex="X" tone="red" small round className={fadeExtras ? 'mq-extra' : undefined} />
               </Html>
-              <Html position={[2.25, 0, 0]} center>
-                <div className={fadeExtras ? 'mq-extra' : undefined} style={{ color: axisColor, fontFamily: "'Fira Code', monospace", fontWeight: 'bold', fontSize: '14px', textShadow: '0 0 5px rgba(0,0,0,0.8)' }}>Y</div>
+              <Html position={[axisOut, 0, 0]} center>
+                <MathChip tex="Y" small round className={fadeExtras ? 'mq-extra' : undefined} style={{ '--chip-c': axisColor }} />
               </Html>
-              <Html position={[0, 2.25, 0]} center>
-                <div className={fadeExtras ? 'mq-extra' : undefined} style={{ color: '#22c55e', fontFamily: "'Fira Code', monospace", fontWeight: 'bold', fontSize: '14px', textShadow: '0 0 5px rgba(0,0,0,0.8)' }}>Z</div>
+              <Html position={[0.55, 2.42, 0]} center>
+                <MathChip tex="Z" tone="green" small round className={fadeExtras ? 'mq-extra' : undefined} />
               </Html>
             </group>
           )}
@@ -872,8 +865,8 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla,
             </Html>
           )}
         </group>
-        <Html position={[0, 2.34, 0]} center style={{ pointerEvents: 'none' }}>
-          <span style={{ color: '#7dd3fc', fontSize: '11px', fontWeight: '700', fontFamily: 'Inter, sans-serif', textShadow: '0 0 8px rgba(0,242,254,0.6)' }}>|0⟩</span>
+        <Html position={[0, 2.42, 0]} center style={{ pointerEvents: 'none' }}>
+          <MathChip tex={String.raw`\lvert 0\rangle`} tone="zero" small />
         </Html>
 
         <group position={[0, -2.1, 0]} ref={southPoleRef} onPointerOver={(e) => { e.stopPropagation(); setHoveredState('south'); if (onDomainHover) onDomainHover(); }} onPointerOut={(e) => { setHoveredState(null); if (onDomainUnhover) onDomainUnhover(); }}>
@@ -907,8 +900,8 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, isAncilla,
             </Html>
           )}
         </group>
-        <Html position={[0, -2.40, 0]} center style={{ pointerEvents: 'none' }}>
-          <span style={{ color: '#f0abfc', fontSize: '11px', fontWeight: '700', fontFamily: 'Inter, sans-serif', textShadow: '0 0 8px rgba(240,147,251,0.6)' }}>|1⟩</span>
+        <Html position={[0, -2.46, 0]} center style={{ pointerEvents: 'none' }}>
+          <MathChip tex={String.raw`\lvert 1\rangle`} tone="one" small />
         </Html>
 
         {hoveredState === 'qubit' && activeModule === 'bit-vs-qubit' && measuredValue !== null && (
@@ -1612,7 +1605,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
         <>
           {isMulti && (
             <group ref={ctlLabel}>
-              <Html position={[0, -2.6, 0]} center>
+              <Html position={[0, -3.0, 0]} center>
                 <div className="mq-extra" style={{ color: '#eab308', fontWeight: 'bold', fontSize: '15px', textShadow: '0 0 10px #eab30880', whiteSpace: 'nowrap', letterSpacing: '1px', opacity: multi === 'merge' ? 0 : 1, transition: 'opacity 0.35s' }}>Control</div>
               </Html>
             </group>
@@ -1641,7 +1634,7 @@ export default function BlochSphere({ theme, activeModule, qubitCount, isDecoher
               </group>
               {isMulti && (
                 <group ref={tgtLabel} position={[targetX.current, targetY.current, 0]} scale={targetS.current}>
-                  <Html position={[0, -2.6, 0]} center>
+                  <Html position={[0, -3.0, 0]} center>
                     <div className="mq-extra" style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '15px', textShadow: '0 0 10px #38bdf880', whiteSpace: 'nowrap', letterSpacing: '1px', opacity: mSplit ? 1 : 0, transition: 'opacity 0.35s' }}>Target</div>
                   </Html>
                 </group>

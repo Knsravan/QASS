@@ -1,0 +1,64 @@
+/* =============================================================================
+    MATH CHIPS: the labels pinned to the 3D models (|0⟩, |1⟩, counts, odds),
+    a pill of the app's liquid glass with the label typeset in KaTeX
+    (MathChip.jsx; Module 3 places its own from superpositionStory.js)
+   ============================================================================= */
+.math-chip {
+  --chip-c: #9fd8ff;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 34px;
+  height: 32px;
+  padding: 0 13px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.03) 55%, rgba(255, 255, 255, 0.07)),
+    color-mix(in srgb, var(--chip-c) 10%, var(--glass-bg-pill));
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid color-mix(in srgb, var(--chip-c) 40%, rgba(255, 255, 255, 0.22));
+  box-shadow:
+    var(--glass-highlight),
+    var(--glass-shadow-pill),
+    0 0 16px color-mix(in srgb, var(--chip-c) 22%, transparent);
+  color: #eaf6ff;
+  font-size: 15px;
+  line-height: 1;
+  white-space: nowrap;
+  user-select: none;
+  pointer-events: none;
+  transition: color 0.25s, border-color 0.25s, box-shadow 0.25s;
+}
+/* the glossy lens on top of the glass */
+.math-chip::before {
+  content: '';
+  position: absolute;
+  inset: 1px 1px 52% 1px;
+  border-radius: 999px 999px 40% 40% / 999px 999px 100% 100%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+.math-chip .katex { font-size: 1.08em; color: inherit; }
+.math-chip-zero { --chip-c: #00f2fe; }
+.math-chip-one { --chip-c: #f093fb; }
+.math-chip-gold { --chip-c: #f7b733; }
+.math-chip-green { --chip-c: #22c55e; }
+.math-chip-red { --chip-c: #ef4444; }
+.math-chip-sm { height: 26px; min-width: 28px; padding: 0 10px; font-size: 13px; }
+.math-chip-round { width: 32px; padding: 0; }
+.math-chip-sm.math-chip-round { width: 26px; }
+.math-chip[data-active] {
+  color: #ffffff;
+  border-color: color-mix(in srgb, var(--chip-c) 75%, transparent);
+  text-shadow: 0 0 10px var(--chip-c);
+  box-shadow:
+    var(--glass-highlight),
+    var(--glass-shadow-pill),
+    0 0 22px color-mix(in srgb, var(--chip-c) 45%, transparent);
+}
+[data-theme='light'] .math-chip { color: #0f172a; }
+[data-theme='light'] .math-chip[data-active] { color: #0f172a; text-shadow: none; }

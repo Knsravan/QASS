@@ -139,7 +139,7 @@ export function useRimMaterial(strength = 0.85) {
 // LiquidGlass.js and glassGL.js), held at the end of an arm or stalk. The
 // plate for the model's current state glows in that state's colour. `onClick`
 // makes it a button.
-function GlassPill({ text, state, active, round = false, position, onClick, onPointerOver, onPointerOut, label }) {
+function GlassPill({ tex, state, active, round = false, position, onClick, onPointerOver, onPointerOut, label }) {
   const Tag = onClick ? 'button' : 'span';
   return (
     <Html position={position} center zIndexRange={[40, 0]}>
@@ -153,14 +153,14 @@ function GlassPill({ text, state, active, round = false, position, onClick, onPo
         onPointerOver={onPointerOver}
         onPointerOut={onPointerOut}
       >
-        {text}
+        <InlineMath math={tex} />
       </Tag>
     </Html>
   );
 }
 
-// A pole's crown: a steel collar around the pole's bead and a halo of light that
-// slowly turns about the axis, bright when a measurement lands on this pole.
+// A pole's crown: a halo of light that slowly turns about the axis, bright when
+// a measurement lands on this pole.
 function PoleCrown({ y, color, active }) {
   const halo = useRef();
   const haloMat = useRef();
@@ -172,10 +172,6 @@ function PoleCrown({ y, color, active }) {
   });
   return (
     <group position={[0, y, 0]}>
-      <mesh rotation-x={Math.PI / 2} raycast={() => null}>
-        <torusGeometry args={[0.15, 0.022, 14, 48]} />
-        <Metal />
-      </mesh>
       {/* the halo: a broken ring, so its turning shows */}
       <mesh ref={halo} rotation-x={Math.PI / 2} raycast={() => null}>
         <torusGeometry args={[0.3, 0.013, 8, 64, Math.PI * 1.6]} />
@@ -331,22 +327,10 @@ export function PremiumBlochSphere({ result = null, onClick, onHover, onUnhover 
         <meshBasicMaterial color="#38bdf8" transparent opacity={0.045} side={THREE.DoubleSide} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
 
-      {/* The brushed-steel meridian ring that holds the sphere, with pivots at the poles */}
-      <mesh rotation-y={Math.PI / 2 - 0.35}>
-        <torusGeometry args={[R * 1.075, 0.035, 20, 200, Math.PI * 2]} />
-        <Metal />
-      </mesh>
-      {[1, -1].map((s) => (
-        <mesh key={s} position={[0, s * R * 1.075, 0]} rotation-x={Math.PI / 2}>
-          <cylinderGeometry args={[0.07, 0.07, 0.12, 24]} />
-          <Metal />
-        </mesh>
-      ))}
-
-      {/* The |0>-|1> axis through the poles, with a glowing bead at each */}
+      {/* The |0>-|1> axis through the poles: a line of light, with a glowing bead at each pole */}
       <mesh raycast={() => null}>
-        <cylinderGeometry args={[0.012, 0.012, R * 2.15, 12]} />
-        <Metal shade="#aab4c4" />
+        <cylinderGeometry args={[0.008, 0.008, R * 2.15, 8]} />
+        <meshBasicMaterial color="#bfe9ff" transparent opacity={0.35} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
       </mesh>
       <group position={[0, R, 0]} onPointerOver={hoverTo('north')} onPointerOut={hoverOut}>
         <mesh><sphereGeometry args={[0.2, 16, 16]} /><meshBasicMaterial visible={false} /></mesh>
@@ -359,15 +343,9 @@ export function PremiumBlochSphere({ result = null, onClick, onHover, onUnhover 
       <PoleCrown y={R} color="#00f2fe" active={result === 0} />
       <PoleCrown y={-R} color="#f093fb" active={result === 1} />
 
-      {/* Name plates on stalks from the pivots: |0> above the north pole, |1> below the south */}
-      {[1, -1].map((s) => (
-        <mesh key={s} position={[0, s * (R * 1.075 + 0.17), 0]} raycast={() => null}>
-          <cylinderGeometry args={[0.012, 0.012, 0.22, 10]} />
-          <Metal shade="#aab4c4" />
-        </mesh>
-      ))}
-      <GlassPill text="|0⟩" state="zero" active={result === 0} position={[0, R * 1.075 + 0.28 + 0.15, 0]} label="North pole, ket zero" onPointerOver={hoverTo('north')} onPointerOut={hoverOut} />
-      <GlassPill text="|1⟩" state="one" active={result === 1} position={[0, -(R * 1.075 + 0.28 + 0.15), 0]} label="South pole, ket one" onPointerOver={hoverTo('south')} onPointerOut={hoverOut} />
+      {/* Glass chips: |0> above the north pole, |1> below the south */}
+      <GlassPill tex={String.raw`\lvert 0\rangle`} state="zero" active={result === 0} position={[0, R + 0.42, 0]} label="North pole, ket zero" onPointerOver={hoverTo('north')} onPointerOut={hoverOut} />
+      <GlassPill tex={String.raw`\lvert 1\rangle`} state="one" active={result === 1} position={[0, -(R + 0.42), 0]} label="South pole, ket one" onPointerOver={hoverTo('south')} onPointerOut={hoverOut} />
 
       {/* The state vector: a metal shaft lit in the state's colour, a cone head and a glowing tip */}
       <group ref={vecRef}>
@@ -477,22 +455,10 @@ export function PremiumBit({ value = 0, onToggle, onHover, onUnhover }) {
         <capsuleGeometry args={[0.6, 2.2, 16, 32]} />
       </mesh>
 
-      {/* Metal collars where the glass rounds off, and a band at the middle */}
-      {[SEAT, -SEAT].map((h) => (
-        <mesh key={h} position={[0, h, 0]} rotation-x={Math.PI / 2}>
-          <torusGeometry args={[0.62, 0.04, 16, 96]} />
-          <Metal />
-        </mesh>
-      ))}
-      <mesh rotation-x={Math.PI / 2}>
-        <torusGeometry args={[0.615, 0.014, 10, 96]} />
-        <Metal shade="#b8c2d2" />
-      </mesh>
-
-      {/* The rail the bead rides, and its two seats (the occupied one lights up) */}
+      {/* The rail the bead rides, a line of light, and its two seats (the occupied one lights up) */}
       <mesh raycast={() => null}>
-        <cylinderGeometry args={[0.014, 0.014, SEAT * 2, 10]} />
-        <Metal shade="#aab4c4" />
+        <cylinderGeometry args={[0.008, 0.008, SEAT * 2, 8]} />
+        <meshBasicMaterial color="#bfe9ff" transparent opacity={0.35} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
       </mesh>
       <mesh position={[0, SEAT, 0]} rotation-x={Math.PI / 2} raycast={() => null}>
         <torusGeometry args={[0.22, 0.03, 12, 48]} />
@@ -509,15 +475,9 @@ export function PremiumBit({ value = 0, onToggle, onHover, onUnhover }) {
         <meshStandardMaterial ref={beadMat} emissiveIntensity={3.2} roughness={0.35} />
       </mesh>
 
-      {/* Name plates on arms from the collars: 0 by the 0 seat, 1 by the 1 seat */}
-      {[SEAT, -SEAT].map((h) => (
-        <mesh key={h} position={[0.73, h, 0]} rotation-z={Math.PI / 2} raycast={() => null}>
-          <cylinderGeometry args={[0.012, 0.012, 0.24, 10]} />
-          <Metal shade="#aab4c4" />
-        </mesh>
-      ))}
-      <GlassPill text="0" state="zero" round active={value === 0} position={[1.04, SEAT, 0]} label="Set the bit to 0" onClick={value === 0 ? undefined : onToggle} />
-      <GlassPill text="1" state="one" round active={value === 1} position={[1.04, -SEAT, 0]} label="Set the bit to 1" onClick={value === 1 ? undefined : onToggle} />
+      {/* Glass chips: 0 by the 0 seat, 1 by the 1 seat */}
+      <GlassPill tex="0" state="zero" round active={value === 0} position={[0.98, SEAT, 0]} label="Set the bit to 0" onClick={value === 0 ? undefined : onToggle} />
+      <GlassPill tex="1" state="one" round active={value === 1} position={[0.98, -SEAT, 0]} label="Set the bit to 1" onClick={value === 1 ? undefined : onToggle} />
 
       {hover && (
         <Tooltip position={[1.9, 2.2, 0]} glow={value === 0 ? 'cyan' : 'purple'} width={220}>
