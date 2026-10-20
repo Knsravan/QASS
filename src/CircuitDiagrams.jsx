@@ -172,25 +172,42 @@ const tooltipData = {
 // ==========================================
 // INTEGRATED NON-OVERLAPPING STEP GUIDE
 // ==========================================
+// The clickable parts of a circuit (a gate, an input) work from the keyboard
+// too: Tab reaches them, Enter or Space presses them, and screen readers hear
+// what pressing does.
+const pressable = (onPress, label) => ({
+  role: 'button',
+  tabIndex: 0,
+  'aria-label': label,
+  onClick: onPress,
+  onKeyDown: (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    onPress();
+  },
+});
+
 const LiquidCircuitStepGuide = ({ tip }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   if (!tip) return null;
 
   return (
     <div className="circuit-steps-panel">
-      <div 
+      <button
+        type="button"
         className="circuit-steps-header"
         onClick={() => setIsExpanded(!isExpanded)}
+        aria-expanded={isExpanded}
         title="Click to toggle step-by-step flow"
       >
         <span className="circuit-steps-title">
           <span className="circuit-steps-pulse" />
           {tip.title}
         </span>
-        <span className="circuit-steps-chevron" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+        <span className="circuit-steps-chevron" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }} aria-hidden="true">
           ▼
         </span>
-      </div>
+      </button>
 
       {isExpanded && (
         <div className="circuit-steps-list">
@@ -225,7 +242,7 @@ const BitVsQubitLiquidCircuit = ({ tooltipData }) => {
           <div 
             className="circuit-state-label" 
             style={{ left: 0, color: '#facc15', cursor: 'pointer', border: '1px solid rgba(250, 204, 21, 0.4)' }}
-            onClick={() => setCBit(b => 1 - b)}
+            {...pressable(() => setCBit(b => 1 - b), `Input bit ${cBit}: flip it`)}
             title="Click to toggle input bit"
           >
             Bit {cBit}
@@ -236,7 +253,7 @@ const BitVsQubitLiquidCircuit = ({ tooltipData }) => {
           <div className="gate-wrapper" style={{ position: 'relative', zIndex: 10, display: 'flex', justifyContent: 'center' }}>
             <div 
               className="liquid-gate-box liquid-gate-classical"
-              onClick={() => setCBit(b => 1 - b)}
+              {...pressable(() => setCBit(b => 1 - b), 'Classical NOT gate: flip the bit')}
               title="Classical NOT Gate (Click to flip)"
             >
               NOT
@@ -262,7 +279,7 @@ const BitVsQubitLiquidCircuit = ({ tooltipData }) => {
           <div 
             className="circuit-state-label" 
             style={{ left: 0, color: '#38bdf8', cursor: 'pointer', border: '1px solid rgba(56, 189, 248, 0.4)' }}
-            onClick={() => setQBit(b => 1 - b)}
+            {...pressable(() => setQBit(b => 1 - b), `Input qubit |${qBit}⟩: switch it`)}
             title="Click to toggle input qubit"
           >
             {qBit === 0 ? <InlineMath math={String.raw`|0\rangle`} /> : <InlineMath math={String.raw`|1\rangle`} />}
@@ -274,7 +291,7 @@ const BitVsQubitLiquidCircuit = ({ tooltipData }) => {
             <div 
               className="liquid-gate-box liquid-gate-h"
               style={{ width: '44px', height: '44px', fontSize: '18px' }}
-              onClick={() => setQBit(b => 1 - b)}
+              {...pressable(() => setQBit(b => 1 - b), 'Hadamard gate: switch the input qubit')}
               title="Quantum Hadamard Gate (Superposition)"
             >
               H
@@ -308,7 +325,7 @@ const DiracNotationLiquidCircuit = ({ tooltipData }) => {
         <div 
           className="circuit-state-label" 
           style={{ left: 0, color: '#c084fc', cursor: 'pointer' }}
-          onClick={() => setIsBraMode(!isBraMode)}
+          {...pressable(() => setIsBraMode(!isBraMode), isBraMode ? 'Bra: switch to the ket' : 'Ket: switch to the bra')}
           title="Click to toggle Ket/Bra"
         >
           {isBraMode ? <InlineMath math={String.raw`\langle\psi|`} /> : <InlineMath math={String.raw`|\psi\rangle`} />}
@@ -319,7 +336,7 @@ const DiracNotationLiquidCircuit = ({ tooltipData }) => {
         <div className="gate-wrapper" style={{ position: 'relative', zIndex: 10, display: 'flex', justifyContent: 'center' }}>
           <div 
             className="liquid-gate-box liquid-gate-dirac"
-            onClick={() => setIsBraMode(!isBraMode)}
+            {...pressable(() => setIsBraMode(!isBraMode), 'Vector decomposition: switch between ket and bra')}
             title="Vector Decomposition (Click to toggle Ket ⇄ Bra)"
           >
             {isBraMode ? '⟨·|' : '|·⟩'}
@@ -378,7 +395,7 @@ const SuperpositionLiquidCircuit = ({ tooltipData }) => {
 
           <div 
             className={`measurement-dial-btn ${measured !== null ? 'active' : ''}`}
-            onClick={handleMeasure}
+            {...pressable(handleMeasure, measured !== null ? 'Reset the measurement' : 'Measure the qubit')}
             title="Click to Measure / Collapse State"
             style={{ width: '38px', height: '38px' }}
           >
@@ -436,7 +453,7 @@ const InterferenceLiquidCircuit = ({ tooltipData }) => {
           </div>
           <div 
             className="liquid-gate-box liquid-gate-param" 
-            onClick={() => setPhasePi(!phasePi)}
+            {...pressable(() => setPhasePi(!phasePi), `Phase shift ${phasePi ? 'π' : '0'}: switch it`)}
             style={{ height: '38px', fontSize: '13px', cursor: 'pointer', border: phasePi ? '1px solid #f43f5e' : '1px solid #06b6d4' }}
             title="Click to toggle phase shift R(θ)"
           >
@@ -663,7 +680,7 @@ const DecoherenceLiquidCircuit = ({ tooltipData }) => {
         <div className="gate-wrapper" style={{ position: 'relative', zIndex: 10, display: 'flex', justifyContent: 'center' }}>
           <div 
             className={`liquid-gate-box liquid-gate-noise ${noiseActive ? 'pulsing' : ''}`}
-            onClick={handlePulseNoise}
+            {...pressable(handlePulseNoise, 'Noise channel: inject a noise pulse')}
             title="Environmental Thermal Noise Channel (Click to inject)"
           >
             ⚡ E
@@ -722,7 +739,7 @@ const ErrorCorrectionLiquidCircuit = ({ tooltipData }) => {
           <div className="liquid-multi-gate-col" style={{ left: '32%' }}>
             <div 
               className={`liquid-gate-box ${hasError ? 'liquid-gate-x' : ''}`}
-              onClick={() => setHasError(!hasError)}
+              {...pressable(() => setHasError(!hasError), hasError ? 'Error channel: remove the bit-flip error' : 'Error channel: inject a bit-flip error')}
               style={{ width: '34px', height: '34px', fontSize: '11px', zIndex: 12, cursor: 'pointer' }}
               title="Error channel (Click to toggle)"
             >
@@ -832,7 +849,7 @@ const GlassCircuit = ({ gateId, progress }) => {
         <div className="gate-wrapper" style={{ position: 'relative', zIndex: 10, display: 'flex', justifyContent: 'center' }}>
           <div 
             className={`liquid-gate-box ${gateProps.class}`}
-            onClick={() => gateId === 'pauli-x' && setXStyle(s => s === 'box' ? 'plus' : 'box')}
+            {...(gateId === 'pauli-x' ? pressable(() => setXStyle(s => s === 'box' ? 'plus' : 'box'), 'X gate: switch between the box and ⊕ notation') : {})}
             style={progress > 0.1 && progress < 0.9 ? { filter: 'brightness(1.5) drop-shadow(0 0 10px rgba(255,255,255,0.8))', transform: 'scale(1.1)' } : {}}
             title="Click gate to toggle notation (X ↔ ⊕)"
           >
@@ -843,7 +860,7 @@ const GlassCircuit = ({ gateId, progress }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', zIndex: 2, justifyContent: 'flex-end' }}>
           <div 
             className={`measurement-dial-btn ${measureActive ? 'active' : ''}`}
-            onClick={() => setMeasureActive(!measureActive)}
+            {...pressable(() => setMeasureActive(!measureActive), measureActive ? 'Hide the measurement' : 'Measure the output')}
             title="Toggle Measurement"
           >
             <div className="measurement-dial-icon" />

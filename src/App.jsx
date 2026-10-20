@@ -26,12 +26,10 @@ import { useDiracAudio } from './useDiracAudio';
 import { useGatesAudio } from './useGatesAudio';
 import { useIdleAudio } from './useIdleAudio';
 import 'katex/dist/katex.min.css';
-import { BlockMath, InlineMath } from './KatexMath';
 import {
   QuantumModuleIcon,
   MorphAudioIcon,
   MorphSidebarTabIcon,
-  MorphCircuitToggleIcon,
   MorphIcon,
   Atom,
   Variable,
@@ -61,7 +59,7 @@ import { glassDrawnOn } from './glassGL';
 import { startBoot } from './BootLoader';
 import QassLogo from './QassLogo';
 import { curriculumData, IDLE_FACTS } from './curriculum';
-import { CircuitVisualizer } from './CircuitDiagrams';
+import ModuleSidebarContent from './ModuleSidebarContent';
 import { MODULE_LOADERS } from './moduleLoaders';
 import { useStageChoreography } from './useStageChoreography';
 import BitVsQubitPanel from './BitVsQubitPanel';
@@ -208,31 +206,6 @@ function LandingBackground({ exiting = false }) {
       </group>
     </>
   );
-}
-
-// ==========================================
-// HELPER: HIGHLIGHT MATRIX COLUMN
-// ==========================================
-function getHighlightedMatrix(matrixStr, inputIndex, color, isSynced) {
-  if (!isSynced || !matrixStr.includes('\\begin{bmatrix}')) return matrixStr;
-  
-  // Extract everything between \begin{bmatrix} and \end{bmatrix}
-  const match = matrixStr.match(/\\begin\{bmatrix\}(.*?)\\end\{bmatrix\}/s);
-  if (!match) return matrixStr;
-  
-  const rows = match[1].split('\\\\').map(row => row.split('&').map(cell => cell.trim()));
-  
-  const highlightedRows = rows.map(row => {
-    return row.map((cell, colIndex) => {
-      // Input index corresponds exactly to the column that transforms it!
-      if (colIndex === inputIndex && cell !== '0') {
-        return `\\textcolor{${color}}{${cell}}`;
-      }
-      return cell;
-    }).join(' & ');
-  }).join(' \\\\ ');
-  
-  return matrixStr.replace(match[1], ` ${highlightedRows} `);
 }
 
 // ==========================================
@@ -474,6 +447,7 @@ function App() {
 
   // Circuit Diagram Accordion State
   const [showCircuit, setShowCircuit] = useState(false);
+  const toggleCircuit = useCallback(() => setShowCircuit((open) => !open), []);
 
   // Initialize Simulator: the landing page vanishes, its badge's mark glides
   // to the loading screen, the device is tested (or its saved result
@@ -647,229 +621,6 @@ function App() {
   // ==========================================
   // MAIN SIMULATOR UI
   // ==========================================
-  const renderModuleContent = (mod) => {
-    if (mod.id === 'gates') {
-      const currentGateData = GATES_STEPS[gatesStep];
-      const initialInputState = currentGateData.startsAtPlus ? '|+\\rangle' : '|0\\rangle';
-      const inputIdx = currentGateData.startsAtPlus ? -1 : 0;
-
-      return (
-        <div className="multi-gates-sidebar stagger-enter" style={{ '--gate-accent-color': currentGateData.color }} key={gatesStep}>
-          <div className="sidebar-title-wrapper">
-            <h3 style={{ marginTop: '-5px', fontSize: '18px', fontWeight: '700' }}>
-              {currentGateData.title}
-            </h3>
-            <div className="title-underline-sweep" />
-          </div>
-
-          <div className="data-card">
-            <span className="pillar-label">1-Line Definition</span>
-            <p className="pillar-text">{currentGateData.definition}</p>
-          </div>
-
-          <div className="data-card">
-            <span className="pillar-label">Deep Understanding</span>
-            <p className="pillar-text">{currentGateData.understanding}</p>
-          </div>
-
-          {currentGateData.stateMapping && (
-            <div className="data-card">
-              <span className="pillar-label">State Mappings</span>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px' }}>
-                {currentGateData.stateMapping.map((map, i) => {
-                  const isActiveMatch = map.in === initialInputState;
-                  let rowClass = "mapping-row";
-                  if (showResultSync) {
-                    rowClass += isActiveMatch ? " active" : " dimmed";
-                  }
-
-                  return (
-                    <div key={i} className={rowClass} style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                      <div style={{ color: 'var(--gate-accent-color)', fontSize: '14px', width: '160px', flexShrink: 0 }}>
-                        <InlineMath math={`${map.in} \\rightarrow ${map.out}`} />
-                      </div>
-                      <div style={{ fontSize: '12px', color: '#cbd5e1', lineHeight: '1.4' }}>
-                        {map.note}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          <div className="data-card">
-            <span className="pillar-label">Classical Comparison</span>
-            <p className="pillar-text" style={{ fontStyle: 'italic', color: 'var(--text-secondary)' }}>"{currentGateData.comparison}"</p>
-          </div>
-
-          <div className="data-card">
-            <span className="pillar-label">Quantum Unitary Matrix</span>
-            <div className="math-box-fluid">
-              <BlockMath math={getHighlightedMatrix(
-                currentGateData.math,
-                inputIdx,
-                currentGateData.color,
-                showResultSync
-              )} />
-            </div>
-          </div>
-
-          <div className="circuit-diagram-card">
-            <div
-              className="circuit-header"
-              onClick={() => setShowCircuit(!showCircuit)}
-            >
-              <span className="pillar-label">Circuit Diagram</span>
-              <span className={`circuit-toggle-icon ${showCircuit ? 'open' : ''}`}>
-                <MorphCircuitToggleIcon isOpen={showCircuit} size={14} color="currentColor" />
-              </span>
-            </div>
-
-            {showCircuit && (
-              <div className="circuit-content">
-                <CircuitVisualizer moduleId={mod.id} gateId={currentGateData.id} />
-              </div>
-            )}
-          </div>
-
-          <div className="data-card" style={{ borderLeft: `3px solid var(--gate-accent-color)`, paddingLeft: '12px' }}>
-            <span className="pillar-label" style={{ color: 'var(--gate-accent-color)' }}>Why Quantum Needs This</span>
-            <p className="pillar-text">{currentGateData.reversibility}</p>
-          </div>
-        </div>
-      );
-    } else if (mod.id === 'multi-qubit-gates') {
-      return (
-        <div className="multi-gates-sidebar stagger-enter" style={{ '--gate-accent-color': MULTI_GATES_STEPS[multiGatesStep].color }} key={multiGatesStep}>
-          <div className="sidebar-title-wrapper">
-            <h3 style={{ marginTop: '-5px', fontSize: '18px', fontWeight: '700' }}>
-              {MULTI_GATES_STEPS[multiGatesStep].title}
-            </h3>
-            <div className="title-underline-sweep" />
-          </div>
-          <div className="data-card">
-            <span className="pillar-label">1-Line Definition</span>
-            <p className="pillar-text">{MULTI_GATES_STEPS[multiGatesStep].definition}</p>
-          </div>
-          <div className="data-card">
-            <span className="pillar-label">Deep Understanding</span>
-            <p className="pillar-text">{MULTI_GATES_STEPS[multiGatesStep].understanding}</p>
-          </div>
-          
-          {MULTI_GATES_STEPS[multiGatesStep].stateMapping && (
-            <div className="data-card">
-              <span className="pillar-label">State Mappings</span>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px' }}>
-                {MULTI_GATES_STEPS[multiGatesStep].stateMapping.map((map, i) => {
-                  const numQubits = MULTI_GATES_STEPS[multiGatesStep].numQubits;
-                  const currentInputState = `|${multiGatesInputs.slice(0, numQubits).join('')}\\rangle`;
-                  const isActiveMatch = map.in === currentInputState;
-                  
-                  let rowClass = "mapping-row";
-                  if (showResultSync) {
-                    rowClass += isActiveMatch ? " active" : " dimmed";
-                  }
-
-                  return (
-                    <div key={i} className={rowClass} style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                      <div style={{ color: 'var(--gate-accent-color)', fontSize: '14px', width: '160px', flexShrink: 0 }}>
-                        <InlineMath math={`${map.in} \\rightarrow ${map.out}`} />
-                      </div>
-                      <div style={{ fontSize: '12px', color: '#cbd5e1', lineHeight: '1.4' }}>
-                        {map.note}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-          <div className="data-card">
-            <span className="pillar-label">Classical Comparison</span>
-            <p className="pillar-text" style={{ fontStyle: 'italic', color: 'var(--text-secondary)' }}>"{MULTI_GATES_STEPS[multiGatesStep].comparison}"</p>
-          </div>
-          <div className="data-card">
-            <span className="pillar-label">Quantum Unitary Matrix</span>
-            <div className="math-box-fluid">
-              <BlockMath math={(() => {
-                const numQubits = MULTI_GATES_STEPS[multiGatesStep].numQubits;
-                const _mqInputStr = multiGatesInputs.slice(0, numQubits).join('');
-                const inputIdx = _mqInputStr.includes('+') ? -1 : parseInt(_mqInputStr, 2);
-                return getHighlightedMatrix(
-                  MULTI_GATES_STEPS[multiGatesStep].math, 
-                  inputIdx, 
-                  MULTI_GATES_STEPS[multiGatesStep].color, 
-                  showResultSync
-                );
-              })()} />
-            </div>
-          </div>
-          <div className="circuit-diagram-card">
-            <div
-              className="circuit-header"
-              onClick={() => setShowCircuit(!showCircuit)}
-            >
-              <span className="pillar-label">Circuit Diagram</span>
-              <span className={`circuit-toggle-icon ${showCircuit ? 'open' : ''}`}>
-                <MorphCircuitToggleIcon isOpen={showCircuit} size={14} color="currentColor" />
-              </span>
-            </div>
-
-            {showCircuit && (
-              <div className="circuit-content">
-                <CircuitVisualizer moduleId={mod.id} gateId={MULTI_GATES_STEPS[multiGatesStep].id} multiGatesStep={multiGatesStep} />
-              </div>
-            )}
-          </div>
-          <div className="data-card" style={{ borderLeft: `3px solid var(--gate-accent-color)`, paddingLeft: '12px' }}>
-            <span className="pillar-label" style={{ color: 'var(--gate-accent-color)' }}>Why Quantum Needs This</span>
-            <p className="pillar-text">{MULTI_GATES_STEPS[multiGatesStep].reversibility}</p>
-          </div>
-        </div>
-      );
-    } else {
-      return (
-        <>
-          <div className="data-card">
-            <span className="pillar-label">1-Line Definition</span>
-            <p className="pillar-text">{mod.definition}</p>
-          </div>
-          <div className="data-card">
-            <span className="pillar-label">Classical Comparison</span>
-            <p className="pillar-text" style={{ fontStyle: 'italic', color: 'var(--text-secondary)' }}>"{mod.comparison}"</p>
-          </div>
-          <div className="data-card">
-            <span className="pillar-label">Mathematical Representation</span>
-            <div className="math-box-fluid">
-              <BlockMath math={mod.math} />
-            </div>
-          </div>
-          <div className="circuit-diagram-card">
-            <div
-              className="circuit-header"
-              onClick={() => setShowCircuit(!showCircuit)}
-            >
-              <span className="pillar-label">Circuit Diagram</span>
-              <span className={`circuit-toggle-icon ${showCircuit ? 'open' : ''}`}>
-                <MorphCircuitToggleIcon isOpen={showCircuit} size={14} color="currentColor" />
-              </span>
-            </div>
-            {showCircuit && (
-              <div className="circuit-content">
-                <CircuitVisualizer moduleId={mod.id} multiGatesStep={multiGatesStep} register={expRegister} />
-              </div>
-            )}
-          </div>
-          <div className="data-card" style={{ borderLeft: '3px solid #ef4444', paddingLeft: '12px' }}>
-            <span className="pillar-label" style={{ color: '#ef4444' }}>Common Misconception</span>
-            <p className="pillar-text">{mod.misconception}</p>
-          </div>
-        </>
-      );
-    }
-  };
-
   // The open module's page shows in the sidebar until "back" (which keeps the
   // module open); opening any module, from anywhere, shows its page again.
   const activeModule = curriculumData.find((m) => m.id === activeModuleId) || null;
@@ -947,7 +698,18 @@ function App() {
                   mod: pageModule,
                   prev: curriculumData[curriculumData.indexOf(pageModule) - 1],
                   next: curriculumData[curriculumData.indexOf(pageModule) + 1],
-                  content: renderModuleContent(pageModule),
+                  content: (
+                    <ModuleSidebarContent
+                      mod={pageModule}
+                      gatesStep={gatesStep}
+                      multiGatesStep={multiGatesStep}
+                      multiGatesInputs={multiGatesInputs}
+                      synced={showResultSync}
+                      showCircuit={showCircuit}
+                      onToggleCircuit={toggleCircuit}
+                      expRegister={expRegister}
+                    />
+                  ),
                 }}
                 icon={(mod) => <QuantumModuleIcon moduleId={mod.id} isActive color={mod.accent || '#38bdf8'} size={22} />}
                 onBack={() => setListFor(activeModuleId)}
