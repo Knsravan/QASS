@@ -29,7 +29,7 @@ export const DIRAC_STEPS = [
   {
     title: 'Superposition',
     accent: '#f7971e',
-    text: 'A qubit can hold both at once. α and β are amplitudes, and the light in each slot is the chance of reading that result: |α|² and |β|². The column is just α of |0⟩ plus β of |1⟩.',
+    text: 'A qubit can be a blend of both. α and β are amplitudes, and the light in each slot is the chance of reading that result: |α|² and |β|². The column is just α of |0⟩ plus β of |1⟩.',
     formula: <><P>|ψ⟩</P> = <Z>α</Z>|0⟩ + <O>β</O>|1⟩ = <Col top={<Z>α</Z>} bottom={<O>β</O>} /> <Note>α = β ≈ 0.71 → 50% each</Note></>,
   },
   {

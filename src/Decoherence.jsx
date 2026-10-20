@@ -773,7 +773,7 @@ export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted,
                 Quantum computers run colder than outer space
               </div>
               <div style={{ fontSize: '11.5px', color: '#94a3b8', lineHeight: 1.5, marginBottom: '12px', fontFamily: "'Inter', sans-serif" }}>
-                A qubit's quantum state is <strong style={{ color: CW }}>extraordinarily fragile</strong>. Even a single photon or the tiniest vibration can instantly destroy its superposition — a process called <strong style={{ color: CT }}>Decoherence</strong>. This is quantum computing's #1 challenge.
+                A qubit's quantum state is <strong style={{ color: CW }}>extraordinarily fragile</strong>. Every stray photon, vibration or fluctuating field nudges it, and the nudges add up: within microseconds to milliseconds its superposition fades away — a process called <strong style={{ color: CT }}>Decoherence</strong>. This is quantum computing's #1 challenge.
               </div>
               <button onClick={handleStart} style={{ width: '100%', padding: '9px 16px', borderRadius: '11px', background: 'linear-gradient(135deg, ' + CT + '33, ' + CT + '18)', border: '1.5px solid ' + CT + '77', color: CT, fontSize: '12px', fontWeight: '800', cursor: 'pointer', fontFamily: "'Inter', sans-serif", letterSpacing: '0.4px', transition: 'all 0.2s ease' }}>
                 Let's Explore Decoherence →

@@ -48,7 +48,7 @@ export const MULTI_GATES_STEPS = [
   {
     id: 'toffoli', title: 'Toffoli (CCNOT)', color: '#ec4899', gate: 'Toffoli', name: 'Toffoli (CCX)', numQubits: 3,
     definition: <>Flips a target qubit if and only if BOTH control qubits are <InlineMath math={String.raw`|1\rangle`} />.</>,
-    understanding: <>The Toffoli gate (Controlled-Controlled-NOT) requires two controls. It only applies the NOT operation to the target if Control 1 AND Control 2 are strictly <InlineMath math={String.raw`|1\rangle`} />. Any quantum circuit can be constructed using only Toffoli and Hadamard gates, making it a universal gate.</>,
+    understanding: <>The Toffoli gate (Controlled-Controlled-NOT) requires two controls. It only applies the NOT operation to the target if Control 1 AND Control 2 are strictly <InlineMath math={String.raw`|1\rangle`} />. On its own it is universal for classical reversible computing, and together with the Hadamard gate it is enough for universal quantum computation (with real amplitudes standing in for complex ones).</>,
     stateMapping: [
       { in: '|011\\rangle', out: '|011\\rangle', note: 'Control 1 is 0, Target unchanged' },
       { in: '|101\\rangle', out: '|101\\rangle', note: 'Control 2 is 0, Target unchanged' },

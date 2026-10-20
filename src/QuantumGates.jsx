@@ -79,7 +79,7 @@ export const GATES_STEPS = [
     ...rotationFields('pauli-y'), angleText: '180°',
     reversibility: 'Every quantum gate must be reversible (unitary). Classical bits cannot hold imaginary phase.',
     camPos: [4.2, 0, 11],
-    animationTooltip: "Notice the 180° swing across the Y-axis? It flips the probabilities exactly like the X-gate, but it rotates through the imaginary plane, adding a complex phase!"
+    animationTooltip: "Notice the 180° swing around the Y-axis? It flips the probabilities exactly like the X-gate, but by a different route: the arrow passes through |+⟩, where both amplitudes are real. The complex part is the phase it leaves behind: Y|0⟩ = i|1⟩."
   },
   {
     id: 'pauli-z', title: 'Pauli-Z (Phase Flip)', color: '#a855f7', gate: 'Z',
@@ -106,8 +106,8 @@ export const GATES_STEPS = [
     stateMapping: [
       { in: '|0\\rangle', out: '\\frac{|0\\rangle + |1\\rangle}{\\sqrt{2}}', note: 'Creates symmetric |+⟩ superposition' },
       { in: '|1\\rangle', out: '\\frac{|0\\rangle - |1\\rangle}{\\sqrt{2}}', note: 'Creates antisymmetric |-⟩ superposition' },
-      { in: '|+\\rangle', out: '|0\\rangle', note: 'Interference collapses |+⟩ to |0⟩' },
-      { in: '|-\\rangle', out: '|1\\rangle', note: 'Interference collapses |-⟩ to |1⟩' }
+      { in: '|+\\rangle', out: '|0\\rangle', note: 'The |1⟩ parts cancel, leaving |0⟩' },
+      { in: '|-\\rangle', out: '|1\\rangle', note: 'The |0⟩ parts cancel, leaving |1⟩' }
     ],
     comparison: 'A classical coin flip randomizes a bit to 0 or 1, losing all previous information. The Hadamard gate creates superposition without destroying information (applying it twice yields the original state).',
     desc: '180° rotation about the diagonal axis. Creates superposition.', classical: 'None (Superposition)', hasClassicalEquivalent: false,
@@ -181,7 +181,6 @@ function ClassicalPipeStage({ stepData, applied, isLight }) {
           activeModule="gates"
           flipMode={gate === 'X' && !applied ? 'slow' : (applied && hasClassicalEquivalent ? 'force-1' : 'force-0')}
           attemptCopy={false}
-          isDecohering={false}
         />
         {/* Travelling Pulse */}
         <mesh ref={pulseRef} position={[0, 1.1, 0]}>
@@ -416,7 +415,6 @@ function QuantumSphereStage({ stepData, applied, isLight, setProgress, setAberra
         scale={1.2}
         theme={isLight ? 'light' : 'dark'}
         activeModule="gates"
-        superpositionStep={-1}
         customVectorQuat={currentQuat.current}
         sphereRotation={[0, Math.atan2(4.2, 13), 0]}
       />

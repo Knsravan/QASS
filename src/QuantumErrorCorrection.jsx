@@ -533,7 +533,6 @@ function QECScene({ step, errorQubit, onErrorQubitChange, theme, isSidebarOpen, 
             <QubitCore
               theme={theme}
               activeModule="error-correction"
-              superpositionStep={-1}
               customVectorQuat={getVectorQuat(idx)}
               showCustomVector={true}
               customGridColor={gridColor}
@@ -639,7 +638,6 @@ function QECScene({ step, errorQubit, onErrorQubitChange, theme, isSidebarOpen, 
           <QubitCore
             theme={theme}
             activeModule="error-correction"
-            superpositionStep={-1}
             customVectorQuat={ancilla1Syndrome === 1 ? quatDown : quatUp}
             showCustomVector={true}
             customGridColor={ancilla1Syndrome === 1 ? CE : CA}
@@ -676,7 +674,6 @@ function QECScene({ step, errorQubit, onErrorQubitChange, theme, isSidebarOpen, 
           <QubitCore
             theme={theme}
             activeModule="error-correction"
-            superpositionStep={-1}
             customVectorQuat={ancilla2Syndrome === 1 ? quatDown : quatUp}
             showCustomVector={true}
             customGridColor={ancilla2Syndrome === 1 ? CE : CA}

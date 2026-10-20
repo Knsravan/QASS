@@ -260,7 +260,7 @@ export function SuperpositionOverlay({ isGlobalMuted }) {
       {card(2, 'tr', 'cyan-glow', (
         <>
           <h4>🌊 Infinite Possibilities</h4>
-          <p>It is simultaneously <InlineMath math={String.raw`|0\rangle`} /> and <InlineMath math={String.raw`|1\rangle`} />! The vector sweeps the equator — a continuous wave of probability amplitudes.</p>
+          <p>The qubit now has amplitudes for both <InlineMath math={String.raw`|0\rangle`} /> and <InlineMath math={String.raw`|1\rangle`} />. It is one definite state, not a hidden 0 or 1: as the vector sweeps the equator, only the phase between the two changes.</p>
           <div className="sp-eq"><BlockMath math={String.raw`|\psi\rangle = \cos\tfrac{\theta}{2}\,|0\rangle + e^{i\varphi}\sin\tfrac{\theta}{2}\,|1\rangle`} /></div>
           <div className="sp-live">
             <span><InlineMath math={`\\theta = ${deg(s.theta)}^\\circ,\\; \\varphi = ${deg(s.phi)}^\\circ`} /></span>
@@ -276,7 +276,7 @@ export function SuperpositionOverlay({ isGlobalMuted }) {
           <h4>{done ? '🎯 Wave Function Collapsed' : '🎯 Collapse: Your Turn'}</h4>
           {done
             ? <p>The observation forced the superposition to snap into a rigid state (either <InlineMath math={String.raw`|0\rangle`} /> or <InlineMath math={String.raw`|1\rangle`} />). The infinite possibilities are gone, leaving a single deterministic reality.</p>
-            : <p>The quantum state holds every possibility at once... until observed. Click the sphere to force a measurement and collapse the wave function!</p>}
+            : <p>The state sets the odds of each answer, but a measurement can return only one. Click the sphere to measure it and collapse the wave function!</p>}
           <div className="sp-eq">
             {done
               ? <BlockMath math={`\\begin{aligned} |\\psi\\rangle &\\;\\longrightarrow\\; |${collapsed}\\rangle \\\\ P(${collapsed}) &= 100\\% \\end{aligned}`} />

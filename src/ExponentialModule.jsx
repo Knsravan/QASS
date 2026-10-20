@@ -90,7 +90,6 @@ function AnimatedQubitItem({
         scale={1.0}
         theme={theme}
         activeModule="exponential"
-        superpositionStep={isSuperposed ? 2 : 0}
         customVectorQuat={currentQuat}
         emissiveColor={isSuperposed ? '#c084fc' : '#00f2fe'}
       />
@@ -765,10 +764,12 @@ function ExponentialScene({
 // ==========================================
 // 7. 2D INTERACTIVE OVERLAY & FROSTED GLASS HUD
 // ==========================================
-export default function ExponentialModule({ theme = 'dark', isSidebarOpen = true, isGlobalMuted = false, fromHub = false, closing = false }) {
+export default function ExponentialModule({ theme = 'dark', isSidebarOpen = true, isGlobalMuted = false, fromHub = false, closing = false, onRegisterChange }) {
   const [stage, setStage] = useState(1);
   const [qubitCount, setQubitCount] = useState(1);
   const [isSuperposed, setIsSuperposed] = useState(false);
+  // The sidebar's circuit draws this register (App.jsx).
+  useEffect(() => { onRegisterChange?.({ qubits: qubitCount, superposed: isSuperposed }); }, [qubitCount, isSuperposed, onRegisterChange]);
   const [isInterferenceActive, setIsInterferenceActive] = useState(false);
   const [cosmicMilestone, setCosmicMilestone] = useState(50); // 50 or 300
 
@@ -1061,7 +1062,7 @@ export default function ExponentialModule({ theme = 'dark', isSidebarOpen = true
             Linear Hardware (<InlineMath math={String.raw`N`} />) vs Exponential Space (<InlineMath math={String.raw`2^N`} />)
           </div>
           <p style={{ margin: '0 0 8px 0', fontSize: '11.5px', color: '#cbd5e1', lineHeight: '1.4' }}>
-            Adding a classical bit gives you +1 state. Adding <strong>1 physical qubit doubles</strong> the entire computational universe of simultaneous states!
+            Adding a classical bit gives you +1 state. Adding <strong>1 physical qubit doubles</strong> the number of basis states the state vector spans, and so the amplitudes needed to describe it!
           </p>
 
           {/* Interactive Qubit Hardware Slider (Compact Width) */}

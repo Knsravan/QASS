@@ -438,11 +438,6 @@ function InterferenceScene({ theme, stage, subStage, setSubStage, interferencePh
         <BlochSphere
           theme={theme}
           activeModule="interference"
-          qubitCount={1}
-          isDecohering={false}
-          attemptCopy={false}
-          isSidebarOpen={false} // Handled by group wrapper
-          setIsSidebarOpen={() => {}}
           interferencePhase={interferencePhase}
           interferenceStep={interferenceStep}
         />

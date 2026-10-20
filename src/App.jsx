@@ -100,6 +100,7 @@ const readModuleSetting = (key) => {
   return isModuleId(id) ? id : null;
 };
 const BASE_TITLE = 'QASS · Quantum Algorithm State Simulator';
+const EMPTY_REGISTER = { qubits: 1, superposed: false };
 
 const LEARNING_MODE_TABS = [
   {
@@ -323,10 +324,8 @@ function App() {
     [bvqBit, flipBvqBit, bvqResult, clickBvqQubit],
   );
 
-  const [qubitCount, setQubitCount] = useState(1);
-  const [attemptCopy, setAttemptCopy] = useState(false);
-  const [isDecohering, setIsDecohering] = useState(false);
-  const [noiseTimer, setNoiseTimer] = useState(0);
+  // Exponential State Space's register as the module last reported it (its sidebar circuit draws it).
+  const [expRegister, setExpRegister] = useState(EMPTY_REGISTER);
 
 
   // Dirac Notation module step
@@ -512,16 +511,12 @@ function App() {
   }, [booting, preloadModules]);
 
   useEffect(() => {
-    setQubitCount(1); setIsDecohering(false); setAttemptCopy(false); setNoiseTimer(0);
     setShowCircuit(false); // Reset to closed when switching modules
   }, [activeModuleId]);
-
+  // The register is the module's while it is on stage (it reports on mount and on every change).
   useEffect(() => {
-    let timer;
-    if (isDecohering && noiseTimer > 0) timer = setTimeout(() => setNoiseTimer(noiseTimer - 1), 1000);
-    else if (noiseTimer === 0) setIsDecohering(false);
-    return () => clearTimeout(timer);
-  }, [isDecohering, noiseTimer]);
+    if (stageId !== 'exponential') setExpRegister(EMPTY_REGISTER);
+  }, [stageId]);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -570,8 +565,6 @@ function App() {
     }).catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [diracStep]);
-
-  const triggerNoise = () => { setIsDecohering(true); setNoiseTimer(4); };
 
   // ==========================================
   // MOBILE DEVICE BLOCKER
@@ -864,7 +857,7 @@ function App() {
             </div>
             {showCircuit && (
               <div className="circuit-content">
-                <CircuitVisualizer moduleId={mod.id} multiGatesStep={multiGatesStep} qubitCount={qubitCount} />
+                <CircuitVisualizer moduleId={mod.id} multiGatesStep={multiGatesStep} register={expRegister} />
               </div>
             )}
           </div>
@@ -872,24 +865,6 @@ function App() {
             <span className="pillar-label" style={{ color: '#ef4444' }}>Common Misconception</span>
             <p className="pillar-text">{mod.misconception}</p>
           </div>
-
-          {mod.id === 'decoherence' && (
-            <div className="interactive-panel">
-              <h4>Thermal Noise Injection</h4>
-              <button className={`glass-btn ${isDecohering ? 'danger' : ''}`} onClick={triggerNoise} disabled={isDecohering}>
-                {isDecohering ? `⚠️ QUANTUM NOISE ACTIVE (${noiseTimer}s)` : "Apply Noise Pulse"}
-              </button>
-            </div>
-          )}
-
-          {mod.id === 'nocloning' && (
-            <div className="interactive-panel">
-              <h4>Copy Operation</h4>
-              <button className={`glass-btn ${attemptCopy ? 'danger' : ''}`} onClick={() => { setAttemptCopy(true); setTimeout(() => setAttemptCopy(false), 4000); }} disabled={attemptCopy}>
-                {attemptCopy ? "ERROR: QUANTUM COLLAPSE TRIGGERED" : "Execute Copy Sequence"}
-              </button>
-            </div>
-          )}
         </>
       );
     }
@@ -1019,16 +994,20 @@ function App() {
               />
             ) : (
               <div className="sidebar-scrollable-content">
-                <div
-                  className="sidebar-badge sidebar-advanced-placeholder"
-                  title={isSidebarOpen ? undefined : 'Advanced Sandbox Loading...'}
-                >
-                  {isSidebarOpen ? 'Advanced Sandbox Loading...' : (
+                {/* Advanced mode isn't built yet: say so, and offer the way back. */}
+                <div className="sidebar-advanced" title={isSidebarOpen ? undefined : 'Advanced mode is coming soon'}>
+                  {isSidebarOpen ? (
+                    <>
+                      <span className="sidebar-advanced-title">Advanced mode is coming soon</span>
+                      <p>A free-form circuit sandbox is planned for this tab. Every lesson is in Beginner mode.</p>
+                      <button type="button" className="glass-btn" onClick={() => setLearningMode('beginner')}>Back to Beginner</button>
+                    </>
+                  ) : (
                     <>
                       {/* The collapsed sidebar is too narrow for the text: show the
                           Advanced tab's icon, keeping the words for screen readers. */}
                       <MorphIcon icon={Atom} spring="smooth" strokeWidth={1.8} size={22} color="currentColor" />
-                      <span className="visually-hidden">Advanced Sandbox Loading...</span>
+                      <span className="visually-hidden">Advanced mode is coming soon</span>
                     </>
                   )}
                 </div>
@@ -1237,8 +1216,8 @@ function App() {
               : <EntanglementModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} />)
           ) : stageId === 'exponential' ? (
             (ExponentialLoaded
-              ? <ExponentialLoaded theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={expFromHub} closing={stagePhase === 'closing'} />
-              : <ExponentialModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={expFromHub} closing={stagePhase === 'closing'} />)
+              ? <ExponentialLoaded theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={expFromHub} closing={stagePhase === 'closing'} onRegisterChange={setExpRegister} />
+              : <ExponentialModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={expFromHub} closing={stagePhase === 'closing'} onRegisterChange={setExpRegister} />)
           ) : stageId === 'nocloning' ? (
             (NoCloningLoaded
               ? <NoCloningLoaded theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={ncFromHub} closing={stagePhase === 'closing'} />
@@ -1264,12 +1243,6 @@ function App() {
                 vanishing={stagePhase === 'vanish'}
                 handoverTarget={hubTarget}
                 centerOnly={stagePhase === 'solo-center'}
-                qubitCount={qubitCount}
-                isDecohering={isDecohering}
-                attemptCopy={attemptCopy}
-                isSidebarOpen={isSidebarOpen}
-                setIsSidebarOpen={setIsSidebarOpen}
-                isGlobalMuted={isGlobalMuted}
                 bvq={bvqScene}
               />
             </SharedCanvas>

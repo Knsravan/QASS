@@ -138,9 +138,9 @@ const tooltipData = {
   exponential: {
     title: '📈 Exponential State Space Scaling',
     steps: [
-      { text: '3 qubits → Parallel H gates process 2³ = 8 states simultaneously.' },
-      { text: 'Adding 1 qubit doubles the entire computational universe.' },
-      { text: 'Exponential capacity without exponential physical volume.' },
+      { text: <>H on every qubit turns <InlineMath math={String.raw`|0\dots0\rangle`} /> into an equal superposition of all <InlineMath math={String.raw`2^N`} /> basis states.</> },
+      { text: 'Each qubit you add doubles the number of amplitudes the state vector holds.' },
+      { text: 'A measurement still returns a single N-bit answer: any speed-up has to come from interference.' },
     ],
   },
   nocloning: {
@@ -530,13 +530,26 @@ const EntanglementLiquidCircuit = ({ tooltipData }) => {
 // ==========================================
 // 6. EXPONENTIAL STATE SPACE CIRCUIT
 // ==========================================
-const ExponentialLiquidCircuit = ({ tooltipData, qubitCount = 3 }) => {
+const SUPERSCRIPT = ['⁰', '¹', '²', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹'];
+
+// The register as the module has it: `qubits` (1 to 5) and whether H has been
+// applied to every qubit.
+const ExponentialLiquidCircuit = ({ tooltipData, qubits = 1, superposed = false }) => {
   const tip = tooltipData['exponential'];
+  const states = 2 ** qubits;
+  const zeros = '0'.repeat(qubits);
+  const label = (i) => i.toString(2).padStart(qubits, '0');
+  // 1/sqrt(2^N), written as a whole number when N is even.
+  const norm = qubits % 2 === 0 ? `\\frac{1}{${2 ** (qubits / 2)}}` : `\\frac{1}{\\sqrt{${states}}}`;
+  const terms = states <= 4
+    ? Array.from({ length: states }, (_, i) => `|${label(i)}\\rangle`).join(' + ')
+    : `|${label(0)}\\rangle + |${label(1)}\\rangle + \\dots + |${label(states - 1)}\\rangle`;
+  const ket = superposed ? `|\\psi\\rangle = ${norm}(${terms})` : `|\\psi\\rangle = |${zeros}\\rangle`;
 
   return (
     <div className="glass-card" style={{ padding: '20px 14px', position: 'relative' }}>
       <div className="liquid-multi-circuit" style={{ gap: '8px' }}>
-        {[0, 1, 2].map((idx) => (
+        {Array.from({ length: qubits }, (_, idx) => (
           <div key={idx} className="liquid-multi-row" style={{ height: '38px' }}>
             <div className="circuit-state-label" style={{ left: 0, fontSize: '12px' }}>
               <InlineMath math={`|0\\rangle_{q_${idx}}`} />
@@ -544,11 +557,13 @@ const ExponentialLiquidCircuit = ({ tooltipData, qubitCount = 3 }) => {
             <div className="qubit-wire-timeline" style={{ top: '50%' }}>
               <div className="wire-flow-indicator" style={{ animationDelay: `${idx * 0.3}s` }} />
             </div>
-            <div className="liquid-multi-gate-col">
-              <div className="liquid-gate-box liquid-gate-h" style={{ width: '30px', height: '30px', fontSize: '13px', zIndex: 12 }}>H</div>
-            </div>
-            <div className="circuit-state-label" style={{ right: 0, fontSize: '12px', color: '#a855f7' }}>
-              <InlineMath math={String.raw`|+\rangle`} />
+            {superposed && (
+              <div className="liquid-multi-gate-col">
+                <div className="liquid-gate-box liquid-gate-h" style={{ width: '30px', height: '30px', fontSize: '13px', zIndex: 12 }}>H</div>
+              </div>
+            )}
+            <div className="circuit-state-label" style={{ right: 0, fontSize: '12px', color: superposed ? '#a855f7' : undefined }}>
+              <InlineMath math={superposed ? String.raw`|+\rangle` : String.raw`|0\rangle`} />
             </div>
           </div>
         ))}
@@ -556,11 +571,13 @@ const ExponentialLiquidCircuit = ({ tooltipData, qubitCount = 3 }) => {
 
       <div className="liquid-exp-summary">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontWeight: 700, color: '#a855f7', fontSize: '12px' }}>3 Qubits = 2³ Basis States</span>
-          <span className="liquid-badge-accent">8 States in Parallel</span>
+          <span style={{ fontWeight: 700, color: '#a855f7', fontSize: '12px' }}>
+            {qubits} {qubits === 1 ? 'Qubit' : 'Qubits'} = 2{SUPERSCRIPT[qubits]} Basis States
+          </span>
+          <span className="liquid-badge-accent">{superposed ? `${states} amplitudes, all equal` : `1 of ${states} basis states`}</span>
         </div>
         <div style={{ marginTop: '6px', fontSize: '11px', color: '#cbd5e1' }}>
-          <InlineMath math={String.raw`|\psi\rangle = \frac{1}{\sqrt{8}}(|000\rangle + |001\rangle + \dots + |111\rangle)`} />
+          <InlineMath math={ket} />
         </div>
       </div>
 
@@ -990,7 +1007,7 @@ const GlassMultiCircuit = ({ gateId, tooltipData }) => {
 // ==========================================
 // UNIFIED CIRCUIT VISUALIZER DISPATCHER
 // ==========================================
-export const CircuitVisualizer = ({ moduleId, gateId, multiGatesStep = 0, qubitCount = 3 }) => {
+export const CircuitVisualizer = ({ moduleId, gateId, multiGatesStep = 0, register }) => {
   switch (moduleId) {
     case 'bit-vs-qubit':
       return <BitVsQubitLiquidCircuit tooltipData={tooltipData} />;
@@ -1009,7 +1026,7 @@ export const CircuitVisualizer = ({ moduleId, gateId, multiGatesStep = 0, qubitC
     case 'entanglement':
       return <EntanglementLiquidCircuit tooltipData={tooltipData} />;
     case 'exponential':
-      return <ExponentialLiquidCircuit tooltipData={tooltipData} qubitCount={qubitCount} />;
+      return <ExponentialLiquidCircuit tooltipData={tooltipData} qubits={register?.qubits} superposed={register?.superposed} />;
     case 'nocloning':
       return <NoCloningLiquidCircuit tooltipData={tooltipData} />;
     case 'decoherence':

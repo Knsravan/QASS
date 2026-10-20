@@ -801,7 +801,6 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted, f
                 scale={1.55}
                 theme={theme}
                 activeModule="entanglement"
-                superpositionStep={-1}
                 customVectorQuat={quatQubitA.current}
                 customGridColor={step === 'quantum_collapse' || step === 'summary' ? CR : CP}
                 customRingColor={step === 'quantum_collapse' || step === 'summary' ? CR : CP}
@@ -836,7 +835,6 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted, f
                 scale={1.55}
                 theme={theme}
                 activeModule="entanglement"
-                superpositionStep={-1}
                 customVectorQuat={quatQubitB.current}
                 customGridColor={step === 'quantum_cnot' ? CP : (step === 'quantum_collapse' || step === 'summary' ? CR : '#f59e0b')}
                 customRingColor={step === 'quantum_cnot' ? CP : (step === 'quantum_collapse' || step === 'summary' ? CR : '#fbbf24')}
