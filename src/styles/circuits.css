@@ -12,6 +12,24 @@
   padding: 2px 0;
 }
 
+/* The circuit's toggles are real buttons: take the browser's button look away. */
+button.circuit-header,
+button.circuit-steps-header {
+  margin: 0;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+button.circuit-header {
+  background: none;
+}
+
+button.circuit-steps-header {
+  width: 100%;
+}
+
 .circuit-header .pillar-label {
   margin-bottom: 0 !important;
   display: inline-flex !important;

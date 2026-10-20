@@ -66,7 +66,7 @@ The app opens at <http://localhost:3000>. Other scripts:
 | `npm run build` | Optimized production build in `build/` |
 | `npm run preview` | Serves the production build locally |
 | `npm test` | Runs the unit tests (Vitest) |
-| `npm run test:e2e` | Builds the app and opens every module in headless Chromium (Playwright); run `npx playwright install chromium` once first |
+| `npm run test:e2e` | Builds the app and opens every module in headless Chromium (Playwright), once more at High quality to run the WebGL glass; run `npx playwright install chromium` once first |
 | `npm run lint` | Lints the source (ESLint, fails on any warning) |
 
 The simulator is designed for desktop and tablet screens. On narrow windows (under 768 px) it shows a message asking you to use a larger screen.
@@ -85,16 +85,18 @@ The simulator is designed for desktop and tablet screens. On narrow windows (und
 
 | Path | What lives there |
 |------|------------------|
-| `src/App.jsx` | App shell: landing page, sidebar, module routing, mute and learning-mode state |
+| `src/App.jsx` | The root: landing page, loading screen and mobile blocker; it loads the simulator as its own chunk |
+| `src/Simulator.jsx` | The simulator: hub, sidebar, module routing, mute and learning-mode state |
 | `src/curriculum.jsx` | The course: each module's title and its definition, comparison, formula and misconception cards |
-| `src/useStageChoreography.js` | The animated moves between the hub and each module |
+| `src/ModuleSidebarContent.jsx` | A module's page in the sidebar: its cards, its circuit, and the gate pages of the two gate modules |
+| `src/useStageChoreography.js`, `src/stagePhases.js` | The animated moves between the hub and each module, and the table of their phases |
 | `src/CircuitDiagrams.jsx` | The circuit diagram each module shows in the sidebar |
 | `src/moduleLoaders.js` | The modules that load on demand, as their own chunks |
 | `src/KatexMath.jsx` | `InlineMath` / `BlockMath`: KaTeX formulas as React components |
 | `src/styles/` | The stylesheets, imported by `App.jsx` in cascade order |
 | `src/*Module.jsx`, `src/BlochSphere.jsx`, `src/QuantumGates.jsx`, ... | One file per module's 3D scene and overlay |
 | `src/quantumMath.js` | State-vector, gate and measurement math, and each module's quantum math (tested in `quantumMath.test.js` and `moduleMath.test.js`) |
-| `src/use*Audio.js`, `src/sharedAudio.js` | Per-module sound design on one shared `AudioContext` |
+| `src/use*Audio.js`, `src/sharedAudio.js` | Per-module sound design on one shared `AudioContext`, each through the same output chain (master gain, low-pass, reverb) |
 | `src/LiquidGlass.js`, `src/glassLens.js`, `src/GlassNavBar.jsx` | The Liquid Glass material, its lens filter and the floating tab bar |
 | `src/liquid-glass/` | The Liquid Glass skill's material, used by the sidebar and the top bar |
 | `e2e/` | Browser smoke tests (Playwright) |
@@ -139,7 +141,7 @@ Every glass surface in the app is lensed now, tooltips, info cards and labels in
 The controls are glass too:
 
 - **Sliders** (`src/GlassSlider.jsx`): the noise, distance, qubit and phase sliders are the iOS 26 capsule, a glass track with a glowing fill and a clear capsule lens that bends the fill under it. The capsule swells when grabbed, stretches with the drag and shows the value in a small glass bubble. The browser's own slider stays underneath, invisible, so the keyboard and screen readers work as before.
-- **Keyboard focus:** every glass control, Back and Next included, shows the same glowing cyan rim when reached with Tab.
+- **Keyboard focus:** every glass control, Back and Next included, shows the same glowing cyan rim when reached with Tab. The circuit diagrams work from the keyboard too: their toggles are buttons, and their clickable gates and inputs take Tab, Enter and Space.
 - **Angle pill:** the angle shown at the end of a gate's rotation is glass tinted in the gate's colour.
 - **Reduce transparency:** with that system setting on, every piece of glass turns solid dark with the same shape and rim instead of see-through.
 - **Selection:** selected text gets a soft cyan highlight.
@@ -164,7 +166,7 @@ The level is chosen once, by the loading screen's device test (below), and never
 
 **The landing page always runs at high**, whatever the device: every lens and the full glow (`setLandingMode`). Its few pieces of glass get their lens at once instead of in idle time.
 
-**The loading screen** (`src/BootLoader.jsx`): pressing Initialize Simulator makes the cards, copy and the orbital cloud vanish (only the stars stay), and the QASS mark glides from the landing badge to the middle of the screen. While it moves, the device is tested for real, with a line under the mark saying what is happening: the graphics card, CPU and memory; the browser's features and the display; loading the simulator's modules; a drawing test (`src/deviceBench.js`, an off-screen scene like the simulator's drawn at each tier, timed until the GPU finishes each frame, high first); then the tier chosen. The simulator is built underneath and shown once it draws smoothly. Each step takes as long as its work does. The result is saved for the device (with its GPU's name, in localStorage), so a later visit only restores it; anyone who skips the landing page but has never had the test gets the loading screen and the test first.
+**The loading screen** (`src/BootLoader.jsx`): pressing Initialize Simulator makes the cards, copy and the orbital cloud vanish (only the stars stay), and the QASS mark glides from the landing badge to the middle of the screen. While it moves, the device is tested for real, with a line under the mark saying what is happening: the graphics card, CPU and memory; the browser's features and the display; loading the simulator and its modules (their own chunks, so the landing page downloads only what it shows: the hub, the modules, the course text and KaTeX all come here); a drawing test (`src/deviceBench.js`, an off-screen scene like the simulator's drawn at each tier, timed until the GPU finishes each frame, high first); then the tier chosen. The simulator is built underneath and shown once it draws smoothly. Each step takes as long as its work does. The result is saved for the device (with its GPU's name, in localStorage), so a later visit only restores it; anyone who skips the landing page but has never had the test gets the loading screen and the test first.
 
 `?quality=high` (or `medium`, `low`) in the address pins a level for testing. Open the app with `?glassdebug` (for example `https://qass.vercel.app/?glassdebug`) to see the frame rate, the tier and why it was chosen, whether the browser can bend, and how many glass surfaces are bending, with a button that forgets the device test and the display choices and reloads.
 
@@ -178,7 +180,7 @@ The QASS mark is the letter Q drawn as the app's Bloch sphere, with the state ve
 
 ## Roadmap
 
-- **Advanced mode.** The Beginner / Advanced switch is in place, but the Advanced sandbox is not built yet and currently shows a "loading" placeholder.
+- **Advanced mode.** The Beginner / Advanced switch is in place, but the Advanced sandbox is not built yet; the Advanced tab says so and offers the way back to Beginner.
 - A mobile-friendly layout.
 
 ## Acknowledgements

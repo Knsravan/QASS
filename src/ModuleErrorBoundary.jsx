@@ -19,7 +19,8 @@ const buttonStyle = {
 /**
  * Keeps one module's failure from taking down the whole app: the sidebar and
  * hub stay usable and the user gets a way back in. Remount it with a `key`
- * per module so switching modules clears the error.
+ * per module so switching modules clears the error. (App.jsx also wraps the
+ * whole simulator in one, without `onBackToHub`: there is no hub to go back to.)
  */
 export default class ModuleErrorBoundary extends React.Component {
   state = { error: null };
@@ -63,13 +64,15 @@ export default class ModuleErrorBoundary extends React.Component {
             >
               Try again
             </button>
-            <button
-              type="button"
-              onClick={onBackToHub}
-              style={{ ...buttonStyle, background: 'transparent', border: '1px solid rgba(255, 255, 255, 0.18)', color: 'var(--text-secondary)' }}
-            >
-              Back to hub
-            </button>
+            {onBackToHub && (
+              <button
+                type="button"
+                onClick={onBackToHub}
+                style={{ ...buttonStyle, background: 'transparent', border: '1px solid rgba(255, 255, 255, 0.18)', color: 'var(--text-secondary)' }}
+              >
+                Back to hub
+              </button>
+            )}
           </div>
         </div>
       </div>

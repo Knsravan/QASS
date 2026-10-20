@@ -168,7 +168,6 @@ function EntanglementScene({
           scale={1.15}
           theme={isLight ? 'light' : 'dark'}
           activeModule="entanglement"
-          superpositionStep={-1}
           customVectorQuat={quatAlice}
           emissiveColor={measuredState ? (measuredState[0] === '0' ? '#00f2fe' : '#f093fb') : bellState.color}
         />
@@ -245,7 +244,6 @@ function EntanglementScene({
           scale={1.15}
           theme={isLight ? 'light' : 'dark'}
           activeModule="entanglement"
-          superpositionStep={-1}
           customVectorQuat={quatBob}
           emissiveColor={measuredState ? (measuredState[1] === '0' ? '#00f2fe' : '#f093fb') : bellState.color}
         />

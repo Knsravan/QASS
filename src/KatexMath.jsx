@@ -1,5 +1,7 @@
 import React, { useMemo } from 'react';
 import katex from 'katex';
+// KaTeX's stylesheet loads with the first formula's code (the simulator's chunk, not the landing page).
+import 'katex/dist/katex.min.css';
 
 // KaTeX rendered straight from the app's own KaTeX. (react-katex pinned an
 // older KaTeX of its own, with a known advisory; these two components are all

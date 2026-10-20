@@ -18,9 +18,10 @@ import { SharedCanvas } from './SharedCanvas';
 import { handoff } from './handoff';
 import { densityMatrix } from './quantumMath';
 import { CT, CA, CR, CP, CB, CG, CW, SPHERE_R, MODEL_Y, PURE_POS, NOISY_POS, arrowGrow, BlochSphereUnit } from './DecoSphereUnit';
+import { STAGE_EVENTS } from './stagePhases';
 
 // How visible the noise particles are. Opened from the hub they start unseen and fade in
-// with the cards (the App announces `qass-jelly-run`), and fade out with them on the way back.
+// with the cards (the stage announces STAGE_EVENTS.cardsIn), and fade out with them on the way back.
 const particleFade = { p: 1, target: 1 };
 
 const DECO_STEPS = ['intro', 'what_is_decoherence', 'density_matrix', 'noise_types', 'coherence_time', 'lindblad', 'why_hard'];
@@ -476,9 +477,9 @@ export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted,
   useEffect(() => {
     const run = () => { particleFade.target = 1; };
     const out = () => { particleFade.target = 0; arrowGrow.target = 0; };
-    window.addEventListener('qass-jelly-run', run);
-    window.addEventListener('qass-jelly-out', out);
-    return () => { window.removeEventListener('qass-jelly-run', run); window.removeEventListener('qass-jelly-out', out); particleFade.p = particleFade.target = 1; };
+    window.addEventListener(STAGE_EVENTS.cardsIn, run);
+    window.addEventListener(STAGE_EVENTS.cardsOut, out);
+    return () => { window.removeEventListener(STAGE_EVENTS.cardsIn, run); window.removeEventListener(STAGE_EVENTS.cardsOut, out); particleFade.p = particleFade.target = 1; };
   }, []);
   const noiseTimerRef       = useRef(null);
   const bloomTimerRef       = useRef(null);
@@ -773,7 +774,7 @@ export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted,
                 Quantum computers run colder than outer space
               </div>
               <div style={{ fontSize: '11.5px', color: '#94a3b8', lineHeight: 1.5, marginBottom: '12px', fontFamily: "'Inter', sans-serif" }}>
-                A qubit's quantum state is <strong style={{ color: CW }}>extraordinarily fragile</strong>. Even a single photon or the tiniest vibration can instantly destroy its superposition — a process called <strong style={{ color: CT }}>Decoherence</strong>. This is quantum computing's #1 challenge.
+                A qubit's quantum state is <strong style={{ color: CW }}>extraordinarily fragile</strong>. Every stray photon, vibration or fluctuating field nudges it, and the nudges add up: within microseconds to milliseconds its superposition fades away — a process called <strong style={{ color: CT }}>Decoherence</strong>. This is quantum computing's #1 challenge.
               </div>
               <button onClick={handleStart} style={{ width: '100%', padding: '9px 16px', borderRadius: '11px', background: 'linear-gradient(135deg, ' + CT + '33, ' + CT + '18)', border: '1.5px solid ' + CT + '77', color: CT, fontSize: '12px', fontWeight: '800', cursor: 'pointer', fontFamily: "'Inter', sans-serif", letterSpacing: '0.4px', transition: 'all 0.2s ease' }}>
                 Let's Explore Decoherence →

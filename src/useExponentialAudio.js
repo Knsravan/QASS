@@ -4,7 +4,7 @@
 // ==========================================
 
 import { useRef, useEffect, useCallback, useMemo } from 'react';
-import { acquireAudioContext, releaseAudioOutput } from './sharedAudio';
+import { acquireAudioContext, releaseAudioOutput, createOutputChain } from './sharedAudio';
 
 export function useExponentialAudio() {
   const audioCtxRef = useRef(null);
@@ -15,10 +15,7 @@ export function useExponentialAudio() {
     if (!audioCtxRef.current) {
       if (AudioContext) {
         audioCtxRef.current = acquireAudioContext();
-        const master = audioCtxRef.current.createGain();
-        master.gain.value = 1;
-        master.connect(audioCtxRef.current.destination);
-        masterGainRef.current = master;
+        masterGainRef.current = createOutputChain(audioCtxRef.current, { volume: 1 }).master;
       }
     }
     if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {

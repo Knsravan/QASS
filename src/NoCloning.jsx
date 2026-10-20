@@ -13,6 +13,7 @@ import { useNoCloningAudio } from './useNoCloningAudio';
 import { SCENE_GL } from './sceneGl';
 import { QualityComposer } from './QualityScene';
 import { SharedCanvas, onSharedCanvasRevealed } from './SharedCanvas';
+import { STAGE_EVENTS } from './stagePhases';
 
 
 // Color Palette
@@ -353,7 +354,7 @@ function ModelEntranceAnimator({ entranceRef, groupBit1, groupBit2, groupVS, gro
     if (a.leaveAt != null) {
       // Leaving: the entrance played backwards (the models bounce back down and shrink away).
       elapsed = Math.max(0, ENTRANCE_TOTAL - Math.max(0, now - a.leaveAt) / 1000);
-      if (elapsed <= 0 && !a.gone) { a.gone = true; window.dispatchEvent(new Event('qass-nc-gone')); }
+      if (elapsed <= 0 && !a.gone) { a.gone = true; window.dispatchEvent(new Event(STAGE_EVENTS.noCloningGone)); }
     } else {
       elapsed = a.startedAt == null ? 0 : (now - a.startedAt) / 1000;
     }
@@ -801,7 +802,6 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted, f
                 scale={1.55}
                 theme={theme}
                 activeModule="entanglement"
-                superpositionStep={-1}
                 customVectorQuat={quatQubitA.current}
                 customGridColor={step === 'quantum_collapse' || step === 'summary' ? CR : CP}
                 customRingColor={step === 'quantum_collapse' || step === 'summary' ? CR : CP}
@@ -836,7 +836,6 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted, f
                 scale={1.55}
                 theme={theme}
                 activeModule="entanglement"
-                superpositionStep={-1}
                 customVectorQuat={quatQubitB.current}
                 customGridColor={step === 'quantum_cnot' ? CP : (step === 'quantum_collapse' || step === 'summary' ? CR : '#f59e0b')}
                 customRingColor={step === 'quantum_cnot' ? CP : (step === 'quantum_collapse' || step === 'summary' ? CR : '#fbbf24')}

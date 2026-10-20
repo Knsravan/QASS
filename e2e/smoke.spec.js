@@ -76,6 +76,57 @@ test('a module named in the URL opens directly after the device test', async ({ 
   expect(errors).toEqual([]);
 });
 
+// The software renderer the tests run on always picks the Low level, where
+// the WebGL glass (glassGL.js, GlassLayer in QualityScene.jsx) is off. Pinning
+// High runs it: every scene draws the glass of the elements over it, and
+// marks them [data-gl].
+test('at High quality the scenes draw the glass, and modules open and close', async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.addInitScript(() => localStorage.setItem('quantumUI_initialized', 'true'));
+  await page.goto('/?quality=high');
+  await expect(page.locator('[data-module]')).toHaveCount(MODULE_COUNT, { timeout: 120_000 });
+  await expect(page.locator('html')).toHaveAttribute('data-quality', 'high');
+  const drawnGlass = () => page.locator('[data-gl]').count();
+  await expect.poll(drawnGlass, { timeout: 30_000 }).toBeGreaterThan(0);
+
+  // The sidebar is the biggest piece of glass: it keeps its WebGL glass open and closed.
+  await page.locator('.sidebar-toggle-btn').click();
+  await expect(page.locator('.sidebar-panel[data-gl]')).toHaveCount(1, { timeout: 15_000 });
+  await page.locator('.sidebar-toggle-btn').click();
+
+  // One module of each kind: the hub's own scene, a module loaded on demand, and a scene of its own.
+  for (const id of ['gates', 'entanglement', 'superposition']) {
+    await test.step(id, async () => {
+      await page.evaluate((m) => { window.location.hash = m; }, id);
+      await page.waitForTimeout(6000);
+      await expectModuleRendered(page, id);
+      await expect.poll(drawnGlass, { timeout: 15_000 }).toBeGreaterThan(0);
+      await page.evaluate(() => { window.location.hash = ''; });
+      await page.waitForTimeout(5000);
+      await expect(page).toHaveTitle('QASS · Quantum Algorithm State Simulator');
+    });
+  }
+  expect(errors).toEqual([]);
+});
+
+test("if the simulator's code can't be downloaded, the page says so and offers a reload", async ({ page }) => {
+  // A returning visitor whose device test is saved (for this runner's GPU) goes straight to the simulator.
+  await page.addInitScript(() => {
+    const gl = document.createElement('canvas').getContext('webgl');
+    const info = gl?.getExtension('WEBGL_debug_renderer_info');
+    const gpu = gl ? String(info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)) : 'none';
+    localStorage.setItem('quantumUI_initialized', 'true');
+    localStorage.setItem('quantumUI_device', JSON.stringify({ tier: 'low', why: 'test', gpu, at: Date.now() }));
+  });
+  await page.route(/\/assets\/Simulator-[^/]*\.js$/, (route) => route.abort());
+  await page.goto('/');
+  const alert = page.locator('[data-module-load-error]');
+  await expect(alert).toBeVisible({ timeout: 30_000 });
+  await expect(alert).toContainText("The simulator didn't load");
+  await expect(alert.getByRole('button', { name: 'Try again' })).toBeVisible();
+  await expect(alert.getByRole('button', { name: 'Back to hub' })).toHaveCount(0);
+});
+
 test('Classical Bit vs Qubit: flip the bit, measure the qubit, count the results', async ({ page }) => {
   const errors = collectErrors(page);
   await page.goto('/');

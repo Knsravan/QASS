@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback, useMemo } from 'react';
-import { acquireAudioContext, releaseAudioOutput, sharedBuffer } from './sharedAudio';
+import { acquireAudioContext, releaseAudioOutput, createOutputChain, easeMasterGain } from './sharedAudio';
 
 /**
  * useDiracAudio — Deep Space / Sci-Fi Web Audio synthesizer.
@@ -31,27 +31,10 @@ export function useDiracAudio() {
     const ctx = acquireAudioContext();
     ctxRef.current = ctx;
 
-    const master = ctx.createGain();
-    master.gain.value = 0.75;
-    master.connect(ctx.destination);
-    masterGainRef.current = master;
-
-    // Massive, dark space reverb (6 seconds)
-    const tailLen  = ctx.sampleRate * 6.0;
-    const impulse = sharedBuffer('useDiracAudio:impulse', () => {
-      const built  = ctx.createBuffer(2, tailLen, ctx.sampleRate);
-      for (let ch = 0; ch < 2; ch++) {
-        const d = built.getChannelData(ch);
-        for (let i = 0; i < tailLen; i++) {
-          d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 1.5));
-        }
-      }
-      return built;
-    });
-    const reverb = ctx.createConvolver();
-    reverb.buffer = impulse;
-    reverb.connect(master);
-    reverbRef.current = reverb;
+    // The master chain, with a massive, dark six-second reverb.
+    const chain = createOutputChain(ctx, { volume: 0.75, reverb: { key: 'useDiracAudio:impulse', seconds: 6.0, decay: 1.5 } });
+    masterGainRef.current = chain.master;
+    reverbRef.current = chain.reverb;
 
     // The global ambient background music from App.js will handle the background layer.
   }, []);
@@ -252,12 +235,7 @@ export function useDiracAudio() {
   }, [stopCurrent]);
 
   const toggleMute = useCallback((isMuted) => {
-    if (ctxRef.current && masterGainRef.current) {
-      const now = ctxRef.current.currentTime;
-      masterGainRef.current.gain.cancelScheduledValues(now);
-      masterGainRef.current.gain.setValueAtTime(masterGainRef.current.gain.value, now);
-      masterGainRef.current.gain.linearRampToValueAtTime(isMuted ? 0 : 0.75, now + 1.0);
-    }
+    easeMasterGain(ctxRef.current, masterGainRef.current, isMuted, 0.75, { ramp: 1.0 });
   }, []);
 
   useEffect(() => {

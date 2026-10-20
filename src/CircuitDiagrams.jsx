@@ -138,9 +138,9 @@ const tooltipData = {
   exponential: {
     title: '📈 Exponential State Space Scaling',
     steps: [
-      { text: '3 qubits → Parallel H gates process 2³ = 8 states simultaneously.' },
-      { text: 'Adding 1 qubit doubles the entire computational universe.' },
-      { text: 'Exponential capacity without exponential physical volume.' },
+      { text: <>H on every qubit turns <InlineMath math={String.raw`|0\dots0\rangle`} /> into an equal superposition of all <InlineMath math={String.raw`2^N`} /> basis states.</> },
+      { text: 'Each qubit you add doubles the number of amplitudes the state vector holds.' },
+      { text: 'A measurement still returns a single N-bit answer: any speed-up has to come from interference.' },
     ],
   },
   nocloning: {
@@ -172,25 +172,42 @@ const tooltipData = {
 // ==========================================
 // INTEGRATED NON-OVERLAPPING STEP GUIDE
 // ==========================================
+// The clickable parts of a circuit (a gate, an input) work from the keyboard
+// too: Tab reaches them, Enter or Space presses them, and screen readers hear
+// what pressing does.
+const pressable = (onPress, label) => ({
+  role: 'button',
+  tabIndex: 0,
+  'aria-label': label,
+  onClick: onPress,
+  onKeyDown: (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    onPress();
+  },
+});
+
 const LiquidCircuitStepGuide = ({ tip }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   if (!tip) return null;
 
   return (
     <div className="circuit-steps-panel">
-      <div 
+      <button
+        type="button"
         className="circuit-steps-header"
         onClick={() => setIsExpanded(!isExpanded)}
+        aria-expanded={isExpanded}
         title="Click to toggle step-by-step flow"
       >
         <span className="circuit-steps-title">
           <span className="circuit-steps-pulse" />
           {tip.title}
         </span>
-        <span className="circuit-steps-chevron" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+        <span className="circuit-steps-chevron" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }} aria-hidden="true">
           ▼
         </span>
-      </div>
+      </button>
 
       {isExpanded && (
         <div className="circuit-steps-list">
@@ -225,7 +242,7 @@ const BitVsQubitLiquidCircuit = ({ tooltipData }) => {
           <div 
             className="circuit-state-label" 
             style={{ left: 0, color: '#facc15', cursor: 'pointer', border: '1px solid rgba(250, 204, 21, 0.4)' }}
-            onClick={() => setCBit(b => 1 - b)}
+            {...pressable(() => setCBit(b => 1 - b), `Input bit ${cBit}: flip it`)}
             title="Click to toggle input bit"
           >
             Bit {cBit}
@@ -236,7 +253,7 @@ const BitVsQubitLiquidCircuit = ({ tooltipData }) => {
           <div className="gate-wrapper" style={{ position: 'relative', zIndex: 10, display: 'flex', justifyContent: 'center' }}>
             <div 
               className="liquid-gate-box liquid-gate-classical"
-              onClick={() => setCBit(b => 1 - b)}
+              {...pressable(() => setCBit(b => 1 - b), 'Classical NOT gate: flip the bit')}
               title="Classical NOT Gate (Click to flip)"
             >
               NOT
@@ -262,7 +279,7 @@ const BitVsQubitLiquidCircuit = ({ tooltipData }) => {
           <div 
             className="circuit-state-label" 
             style={{ left: 0, color: '#38bdf8', cursor: 'pointer', border: '1px solid rgba(56, 189, 248, 0.4)' }}
-            onClick={() => setQBit(b => 1 - b)}
+            {...pressable(() => setQBit(b => 1 - b), `Input qubit |${qBit}⟩: switch it`)}
             title="Click to toggle input qubit"
           >
             {qBit === 0 ? <InlineMath math={String.raw`|0\rangle`} /> : <InlineMath math={String.raw`|1\rangle`} />}
@@ -274,7 +291,7 @@ const BitVsQubitLiquidCircuit = ({ tooltipData }) => {
             <div 
               className="liquid-gate-box liquid-gate-h"
               style={{ width: '44px', height: '44px', fontSize: '18px' }}
-              onClick={() => setQBit(b => 1 - b)}
+              {...pressable(() => setQBit(b => 1 - b), 'Hadamard gate: switch the input qubit')}
               title="Quantum Hadamard Gate (Superposition)"
             >
               H
@@ -308,7 +325,7 @@ const DiracNotationLiquidCircuit = ({ tooltipData }) => {
         <div 
           className="circuit-state-label" 
           style={{ left: 0, color: '#c084fc', cursor: 'pointer' }}
-          onClick={() => setIsBraMode(!isBraMode)}
+          {...pressable(() => setIsBraMode(!isBraMode), isBraMode ? 'Bra: switch to the ket' : 'Ket: switch to the bra')}
           title="Click to toggle Ket/Bra"
         >
           {isBraMode ? <InlineMath math={String.raw`\langle\psi|`} /> : <InlineMath math={String.raw`|\psi\rangle`} />}
@@ -319,7 +336,7 @@ const DiracNotationLiquidCircuit = ({ tooltipData }) => {
         <div className="gate-wrapper" style={{ position: 'relative', zIndex: 10, display: 'flex', justifyContent: 'center' }}>
           <div 
             className="liquid-gate-box liquid-gate-dirac"
-            onClick={() => setIsBraMode(!isBraMode)}
+            {...pressable(() => setIsBraMode(!isBraMode), 'Vector decomposition: switch between ket and bra')}
             title="Vector Decomposition (Click to toggle Ket ⇄ Bra)"
           >
             {isBraMode ? '⟨·|' : '|·⟩'}
@@ -378,7 +395,7 @@ const SuperpositionLiquidCircuit = ({ tooltipData }) => {
 
           <div 
             className={`measurement-dial-btn ${measured !== null ? 'active' : ''}`}
-            onClick={handleMeasure}
+            {...pressable(handleMeasure, measured !== null ? 'Reset the measurement' : 'Measure the qubit')}
             title="Click to Measure / Collapse State"
             style={{ width: '38px', height: '38px' }}
           >
@@ -436,7 +453,7 @@ const InterferenceLiquidCircuit = ({ tooltipData }) => {
           </div>
           <div 
             className="liquid-gate-box liquid-gate-param" 
-            onClick={() => setPhasePi(!phasePi)}
+            {...pressable(() => setPhasePi(!phasePi), `Phase shift ${phasePi ? 'π' : '0'}: switch it`)}
             style={{ height: '38px', fontSize: '13px', cursor: 'pointer', border: phasePi ? '1px solid #f43f5e' : '1px solid #06b6d4' }}
             title="Click to toggle phase shift R(θ)"
           >
@@ -530,13 +547,26 @@ const EntanglementLiquidCircuit = ({ tooltipData }) => {
 // ==========================================
 // 6. EXPONENTIAL STATE SPACE CIRCUIT
 // ==========================================
-const ExponentialLiquidCircuit = ({ tooltipData, qubitCount = 3 }) => {
+const SUPERSCRIPT = ['⁰', '¹', '²', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹'];
+
+// The register as the module has it: `qubits` (1 to 5) and whether H has been
+// applied to every qubit.
+const ExponentialLiquidCircuit = ({ tooltipData, qubits = 1, superposed = false }) => {
   const tip = tooltipData['exponential'];
+  const states = 2 ** qubits;
+  const zeros = '0'.repeat(qubits);
+  const label = (i) => i.toString(2).padStart(qubits, '0');
+  // 1/sqrt(2^N), written as a whole number when N is even.
+  const norm = qubits % 2 === 0 ? `\\frac{1}{${2 ** (qubits / 2)}}` : `\\frac{1}{\\sqrt{${states}}}`;
+  const terms = states <= 4
+    ? Array.from({ length: states }, (_, i) => `|${label(i)}\\rangle`).join(' + ')
+    : `|${label(0)}\\rangle + |${label(1)}\\rangle + \\dots + |${label(states - 1)}\\rangle`;
+  const ket = superposed ? `|\\psi\\rangle = ${norm}(${terms})` : `|\\psi\\rangle = |${zeros}\\rangle`;
 
   return (
     <div className="glass-card" style={{ padding: '20px 14px', position: 'relative' }}>
       <div className="liquid-multi-circuit" style={{ gap: '8px' }}>
-        {[0, 1, 2].map((idx) => (
+        {Array.from({ length: qubits }, (_, idx) => (
           <div key={idx} className="liquid-multi-row" style={{ height: '38px' }}>
             <div className="circuit-state-label" style={{ left: 0, fontSize: '12px' }}>
               <InlineMath math={`|0\\rangle_{q_${idx}}`} />
@@ -544,11 +574,13 @@ const ExponentialLiquidCircuit = ({ tooltipData, qubitCount = 3 }) => {
             <div className="qubit-wire-timeline" style={{ top: '50%' }}>
               <div className="wire-flow-indicator" style={{ animationDelay: `${idx * 0.3}s` }} />
             </div>
-            <div className="liquid-multi-gate-col">
-              <div className="liquid-gate-box liquid-gate-h" style={{ width: '30px', height: '30px', fontSize: '13px', zIndex: 12 }}>H</div>
-            </div>
-            <div className="circuit-state-label" style={{ right: 0, fontSize: '12px', color: '#a855f7' }}>
-              <InlineMath math={String.raw`|+\rangle`} />
+            {superposed && (
+              <div className="liquid-multi-gate-col">
+                <div className="liquid-gate-box liquid-gate-h" style={{ width: '30px', height: '30px', fontSize: '13px', zIndex: 12 }}>H</div>
+              </div>
+            )}
+            <div className="circuit-state-label" style={{ right: 0, fontSize: '12px', color: superposed ? '#a855f7' : undefined }}>
+              <InlineMath math={superposed ? String.raw`|+\rangle` : String.raw`|0\rangle`} />
             </div>
           </div>
         ))}
@@ -556,11 +588,13 @@ const ExponentialLiquidCircuit = ({ tooltipData, qubitCount = 3 }) => {
 
       <div className="liquid-exp-summary">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontWeight: 700, color: '#a855f7', fontSize: '12px' }}>3 Qubits = 2³ Basis States</span>
-          <span className="liquid-badge-accent">8 States in Parallel</span>
+          <span style={{ fontWeight: 700, color: '#a855f7', fontSize: '12px' }}>
+            {qubits} {qubits === 1 ? 'Qubit' : 'Qubits'} = 2{SUPERSCRIPT[qubits]} Basis States
+          </span>
+          <span className="liquid-badge-accent">{superposed ? `${states} amplitudes, all equal` : `1 of ${states} basis states`}</span>
         </div>
         <div style={{ marginTop: '6px', fontSize: '11px', color: '#cbd5e1' }}>
-          <InlineMath math={String.raw`|\psi\rangle = \frac{1}{\sqrt{8}}(|000\rangle + |001\rangle + \dots + |111\rangle)`} />
+          <InlineMath math={ket} />
         </div>
       </div>
 
@@ -646,7 +680,7 @@ const DecoherenceLiquidCircuit = ({ tooltipData }) => {
         <div className="gate-wrapper" style={{ position: 'relative', zIndex: 10, display: 'flex', justifyContent: 'center' }}>
           <div 
             className={`liquid-gate-box liquid-gate-noise ${noiseActive ? 'pulsing' : ''}`}
-            onClick={handlePulseNoise}
+            {...pressable(handlePulseNoise, 'Noise channel: inject a noise pulse')}
             title="Environmental Thermal Noise Channel (Click to inject)"
           >
             ⚡ E
@@ -705,7 +739,7 @@ const ErrorCorrectionLiquidCircuit = ({ tooltipData }) => {
           <div className="liquid-multi-gate-col" style={{ left: '32%' }}>
             <div 
               className={`liquid-gate-box ${hasError ? 'liquid-gate-x' : ''}`}
-              onClick={() => setHasError(!hasError)}
+              {...pressable(() => setHasError(!hasError), hasError ? 'Error channel: remove the bit-flip error' : 'Error channel: inject a bit-flip error')}
               style={{ width: '34px', height: '34px', fontSize: '11px', zIndex: 12, cursor: 'pointer' }}
               title="Error channel (Click to toggle)"
             >
@@ -815,7 +849,7 @@ const GlassCircuit = ({ gateId, progress }) => {
         <div className="gate-wrapper" style={{ position: 'relative', zIndex: 10, display: 'flex', justifyContent: 'center' }}>
           <div 
             className={`liquid-gate-box ${gateProps.class}`}
-            onClick={() => gateId === 'pauli-x' && setXStyle(s => s === 'box' ? 'plus' : 'box')}
+            {...(gateId === 'pauli-x' ? pressable(() => setXStyle(s => s === 'box' ? 'plus' : 'box'), 'X gate: switch between the box and ⊕ notation') : {})}
             style={progress > 0.1 && progress < 0.9 ? { filter: 'brightness(1.5) drop-shadow(0 0 10px rgba(255,255,255,0.8))', transform: 'scale(1.1)' } : {}}
             title="Click gate to toggle notation (X ↔ ⊕)"
           >
@@ -826,7 +860,7 @@ const GlassCircuit = ({ gateId, progress }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', zIndex: 2, justifyContent: 'flex-end' }}>
           <div 
             className={`measurement-dial-btn ${measureActive ? 'active' : ''}`}
-            onClick={() => setMeasureActive(!measureActive)}
+            {...pressable(() => setMeasureActive(!measureActive), measureActive ? 'Hide the measurement' : 'Measure the output')}
             title="Toggle Measurement"
           >
             <div className="measurement-dial-icon" />
@@ -990,7 +1024,7 @@ const GlassMultiCircuit = ({ gateId, tooltipData }) => {
 // ==========================================
 // UNIFIED CIRCUIT VISUALIZER DISPATCHER
 // ==========================================
-export const CircuitVisualizer = ({ moduleId, gateId, multiGatesStep = 0, qubitCount = 3 }) => {
+export const CircuitVisualizer = ({ moduleId, gateId, multiGatesStep = 0, register }) => {
   switch (moduleId) {
     case 'bit-vs-qubit':
       return <BitVsQubitLiquidCircuit tooltipData={tooltipData} />;
@@ -1009,7 +1043,7 @@ export const CircuitVisualizer = ({ moduleId, gateId, multiGatesStep = 0, qubitC
     case 'entanglement':
       return <EntanglementLiquidCircuit tooltipData={tooltipData} />;
     case 'exponential':
-      return <ExponentialLiquidCircuit tooltipData={tooltipData} qubitCount={qubitCount} />;
+      return <ExponentialLiquidCircuit tooltipData={tooltipData} qubits={register?.qubits} superposed={register?.superposed} />;
     case 'nocloning':
       return <NoCloningLiquidCircuit tooltipData={tooltipData} />;
     case 'decoherence':

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useMemo } from 'react';
-import { acquireAudioContext, releaseAudioOutput, sharedBuffer } from './sharedAudio';
+import { acquireAudioContext, releaseAudioOutput, createOutputChain, easeMasterGain, fadeOutNodes } from './sharedAudio';
 
 // ==========================================================
 // DECOHERENCE & QUANTUM NOISE AUDIO SYNTHESIZER
@@ -19,55 +19,22 @@ export function useDecoherenceAudio(isMuted) {
       const ctx = acquireAudioContext();
       ctxRef.current = ctx;
 
-      const masterGain = ctx.createGain();
-      masterGain.gain.value = isMuted ? 0 : 0.75;
-      masterGain.connect(ctx.destination);
-      masterGainRef.current = masterGain;
-
-      const masterFilter = ctx.createBiquadFilter();
-      masterFilter.type = 'lowpass';
-      masterFilter.frequency.value = 2400;
-      masterFilter.connect(masterGain);
-      masterFilterRef.current = masterFilter;
-
-      const length = ctx.sampleRate * 3.5;
-      const impulse = sharedBuffer('useDecoherenceAudio:impulse', () => {
-        const built = ctx.createBuffer(2, length, ctx.sampleRate);
-        for (let c = 0; c < 2; c++) {
-          const ch = built.getChannelData(c);
-          for (let i = 0; i < length; i++) {
-            ch[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.55));
-          }
-        }
-        return built;
-      });
-      const reverb = ctx.createConvolver();
-      reverb.buffer = impulse;
-      reverb.connect(masterFilter);
-      reverbRef.current = reverb;
+      // The master chain: a warm low-pass and a long reverb.
+      const chain = createOutputChain(ctx, { volume: 0.75, muted: isMuted, lowpass: 2400, reverb: { key: 'useDecoherenceAudio:impulse', seconds: 3.5, decay: 0.55 } });
+      masterGainRef.current = chain.master;
+      masterFilterRef.current = chain.filter;
+      reverbRef.current = chain.reverb;
     }
     if (ctxRef.current.state === 'suspended') {
       await ctxRef.current.resume();
     }
   }, [isMuted]);
 
-  useEffect(() => {
-    if (masterGainRef.current && ctxRef.current) {
-      const now = ctxRef.current.currentTime;
-      masterGainRef.current.gain.cancelScheduledValues(now);
-      masterGainRef.current.gain.setTargetAtTime(isMuted ? 0 : 0.75, now, 0.1);
-    }
-  }, [isMuted]);
+  useEffect(() => { easeMasterGain(ctxRef.current, masterGainRef.current, isMuted, 0.75); }, [isMuted]);
 
   const stopAll = useCallback(() => {
     if (ctxRef.current) {
-      const now = ctxRef.current.currentTime;
-      activeNodesRef.current.forEach(node => {
-        try {
-          if (node.gain) { node.gain.cancelScheduledValues(now); node.gain.setTargetAtTime(0, now, 0.05); }
-          else if (node.stop) { node.stop(now + 0.1); }
-        } catch (e) {}
-      });
+      fadeOutNodes(ctxRef.current, activeNodesRef.current);
       activeNodesRef.current = [];
     }
   }, []);

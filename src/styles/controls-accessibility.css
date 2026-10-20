@@ -158,11 +158,18 @@
 }
 
 /* Controls inside a bar or the sidebar keep the ring inside their edge. */
-:is(.lg-nav-tab, .glass-chip, .sidebar-toggle-btn):focus-visible {
+:is(.lg-nav-tab, .glass-chip, .sidebar-toggle-btn, .circuit-header, .circuit-steps-header):focus-visible {
   outline: 2px solid rgba(62, 230, 255, 0.9) !important;
   outline-offset: -2px;
   box-shadow: inset 0 0 14px rgba(62, 230, 255, 0.35);
   animation: none;
+}
+
+/* The gates and inputs inside a circuit diagram (pressable() in CircuitDiagrams.jsx). */
+.circuit-content [role="button"]:focus-visible {
+  outline: 2px solid rgba(62, 230, 255, 0.9);
+  outline-offset: 2px;
+  box-shadow: 0 0 14px 2px rgba(62, 230, 255, 0.4);
 }
 
 /* =============================================================================
