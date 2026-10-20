@@ -109,6 +109,24 @@ test('at High quality the scenes draw the glass, and modules open and close', as
   expect(errors).toEqual([]);
 });
 
+test("if the simulator's code can't be downloaded, the page says so and offers a reload", async ({ page }) => {
+  // A returning visitor whose device test is saved (for this runner's GPU) goes straight to the simulator.
+  await page.addInitScript(() => {
+    const gl = document.createElement('canvas').getContext('webgl');
+    const info = gl?.getExtension('WEBGL_debug_renderer_info');
+    const gpu = gl ? String(info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)) : 'none';
+    localStorage.setItem('quantumUI_initialized', 'true');
+    localStorage.setItem('quantumUI_device', JSON.stringify({ tier: 'low', why: 'test', gpu, at: Date.now() }));
+  });
+  await page.route(/\/assets\/Simulator-[^/]*\.js$/, (route) => route.abort());
+  await page.goto('/');
+  const alert = page.locator('[data-module-load-error]');
+  await expect(alert).toBeVisible({ timeout: 30_000 });
+  await expect(alert).toContainText("The simulator didn't load");
+  await expect(alert.getByRole('button', { name: 'Try again' })).toBeVisible();
+  await expect(alert.getByRole('button', { name: 'Back to hub' })).toHaveCount(0);
+});
+
 test('Classical Bit vs Qubit: flip the bit, measure the qubit, count the results', async ({ page }) => {
   const errors = collectErrors(page);
   await page.goto('/');

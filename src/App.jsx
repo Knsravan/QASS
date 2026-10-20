@@ -33,6 +33,7 @@ import { glassDrawnOn } from './glassGL';
 import { startBoot } from './BootLoader';
 import QassLogo from './QassLogo';
 import MobileBlocker from './MobileBlocker';
+import ModuleErrorBoundary from './ModuleErrorBoundary';
 import { MODULE_LOADERS } from './moduleLoaders';
 import { readStorage, writeStorage } from './storage';
 
@@ -48,6 +49,7 @@ const Simulator = lazy(loadSimulator);
 // The simulator and every module's code; a failed download is handled where
 // they render (ModuleErrorBoundary).
 const preloadSimulator = () => Promise.all([loadSimulator, ...Object.values(MODULE_LOADERS)].map((load) => load().catch(() => null)));
+const SIMULATOR_BOUNDS = { position: 'fixed', inset: 0, zIndex: 10 };
 
 // Keeps every floating-layer element in Liquid Glass (see LiquidGlass.js),
 // on every screen.
@@ -177,10 +179,13 @@ export default function App() {
   let screen;
   if (hasStarted && !booting) {
     // The simulator keeps its state while the window is too narrow (it shows the blocker itself).
+    // If its code can't be downloaded, say so and offer a reload (the page is otherwise blank).
     screen = (
-      <Suspense fallback={<div className="boot-hold" />}>
-        <Simulator isMobile={isMobile} />
-      </Suspense>
+      <ModuleErrorBoundary moduleTitle="The simulator" boundsStyle={SIMULATOR_BOUNDS} onRetry={() => window.location.reload()}>
+        <Suspense fallback={<div className="boot-hold" />}>
+          <Simulator isMobile={isMobile} />
+        </Suspense>
+      </ModuleErrorBoundary>
     );
   } else if (isMobile) {
     screen = <MobileBlocker />;

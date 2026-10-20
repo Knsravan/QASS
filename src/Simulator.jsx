@@ -368,7 +368,7 @@ export default function Simulator({ isMobile }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeModuleId]);
 
-  // Fire matching ElevenLabs sound whenever the dirac step changes
+  // Play the step's synthesized sound whenever the Dirac step changes
   const prevDiracStepRef = useRef(-1);
   useEffect(() => {
     if (activeModuleId !== 'dirac-notation') return;
