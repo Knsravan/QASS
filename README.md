@@ -68,6 +68,7 @@ The app opens at <http://localhost:3000>. Other scripts:
 | `npm test` | Runs the unit tests (Vitest) |
 | `npm run test:e2e` | Builds the app and opens every module in headless Chromium (Playwright), once more at High quality to run the WebGL glass; run `npx playwright install chromium` once first |
 | `npm run lint` | Lints the source (ESLint, fails on any warning) |
+| `npm run screenshots` | Builds the app and recaptures this README's screenshots (`docs/screenshots`) at High quality in headless Chromium |
 
 The simulator is designed for desktop and tablet screens. On narrow windows (under 768 px) it shows a message asking you to use a larger screen.
 
@@ -100,6 +101,7 @@ The simulator is designed for desktop and tablet screens. On narrow windows (und
 | `src/LiquidGlass.js`, `src/glassLens.js`, `src/GlassNavBar.jsx` | The Liquid Glass material, its lens filter and the floating tab bar |
 | `src/liquid-glass/` | The Liquid Glass skill's material, used by the sidebar and the top bar |
 | `e2e/` | Browser smoke tests (Playwright) |
+| `scripts/capture-screenshots.mjs` | Recaptures the screenshots in `docs/screenshots` (`npm run screenshots`) |
 
 ### The Liquid Glass material
 
