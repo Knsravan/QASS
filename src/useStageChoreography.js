@@ -3,13 +3,15 @@ import { MODULE_LOADERS } from './moduleLoaders';
 import { MULTI_GATES_STEPS, multiGatesPose } from './MultiQubitGates';
 import { fadeOutSharedCanvas, showSharedCanvas, skipNextSnapshot, settleSharedCamera, getSharedCameraPose, onSharedCanvasRevealed } from './SharedCanvas';
 import { glideMs } from './handoff';
+import { STAGE_PHASES, STAGE_EVENTS } from './stagePhases';
 
 /**
  * The stage: which module's scene and overlay are on screen, and the
  * choreographed moves between the hub and a module. `activeModuleId` is the
  * module the person opened; the stage follows it, through a move when there is
- * one. Each move is a chain of phases (`stagePhase`), and `jellyState` says
- * when the module's cards pop in or spring out.
+ * one. Each move is a chain of phases (`stagePhase`, all listed in
+ * stagePhases.js), and `jellyState` says when the module's cards pop in or
+ * spring out.
  *
  * `isSidebarOpen` and `multiGatesStep` are read when a move starts (where
  * Entanglement's and Multi Qubit Gates' cameras rest).
@@ -21,7 +23,7 @@ export function useStageChoreography({ activeModuleId, isSidebarOpen, multiGates
   //  - any module -> hub: the reverse (cards out, scene out, hub scene in, hub pops);
   //  - hub -> Superposition: the shared scene morphs in place, then the cards pop.
   const [stageId, setStageId] = useState(activeModuleId);
-  const [stagePhase, setStagePhase] = useState('idle'); // 'vanish' | 'enter' | 'morph' | 'idle'
+  const [stagePhase, setStagePhase] = useState('idle'); // a key of STAGE_PHASES (stagePhases.js)
   const [jellyState, setJellyState] = useState('');     // '' | 'wait' | 'run' | 'out'
   // The orbit target a scene takes over with: the module's, after the pair has zoomed in;
   // the hub's, right after a module closes (it then eases back to the middle).
@@ -101,10 +103,10 @@ export function useStageChoreography({ activeModuleId, isSidebarOpen, multiGates
         setStageId(null);
       };
       const onGone = () => { gone = true; if (ready) go(); };
-      window.addEventListener('qass-ring-gone', onGone);
+      window.addEventListener(STAGE_EVENTS.ringGone, onGone);
       const t = setTimeout(() => { ready = true; if (gone) go(); }, 700);
       const tMax = setTimeout(go, 4500); // never hang
-      return () => { clearTimeout(t); clearTimeout(tMax); window.removeEventListener('qass-ring-gone', onGone); if (!done) { setStagePhase('idle'); setJellyState(''); } };
+      return () => { clearTimeout(t); clearTimeout(tMax); window.removeEventListener(STAGE_EVENTS.ringGone, onGone); if (!done) { setStagePhase('idle'); setJellyState(''); } };
     }
     if (stageId === null && (activeModuleId === 'multi-qubit-gates' || activeModuleId === 'entanglement' || activeModuleId === 'decoherence')) {
       // Hub -> Multi Qubit Gates / Entanglement: all but the qubit vanishes; the qubit moves to the
@@ -264,9 +266,9 @@ export function useStageChoreography({ activeModuleId, isSidebarOpen, multiGates
         setStageSeq((n) => n + 1);
         setStageId(null);
       };
-      window.addEventListener('qass-nc-gone', go);
+      window.addEventListener(STAGE_EVENTS.noCloningGone, go);
       const tMax = setTimeout(go, 4500); // never hang
-      return () => { clearTimeout(tMax); window.removeEventListener('qass-nc-gone', go); if (!done) { setStagePhase('idle'); setJellyState(''); } };
+      return () => { clearTimeout(tMax); window.removeEventListener(STAGE_EVENTS.noCloningGone, go); if (!done) { setStagePhase('idle'); setJellyState(''); } };
     }
     if (stageId !== null && activeModuleId === null) {
       // Closing, any module: the opening in reverse. Its cards spring out; then
@@ -300,8 +302,8 @@ export function useStageChoreography({ activeModuleId, isSidebarOpen, multiGates
   useEffect(() => { if (stageId !== 'decoherence') setDecFromHub(false); }, [stageId]);
   // Things inside a scene that fade with the cards (Decoherence's particles) listen for these.
   useEffect(() => {
-    if (jellyState === 'run') window.dispatchEvent(new Event('qass-jelly-run'));
-    else if (jellyState === 'out') window.dispatchEvent(new Event('qass-jelly-out'));
+    if (jellyState === 'run') window.dispatchEvent(new Event(STAGE_EVENTS.cardsIn));
+    else if (jellyState === 'out') window.dispatchEvent(new Event(STAGE_EVENTS.cardsOut));
   }, [jellyState]);
   // The pop starts once the new scene is in: after it has faded in, or after the morph.
   useEffect(() => {
@@ -327,17 +329,9 @@ export function useStageChoreography({ activeModuleId, isSidebarOpen, multiGates
     if (stagePhase === 'ring') {
       // The module's ring draws on first; its cards pop as it closes (it says when).
       const run = () => setJellyState('run');
-      window.addEventListener('qass-ring-done', run);
+      window.addEventListener(STAGE_EVENTS.ringDone, run);
       const t = setTimeout(run, 5000); // never leave the cards hidden
-      return () => { clearTimeout(t); window.removeEventListener('qass-ring-done', run); };
-    }
-    if (stagePhase === 'solo-unsolo') {
-      const t = setTimeout(() => setStagePhase('morph'), 250);
-      return () => clearTimeout(t);
-    }
-    if (stagePhase === 'multi-unzoom') {
-      const t = setTimeout(() => setStagePhase('multi-unsplit'), 200);
-      return () => clearTimeout(t);
+      return () => { clearTimeout(t); window.removeEventListener(STAGE_EVENTS.ringDone, run); };
     }
     if (stagePhase === 'multi-unsplit') {
       // The zoom-out: the models shrink to the hub's size while the camera eases back.
@@ -348,13 +342,10 @@ export function useStageChoreography({ activeModuleId, isSidebarOpen, multiGates
       const t = setTimeout(() => { setHubTarget([0, 0, 0]); setStagePhase(lone ? 'morph' : 'multi-merge'); }, glideMs(lone ? 1100 : dec ? 1250 : 1500));
       return () => clearTimeout(t);
     }
-    if (stagePhase === 'multi-merge') {
-      const t = setTimeout(() => setStagePhase('morph'), glideMs(1500));
-      return () => clearTimeout(t);
-    }
-    if (stagePhase === 'shrink') {
-      // The hub's bits take over in place (same scene) at the module's size, then shrink.
-      const t = setTimeout(() => setStagePhase('morph'), 150);
+    // A phase that simply follows after a fixed time (STAGE_PHASES' `next`).
+    const { next, after } = STAGE_PHASES[stagePhase] || {};
+    if (next) {
+      const t = setTimeout(() => setStagePhase(next), after);
       return () => clearTimeout(t);
     }
     return undefined;

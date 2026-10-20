@@ -35,6 +35,7 @@ import { curriculumData, IDLE_FACTS } from './curriculum';
 import ModuleSidebarContent from './ModuleSidebarContent';
 import { MODULE_LOADERS } from './moduleLoaders';
 import { useStageChoreography } from './useStageChoreography';
+import { hubScenePose, SHARED_SCENE_STAGES, SIDE_TITLES } from './stagePhases';
 import BitVsQubitPanel from './BitVsQubitPanel';
 import { bvqLive } from './bitVsQubitLive';
 
@@ -388,6 +389,7 @@ export default function Simulator({ isMobile }) {
   // The open module's page shows in the sidebar until "back" (which keeps the
   // module open); opening any module, from anywhere, shows its page again.
   const activeModule = curriculumData.find((m) => m.id === activeModuleId) || null;
+  const sideTitles = SIDE_TITLES[stageId] || null;
   const pageModule = isSidebarOpen ? activeModule : null;
   const modulePage = pageModule && listFor !== pageModule.id ? pageModule : null;
 
@@ -572,15 +574,15 @@ export default function Simulator({ isMobile }) {
               }}
             />
 
-            {stageId && stageId !== 'superposition' && stageId !== 'dirac-notation' && stageId !== 'multi-qubit-gates' && stageId !== 'interference' && stageId !== 'entanglement' && stageId !== 'exponential' && stageId !== 'nocloning' && stageId !== 'decoherence' && stageId !== 'error-correction' && (
+            {sideTitles && (
               <div className="module-appear" style={{ position: 'absolute', top: '80px', left: '50%', width: '0px', display: 'flex', justifyContent: 'center', zIndex: 10, pointerEvents: 'none' }}>
-                <div className="section-title classical" style={{ position: 'absolute', left: stageId === 'bit-vs-qubit' ? '-33.5vh' : '-39vh', transform: 'translateX(-50%)' }}>
+                <div className="section-title classical" style={{ position: 'absolute', left: `-${sideTitles.offset}`, transform: 'translateX(-50%)' }}>
                   <div className="section-title-dot" />
-                  <span>{stageId === 'bit-vs-qubit' ? 'CLASSICAL BIT' : 'CLASSICAL PHYSICS'}</span>
+                  <span>{sideTitles.classical}</span>
                 </div>
-                <div className="section-title quantum" style={{ position: 'absolute', left: stageId === 'bit-vs-qubit' ? '33.5vh' : '39vh', transform: 'translateX(-50%)' }}>
+                <div className="section-title quantum" style={{ position: 'absolute', left: sideTitles.offset, transform: 'translateX(-50%)' }}>
                   <div className="section-title-dot" />
-                  <span>{stageId === 'bit-vs-qubit' ? 'QUBIT' : 'QUANTUM PHYSICS'}</span>
+                  <span>{sideTitles.quantum}</span>
                 </div>
               </div>
             )}
@@ -589,7 +591,7 @@ export default function Simulator({ isMobile }) {
           <ModuleErrorBoundary
             // The hub and the first module share one scene (the
             // bit and the qubit), so moving between them morphs it in place.
-            key={!stageId || stageId === 'bit-vs-qubit' || stageId === 'gates' || stageId === 'multi-qubit-gates' || stageId === 'interference' || stageId === 'entanglement' || stageId === 'exponential' || stageId === 'decoherence' ? 'bit-scene' : stageId}
+            key={!stageId || SHARED_SCENE_STAGES.has(stageId) ? 'bit-scene' : stageId}
             moduleTitle={curriculumData.find(m => m.id === stageId)?.title}
             boundsStyle={uiBoundsStyle}
             onRetry={() => window.location.reload()}
@@ -762,11 +764,8 @@ export default function Simulator({ isMobile }) {
               <CameraShifter isSidebarOpen={isSidebarOpen} />
               <BlochSphere
                 theme={theme}
-                activeModule={stagePhase === 'grow' || stagePhase === 'shrink' ? 'gates' : stagePhase.startsWith('multi-') ? pairModule : stagePhase === 'solo-unsolo' ? 'interference' : stageId}
-                multi={stagePhase === 'multi-center' ? 'center' : stagePhase === 'multi-merge' ? 'merge' : stagePhase === 'multi-split' || stagePhase === 'multi-unsplit' ? 'split' : stagePhase === 'multi-zoom' || stagePhase === 'multi-unzoom' ? 'zoom' : null}
-                vanishing={stagePhase === 'vanish'}
+                {...hubScenePose(stagePhase, stageId, pairModule)}
                 handoverTarget={hubTarget}
-                centerOnly={stagePhase === 'solo-center'}
                 bvq={bvqScene}
               />
             </SharedCanvas>

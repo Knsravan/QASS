@@ -18,9 +18,10 @@ import { SharedCanvas } from './SharedCanvas';
 import { handoff } from './handoff';
 import { densityMatrix } from './quantumMath';
 import { CT, CA, CR, CP, CB, CG, CW, SPHERE_R, MODEL_Y, PURE_POS, NOISY_POS, arrowGrow, BlochSphereUnit } from './DecoSphereUnit';
+import { STAGE_EVENTS } from './stagePhases';
 
 // How visible the noise particles are. Opened from the hub they start unseen and fade in
-// with the cards (the App announces `qass-jelly-run`), and fade out with them on the way back.
+// with the cards (the stage announces STAGE_EVENTS.cardsIn), and fade out with them on the way back.
 const particleFade = { p: 1, target: 1 };
 
 const DECO_STEPS = ['intro', 'what_is_decoherence', 'density_matrix', 'noise_types', 'coherence_time', 'lindblad', 'why_hard'];
@@ -476,9 +477,9 @@ export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted,
   useEffect(() => {
     const run = () => { particleFade.target = 1; };
     const out = () => { particleFade.target = 0; arrowGrow.target = 0; };
-    window.addEventListener('qass-jelly-run', run);
-    window.addEventListener('qass-jelly-out', out);
-    return () => { window.removeEventListener('qass-jelly-run', run); window.removeEventListener('qass-jelly-out', out); particleFade.p = particleFade.target = 1; };
+    window.addEventListener(STAGE_EVENTS.cardsIn, run);
+    window.addEventListener(STAGE_EVENTS.cardsOut, out);
+    return () => { window.removeEventListener(STAGE_EVENTS.cardsIn, run); window.removeEventListener(STAGE_EVENTS.cardsOut, out); particleFade.p = particleFade.target = 1; };
   }, []);
   const noiseTimerRef       = useRef(null);
   const bloomTimerRef       = useRef(null);

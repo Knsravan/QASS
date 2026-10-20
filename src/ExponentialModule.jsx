@@ -21,6 +21,7 @@ import GlassSlider from './GlassSlider';
 import { QualityComposer } from './QualityScene';
 import { SharedCanvas } from './SharedCanvas';
 import { stateVectorRAM } from './quantumMath';
+import { STAGE_EVENTS } from './stagePhases';
 
 
 // ==========================================
@@ -421,10 +422,10 @@ function StateSpaceConstellation({
         const l = labelRefs.current[key];
         if (l) { l.style.opacity = String(Math.min(1, x * 1.5)); l.style.transform = `scale(${Math.max(0, pop)})`; }
       }
-      if (closing && R.p <= 0 && !R.gone) { R.gone = true; window.dispatchEvent(new Event('qass-ring-gone')); }
+      if (closing && R.p <= 0 && !R.gone) { R.gone = true; window.dispatchEvent(new Event(STAGE_EVENTS.ringGone)); }
       if (!closing && R.p >= 1) {
         R.done = true;
-        window.dispatchEvent(new Event('qass-ring-done'));
+        window.dispatchEvent(new Event(STAGE_EVENTS.ringDone));
         for (const key of Object.keys(labelRefs.current)) { const l = labelRefs.current[key]; if (l) { l.style.opacity = ''; l.style.transform = ''; } }
         if (ring) ring.geometry.setDrawRange(0, Infinity);
       }
