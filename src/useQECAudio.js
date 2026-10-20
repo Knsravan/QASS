@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useMemo } from 'react';
-import { acquireAudioContext, releaseAudioOutput, sharedBuffer } from './sharedAudio';
+import { acquireAudioContext, releaseAudioOutput, createOutputChain, easeMasterGain } from './sharedAudio';
 
 // ==========================================================
 // QUANTUM ERROR CORRECTION AUDIO SYNTHESIZER
@@ -20,35 +20,11 @@ export function useQECAudio(isMuted) {
       const ctx = acquireAudioContext();
       ctxRef.current = ctx;
 
-      // Master Gain
-      const masterGain = ctx.createGain();
-      masterGain.gain.value = isMuted ? 0 : 0.7;
-      masterGain.connect(ctx.destination);
-      masterGainRef.current = masterGain;
-
-      // Warm lowpass filter — eliminates harsh highs
-      const masterFilter = ctx.createBiquadFilter();
-      masterFilter.type = 'lowpass';
-      masterFilter.frequency.value = 2400;
-      masterFilter.connect(masterGain);
-      masterFilterRef.current = masterFilter;
-
-      // Lush spatial reverb
-      const length = ctx.sampleRate * 3.5;
-      const impulse = sharedBuffer('useQECAudio:impulse', () => {
-        const built = ctx.createBuffer(2, length, ctx.sampleRate);
-        for (let c = 0; c < 2; c++) {
-          const channel = built.getChannelData(c);
-          for (let i = 0; i < length; i++) {
-            channel[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.52));
-          }
-        }
-        return built;
-      });
-      const reverb = ctx.createConvolver();
-      reverb.buffer = impulse;
-      reverb.connect(masterFilter);
-      reverbRef.current = reverb;
+      // The master chain: a warm low-pass (no harsh highs) and a lush reverb.
+      const chain = createOutputChain(ctx, { volume: 0.7, muted: isMuted, lowpass: 2400, reverb: { key: 'useQECAudio:impulse', seconds: 3.5, decay: 0.52 } });
+      masterGainRef.current = chain.master;
+      masterFilterRef.current = chain.filter;
+      reverbRef.current = chain.reverb;
     }
     if (ctxRef.current.state === 'suspended') {
       await ctxRef.current.resume();
@@ -56,13 +32,7 @@ export function useQECAudio(isMuted) {
   }, [isMuted]);
 
   // Mute control
-  useEffect(() => {
-    if (masterGainRef.current && ctxRef.current) {
-      const now = ctxRef.current.currentTime;
-      masterGainRef.current.gain.cancelScheduledValues(now);
-      masterGainRef.current.gain.setTargetAtTime(isMuted ? 0 : 0.7, now, 0.12);
-    }
-  }, [isMuted]);
+  useEffect(() => { easeMasterGain(ctxRef.current, masterGainRef.current, isMuted, 0.7, { timeConstant: 0.12 }); }, [isMuted]);
 
   // ─── Helper: track an oscillator with its gain so stopAll can fade it ──
   const track = useCallback((osc, gain) => {

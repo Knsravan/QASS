@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback, useMemo } from 'react';
-import { acquireAudioContext, releaseAudioOutput, sharedBuffer } from './sharedAudio';
+import { acquireAudioContext, releaseAudioOutput, createOutputChain, easeMasterGain } from './sharedAudio';
 
 export function useQuantumAudio() {
   const audioCtxRef = useRef(null);
@@ -13,36 +13,11 @@ export function useQuantumAudio() {
       const ctx = acquireAudioContext();
       audioCtxRef.current = ctx;
       
-      // Master Gain - drastically lower overall volume to prevent loudness
-      masterGainRef.current = ctx.createGain();
-      masterGainRef.current.gain.value = 0.5;
-      masterGainRef.current.connect(ctx.destination);
-
-      // Master Filter to remove any harsh piercing high frequencies
-      masterFilterRef.current = ctx.createBiquadFilter();
-      masterFilterRef.current.type = 'lowpass';
-      masterFilterRef.current.frequency.value = 1500; // Warm, dark cinematic tone
-      masterFilterRef.current.connect(masterGainRef.current);
-
-      // Synthetic Reverb for massive, natural space
-      const length = ctx.sampleRate * 4.0; // 4 seconds tail
-      const impulse = sharedBuffer('useQuantumAudio:impulse', () => {
-        const built = ctx.createBuffer(2, length, ctx.sampleRate);
-        const left = built.getChannelData(0);
-        const right = built.getChannelData(1);
-        for (let i = 0; i < length; i++) {
-          // Exponential decay for natural sound
-          const decay = Math.exp(-i / (ctx.sampleRate * 0.8));
-          left[i] = (Math.random() * 2 - 1) * decay;
-          right[i] = (Math.random() * 2 - 1) * decay;
-        }
-        return built;
-      });
-      reverbRef.current = ctx.createConvolver();
-      reverbRef.current.buffer = impulse;
-      
-      // Route reverb into filter
-      reverbRef.current.connect(masterFilterRef.current);
+      // The master chain: quiet overall, a warm, dark low-pass and a four-second reverb.
+      const chain = createOutputChain(ctx, { volume: 0.5, lowpass: 1500, reverb: { key: 'useQuantumAudio:impulse', seconds: 4.0, decay: 0.8 } });
+      masterGainRef.current = chain.master;
+      masterFilterRef.current = chain.filter;
+      reverbRef.current = chain.reverb;
     }
     if (audioCtxRef.current.state === 'suspended') {
       audioCtxRef.current.resume();
@@ -50,11 +25,7 @@ export function useQuantumAudio() {
   }, []);
 
   const toggleMute = useCallback((isMuted) => {
-    if (masterGainRef.current && audioCtxRef.current) {
-      const now = audioCtxRef.current.currentTime;
-      masterGainRef.current.gain.cancelScheduledValues(now);
-      masterGainRef.current.gain.linearRampToValueAtTime(isMuted ? 0 : 0.5, now + 1.0);
-    }
+    easeMasterGain(audioCtxRef.current, masterGainRef.current, isMuted, 0.5, { ramp: 1.0 });
   }, []);
 
   const stopCurrentAudio = useCallback(() => {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useMemo } from 'react';
-import { acquireAudioContext, releaseAudioOutput, sharedBuffer } from './sharedAudio';
+import { acquireAudioContext, releaseAudioOutput, createOutputChain, easeMasterGain, fadeOutNodes } from './sharedAudio';
 
 export function useGatesAudio() {
   const ctxRef = useRef(null);
@@ -13,27 +13,10 @@ export function useGatesAudio() {
       const ctx = acquireAudioContext();
       ctxRef.current = ctx;
 
-      const masterGain = ctx.createGain();
-      masterGain.gain.value = 0.8;
-      masterGain.connect(ctx.destination);
-      masterGainRef.current = masterGain;
-      
-      // Synthetic Reverb for massive space
-      const length = ctx.sampleRate * 3.0; // 3 seconds tail
-      const impulse = sharedBuffer('useGatesAudio:impulse', () => {
-        const built = ctx.createBuffer(2, length, ctx.sampleRate);
-        for (let c = 0; c < 2; c++) {
-          const channel = built.getChannelData(c);
-          for (let i = 0; i < length; i++) {
-            channel[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.5));
-          }
-        }
-        return built;
-      });
-      const reverb = ctx.createConvolver();
-      reverb.buffer = impulse;
-      reverb.connect(masterGain);
-      reverbRef.current = reverb;
+      // The master chain, with a three-second reverb for a massive space.
+      const chain = createOutputChain(ctx, { volume: 0.8, reverb: { key: 'useGatesAudio:impulse', seconds: 3.0, decay: 0.5 } });
+      masterGainRef.current = chain.master;
+      reverbRef.current = chain.reverb;
     }
 
     if (ambientNodesRef.current.length === 0) {
@@ -84,17 +67,7 @@ export function useGatesAudio() {
 
   const stopAll = useCallback(() => {
     if (ctxRef.current) {
-      const now = ctxRef.current.currentTime;
-      [...activeNodesRef.current, ...ambientNodesRef.current].forEach(node => {
-        try {
-          if (node.gain) {
-             node.gain.cancelScheduledValues(now);
-             node.gain.setTargetAtTime(0, now, 0.05);
-          } else if (node.stop) {
-             node.stop(now + 0.5);
-          }
-        } catch (e) {}
-      });
+      fadeOutNodes(ctxRef.current, [...activeNodesRef.current, ...ambientNodesRef.current], 0.5);
       activeNodesRef.current = [];
       ambientNodesRef.current = [];
     }
@@ -110,12 +83,7 @@ export function useGatesAudio() {
   }, []);
 
   const toggleMute = useCallback((isMuted) => {
-    if (ctxRef.current && masterGainRef.current) {
-      const now = ctxRef.current.currentTime;
-      masterGainRef.current.gain.cancelScheduledValues(now);
-      masterGainRef.current.gain.setValueAtTime(masterGainRef.current.gain.value, now);
-      masterGainRef.current.gain.linearRampToValueAtTime(isMuted ? 0 : 0.8, now + 1.0);
-    }
+    easeMasterGain(ctxRef.current, masterGainRef.current, isMuted, 0.8, { ramp: 1.0 });
   }, []);
 
   const playCameraPan = useCallback((duration) => {

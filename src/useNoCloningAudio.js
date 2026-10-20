@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useMemo } from 'react';
-import { acquireAudioContext, releaseAudioOutput, sharedBuffer } from './sharedAudio';
+import { acquireAudioContext, releaseAudioOutput, createOutputChain, easeMasterGain, fadeOutNodes } from './sharedAudio';
 
 // ==========================================================
 // NO-CLONING THEOREM AUDIO SYNTHESIZER (PEACEFUL & HARMONIC)
@@ -18,70 +18,26 @@ export function useNoCloningAudio(isMuted) {
       const ctx = acquireAudioContext();
       ctxRef.current = ctx;
 
-      // Master Gain
-      const masterGain = ctx.createGain();
-      masterGain.gain.value = isMuted ? 0 : 0.75;
-      masterGain.connect(ctx.destination);
-      masterGainRef.current = masterGain;
-
-      // Warm Master Lowpass Filter to eliminate any harsh piercing highs
-      const masterFilter = ctx.createBiquadFilter();
-      masterFilter.type = 'lowpass';
-      masterFilter.frequency.value = 2200;
-      masterFilter.connect(masterGain);
-      masterFilterRef.current = masterFilter;
-
-      // Deep, airy convolution impulse response for lush spatial reverb
-      const length = ctx.sampleRate * 3.2;
-      const impulse = sharedBuffer('useNoCloningAudio:impulse', () => {
-        const built = ctx.createBuffer(2, length, ctx.sampleRate);
-        for (let c = 0; c < 2; c++) {
-          const channel = built.getChannelData(c);
-          for (let i = 0; i < length; i++) {
-            channel[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.48));
-          }
-        }
-        return built;
-      });
-      const reverb = ctx.createConvolver();
-      reverb.buffer = impulse;
-      reverb.connect(masterFilter);
-      reverbRef.current = reverb;
+      // The master chain: a warm low-pass (no piercing highs) and a deep, airy reverb.
+      const chain = createOutputChain(ctx, { volume: 0.75, muted: isMuted, lowpass: 2200, reverb: { key: 'useNoCloningAudio:impulse', seconds: 3.2, decay: 0.48 } });
+      masterGainRef.current = chain.master;
+      masterFilterRef.current = chain.filter;
+      reverbRef.current = chain.reverb;
     }
     if (ctxRef.current.state === 'suspended') {
       await ctxRef.current.resume();
     }
   }, [isMuted]);
 
-  useEffect(() => {
-    if (masterGainRef.current && ctxRef.current) {
-      const now = ctxRef.current.currentTime;
-      masterGainRef.current.gain.cancelScheduledValues(now);
-      masterGainRef.current.gain.setTargetAtTime(isMuted ? 0 : 0.75, now, 0.1);
-    }
-  }, [isMuted]);
+  useEffect(() => { easeMasterGain(ctxRef.current, masterGainRef.current, isMuted, 0.75); }, [isMuted]);
 
   const toggleMute = useCallback((muted) => {
-    if (masterGainRef.current && ctxRef.current) {
-      const now = ctxRef.current.currentTime;
-      masterGainRef.current.gain.cancelScheduledValues(now);
-      masterGainRef.current.gain.setTargetAtTime(muted ? 0 : 0.75, now, 0.1);
-    }
+    easeMasterGain(ctxRef.current, masterGainRef.current, muted, 0.75);
   }, []);
 
   const stopAll = useCallback(() => {
     if (ctxRef.current) {
-      const now = ctxRef.current.currentTime;
-      [...activeNodesRef.current, ...ambientNodesRef.current].forEach(node => {
-        try {
-          if (node.gain) {
-            node.gain.cancelScheduledValues(now);
-            node.gain.setTargetAtTime(0, now, 0.05);
-          } else if (node.stop) {
-            node.stop(now + 0.1);
-          }
-        } catch (e) {}
-      });
+      fadeOutNodes(ctxRef.current, [...activeNodesRef.current, ...ambientNodesRef.current]);
       activeNodesRef.current = [];
       ambientNodesRef.current = [];
     }
