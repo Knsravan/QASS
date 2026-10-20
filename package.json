@@ -30,7 +30,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "lint": "eslint --max-warnings=0 .",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "screenshots": "vite build && node scripts/capture-screenshots.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
