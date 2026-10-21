@@ -1,4 +1,4 @@
-import React, { Children, cloneElement, useEffect, useMemo, useSyncExternalStore } from 'react';
+import React, { Children, cloneElement, useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing';
@@ -162,6 +162,21 @@ const setRef = (ref, value) => {
   else if (ref) ref.current = value;
 };
 
+// @react-three/postprocessing never disposes its composer, and the shared canvas's
+// renderer outlives every scene, so each composer's render targets (64 MB at 1440 x 900
+// with 4x multisampling) stayed on the GPU after its scene left. This one frees them:
+// when the composer is replaced (a new camera or setting) and when it unmounts.
+function DisposingComposer(props) {
+  const ref = useRef(null);
+  const last = useRef(null);
+  useEffect(() => {
+    if (last.current && last.current !== ref.current) last.current.dispose();
+    last.current = ref.current;
+  });
+  useEffect(() => () => { last.current?.dispose(); last.current = null; }, []);
+  return <EffectComposer ref={ref} {...props} />;
+}
+
 export function QualityComposer({ children, ...props }) {
   const q = useQuality();
   if (!q.bloom) return null;
@@ -171,8 +186,8 @@ export function QualityComposer({ children, ...props }) {
       ? cloneElement(c, { levels: Math.min(c.props.levels ?? 8, q.bloomLevels), ref: (e) => { scaleBloom(e, q.bloomScale); setRef(c.props.ref, e); } })
       : c));
   return (
-    <EffectComposer multisampling={q.msaa} {...props} key={q.tier}>
+    <DisposingComposer multisampling={q.msaa} {...props} key={q.tier}>
       {passes}
-    </EffectComposer>
+    </DisposingComposer>
   );
 }

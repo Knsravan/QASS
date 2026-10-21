@@ -589,9 +589,10 @@ export default function BlochSphere({ activeModule, interferenceStep, interferen
 
   // Opening a module: a first load starts at the module's view; moving
   // between the modules of this scene eases the camera there.
+  // (centerOnly too: a move to Interference cancelled on the way brings the bit back.)
   useEffect(() => {
-    if (activeModule !== 'interference') setBitOn(true);
-  }, [activeModule]);
+    if (activeModule !== 'interference' && !centerOnly) setBitOn(true);
+  }, [activeModule, centerOnly]);
   useEffect(() => { if (mSplit) setTargetOn(true); }, [mSplit]);
   const camReady = useRef(false);
   useEffect(() => {

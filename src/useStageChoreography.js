@@ -81,7 +81,7 @@ export function useStageChoreography({ activeModuleId, isSidebarOpen, multiGates
         setStageSeq((n) => n + 1);
         setStageId(activeModuleId);
       }, zoomAt + glideMs(1800));
-      return () => { clearTimeout(t1); clearTimeout(t2); if (!done) setStagePhase('idle'); };
+      return () => { clearTimeout(t1); clearTimeout(t2); if (!done) { setStagePhase('idle'); settleSharedCamera(HUB_CAMERA.cam, HUB_CAMERA.target, 600); } };
     }
     if (stageId === 'exponential' && activeModuleId === null) {
       // Exponential State Space -> hub: cards out, the ring draws back off to a point, then the
@@ -106,7 +106,7 @@ export function useStageChoreography({ activeModuleId, isSidebarOpen, multiGates
       window.addEventListener(STAGE_EVENTS.ringGone, onGone);
       const t = setTimeout(() => { ready = true; if (gone) go(); }, 700);
       const tMax = setTimeout(go, 4500); // never hang
-      return () => { clearTimeout(t); clearTimeout(tMax); window.removeEventListener(STAGE_EVENTS.ringGone, onGone); if (!done) { setStagePhase('idle'); setJellyState(''); } };
+      return () => { clearTimeout(t); clearTimeout(tMax); window.removeEventListener(STAGE_EVENTS.ringGone, onGone); if (!done) { setStagePhase('idle'); setJellyState('run'); } };
     }
     if (stageId === null && (activeModuleId === 'multi-qubit-gates' || activeModuleId === 'entanglement' || activeModuleId === 'decoherence')) {
       // Hub -> Multi Qubit Gates / Entanglement: all but the qubit vanishes; the qubit moves to the
@@ -145,7 +145,8 @@ export function useStageChoreography({ activeModuleId, isSidebarOpen, multiGates
         setStageSeq((n) => n + 1);
         setStageId(activeModuleId);
       }, zoomAt + glideMs(1600));
-      return () => { clearTimeout(t1); clearTimeout(t1b); clearTimeout(t2); if (!done) setStagePhase('idle'); };
+      // Cancelled on the way (Back mid-move): the camera goes back to the hub's view.
+      return () => { clearTimeout(t1); clearTimeout(t1b); clearTimeout(t2); if (!done) { setStagePhase('idle'); settleSharedCamera(HUB_CAMERA.cam, HUB_CAMERA.target, 600); } };
     }
     if ((stageId === 'multi-qubit-gates' || stageId === 'entanglement' || stageId === 'decoherence') && activeModuleId === null) {
       // Multi Qubit Gates / Entanglement -> hub: cards out, the pair takes over in place (camera and
@@ -163,7 +164,7 @@ export function useStageChoreography({ activeModuleId, isSidebarOpen, multiGates
         setStageSeq((n) => n + 1);
         setStageId(null);
       }, 700);
-      return () => { clearTimeout(t); if (!done) { setStagePhase('idle'); setJellyState(''); } };
+      return () => { clearTimeout(t); if (!done) { setStagePhase('idle'); setJellyState('run'); } };
     }
     if (stageId === null && activeModuleId === 'interference') {
       // Hub -> Quantum Interference: all but the qubit vanishes (the camera settles, the
@@ -191,6 +192,7 @@ export function useStageChoreography({ activeModuleId, isSidebarOpen, multiGates
       let done = false;
       setStagePhase('closing');
       setJellyState('out');
+      const from = getSharedCameraPose(); // the module's view, to go back to if the close is cancelled
       settleSharedCamera(HUB_CAMERA.cam, HUB_CAMERA.target, 1100);
       const t = setTimeout(() => {
         done = true;
@@ -200,7 +202,7 @@ export function useStageChoreography({ activeModuleId, isSidebarOpen, multiGates
         setStageSeq((n) => n + 1);
         setStageId(null);
       }, 1250);
-      return () => { clearTimeout(t); if (!done) { setStagePhase('idle'); setJellyState(''); } };
+      return () => { clearTimeout(t); if (!done) { setStagePhase('idle'); setJellyState('run'); if (from) settleSharedCamera(from.pos, from.target, 600); } };
     }
     if (stageId === null && activeModuleId === 'gates') {
       // Hub -> Classical Gates: the hub's text goes, the two bits grow to the
@@ -222,6 +224,7 @@ export function useStageChoreography({ activeModuleId, isSidebarOpen, multiGates
       let done = false;
       setStagePhase('closing');
       setJellyState('out');
+      const from = getSharedCameraPose(); // the module's view, to go back to if the close is cancelled
       settleSharedCamera(HUB_CAMERA.cam, HUB_CAMERA.target, 650);
       const t = setTimeout(() => {
         done = true;
@@ -230,7 +233,7 @@ export function useStageChoreography({ activeModuleId, isSidebarOpen, multiGates
         setStageSeq((n) => n + 1);
         setStageId(null);
       }, 700);
-      return () => { clearTimeout(t); if (!done) { setStagePhase('idle'); setJellyState(''); } };
+      return () => { clearTimeout(t); if (!done) { setStagePhase('idle'); setJellyState('run'); if (from) settleSharedCamera(from.pos, from.target, 600); } };
     }
     if (stageId === null && activeModuleId === 'nocloning') {
       // Hub -> No-Cloning: the hub's models and text vanish completely first; then the module's
@@ -268,7 +271,7 @@ export function useStageChoreography({ activeModuleId, isSidebarOpen, multiGates
       };
       window.addEventListener(STAGE_EVENTS.noCloningGone, go);
       const tMax = setTimeout(go, 4500); // never hang
-      return () => { clearTimeout(tMax); window.removeEventListener(STAGE_EVENTS.noCloningGone, go); if (!done) { setStagePhase('idle'); setJellyState(''); } };
+      return () => { clearTimeout(tMax); window.removeEventListener(STAGE_EVENTS.noCloningGone, go); if (!done) { setStagePhase('idle'); setJellyState('run'); } };
     }
     if (stageId !== null && activeModuleId === null) {
       // Closing, any module: the opening in reverse. Its cards spring out; then
@@ -287,7 +290,7 @@ export function useStageChoreography({ activeModuleId, isSidebarOpen, multiGates
         setStageSeq((n) => n + 1);
         setStageId(null);
       }, shared ? 600 : 1050);
-      return () => { clearTimeout(t1); clearTimeout(t2); if (!done) { setStagePhase('idle'); setJellyState(''); showSharedCanvas(); } };
+      return () => { clearTimeout(t1); clearTimeout(t2); if (!done) { setStagePhase('idle'); setJellyState('run'); showSharedCanvas(); } };
     }
     setStagePhase('idle');
     setJellyState('');
@@ -300,6 +303,14 @@ export function useStageChoreography({ activeModuleId, isSidebarOpen, multiGates
   useEffect(() => { if (stageId !== 'exponential') setExpFromHub(false); }, [stageId]);
   useEffect(() => { if (stageId !== 'nocloning') setNcFromHub(false); }, [stageId]);
   useEffect(() => { if (stageId !== 'decoherence') setDecFromHub(false); }, [stageId]);
+  useEffect(() => { if (stageId !== 'interference') setInterferenceFromHub(false); }, [stageId]);
+  // A module on stage: the hub's take-over target from the last close no longer applies.
+  useEffect(() => { if (stageId !== null) setHubTarget([0, 0, 0]); }, [stageId]);
+  // A move cancelled before its hand-over leaves the stage at rest: cards that were
+  // waiting to pop (or springing out) pop back in, so nothing stays hidden.
+  useEffect(() => {
+    if (stagePhase === 'idle' && (jellyState === 'wait' || jellyState === 'out')) setJellyState('run');
+  }, [stagePhase, jellyState]);
   // Things inside a scene that fade with the cards (Decoherence's particles) listen for these.
   useEffect(() => {
     if (jellyState === 'run') window.dispatchEvent(new Event(STAGE_EVENTS.cardsIn));

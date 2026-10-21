@@ -29,6 +29,12 @@ export default class ModuleErrorBoundary extends React.Component {
     return { error };
   }
 
+  // `resetKey`: when it changes (the stage moved on, e.g. "Back to hub"), the error
+  // is cleared, for boundaries that stay mounted across several modules.
+  componentDidUpdate(prev) {
+    if (this.state.error && prev.resetKey !== this.props.resetKey) this.setState({ error: null });
+  }
+
   componentDidCatch(error, info) {
     console.error('Module failed to render:', error, info?.componentStack);
   }
