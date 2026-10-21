@@ -445,9 +445,8 @@ function RestorationFlash({ active, origin }) {
 // =============================================================================
 // 6. MAIN QEC SCENE (Three.js Canvas Content)
 // =============================================================================
-function QECScene({ step, errorQubit, onErrorQubitChange, theme, isSidebarOpen, isExpanded, audio }) {
+function QECScene({ step, errorQubit, onErrorQubitChange, isSidebarOpen, isExpanded, audio }) {
   const orbitRef = useRef();
-  const isLight = theme === 'light';
 
   const syndrome = SYNDROME_TABLE[errorQubit] || SYNDROME_TABLE[0];
   const isError = ['noise', 'syndrome_1', 'syndrome_2', 'decode'].includes(step);
@@ -515,9 +514,9 @@ function QECScene({ step, errorQubit, onErrorQubitChange, theme, isSidebarOpen, 
         <Bloom luminanceThreshold={0.22} mipmapBlur intensity={0.65} />
       </QualityComposer>
 
-      <ambientLight intensity={isLight ? 0.9 : 0.5} />
-      <pointLight position={[-12, 10, 10]} color={CI} intensity={isLight ? 16 : 10} distance={40} />
-      <pointLight position={[12, 10, 10]} color={CA} intensity={isLight ? 10 : 6} distance={40} />
+      <ambientLight intensity={0.5} />
+      <pointLight position={[-12, 10, 10]} color={CI} intensity={10} distance={40} />
+      <pointLight position={[12, 10, 10]} color={CA} intensity={6} distance={40} />
       <pointLight position={[0, -14, 12]} color="#ffffff" intensity={2.5} distance={30} />
 
       {/* ─── 3 DATA QUBITS ─────────────────────────────────────────────────── */}
@@ -531,7 +530,6 @@ function QECScene({ step, errorQubit, onErrorQubitChange, theme, isSidebarOpen, 
         return (
           <group key={idx} position={pos}>
             <QubitCore
-              theme={theme}
               activeModule="error-correction"
               customVectorQuat={getVectorQuat(idx)}
               showCustomVector={true}
@@ -636,7 +634,6 @@ function QECScene({ step, errorQubit, onErrorQubitChange, theme, isSidebarOpen, 
       {showAncilla1 && (
         <group position={POS_A1}>
           <QubitCore
-            theme={theme}
             activeModule="error-correction"
             customVectorQuat={ancilla1Syndrome === 1 ? quatDown : quatUp}
             showCustomVector={true}
@@ -672,7 +669,6 @@ function QECScene({ step, errorQubit, onErrorQubitChange, theme, isSidebarOpen, 
       {showAncilla2 && (
         <group position={POS_A2}>
           <QubitCore
-            theme={theme}
             activeModule="error-correction"
             customVectorQuat={ancilla2Syndrome === 1 ? quatDown : quatUp}
             showCustomVector={true}
@@ -728,7 +724,7 @@ function QECScene({ step, errorQubit, onErrorQubitChange, theme, isSidebarOpen, 
 // =============================================================================
 // 7. STEP BOTTOM PANEL (2D Overlay — Compact, 3D-space preserving)
 // =============================================================================
-function QECStepPanel({ stepData, stepIndex, totalSteps, errorQubit, onErrorQubitChange, isLight, isExpanded, onToggleExpand }) {
+function QECStepPanel({ stepData, stepIndex, totalSteps, errorQubit, onErrorQubitChange, isExpanded, onToggleExpand }) {
   if (!stepData) return null;
 
   const accent = stepData.color || CI;
@@ -750,11 +746,9 @@ function QECStepPanel({ stepData, stepIndex, totalSteps, errorQubit, onErrorQubi
         background: 'var(--glass-bg-base)',
         backdropFilter: 'var(--glass-blur)',
         WebkitBackdropFilter: 'var(--glass-blur)',
-        border: isLight ? '1px solid rgba(0, 0, 0, 0.1)' : `1.5px solid ${accent}55`,
+        border: `1.5px solid ${accent}55`,
         borderRadius: '26px',
-        boxShadow: isLight
-          ? 'inset 0 1.2px 1.5px rgba(255,255,255,0.95), 0 20px 48px -10px rgba(0,0,0,0.15)'
-          : `var(--glass-highlight), var(--glass-shadow-base)`,
+        boxShadow: `var(--glass-highlight), var(--glass-shadow-base)`,
         pointerEvents: 'auto',
         animation: 'qecPanelEnter 0.5s cubic-bezier(0.16,1,0.3,1) forwards',
         fontFamily: "'Inter', sans-serif",
@@ -907,7 +901,7 @@ function QECStepPanel({ stepData, stepIndex, totalSteps, errorQubit, onErrorQubi
 // =============================================================================
 // 7.6 TOP-RIGHT SYNDROME TABLE CARD (Decodes s1, s2 in Step 6 & 7)
 // =============================================================================
-function QECSyndromeTableCard({ isLight, step, errorQubit = 0, onErrorQubitChange }) {
+function QECSyndromeTableCard({ step, errorQubit = 0, onErrorQubitChange }) {
   if (step !== 'decode' && step !== 'correct') return null;
 
   return (
@@ -919,12 +913,10 @@ function QECSyndromeTableCard({ isLight, step, errorQubit = 0, onErrorQubitChang
       background: 'var(--glass-bg-base)',
       backdropFilter: 'var(--glass-blur)',
       WebkitBackdropFilter: 'var(--glass-blur)',
-      border: isLight ? '1px solid rgba(0, 0, 0, 0.1)' : `1.5px solid ${step === 'correct' ? CG : CE}65`,
+      border: `1.5px solid ${step === 'correct' ? CG : CE}65`,
       borderRadius: '24px',
       padding: '14px 16px',
-      boxShadow: isLight
-        ? 'inset 0 1.2px 1.5px rgba(255,255,255,0.95), 0 16px 36px -8px rgba(0,0,0,0.12)'
-        : `var(--glass-highlight), var(--glass-shadow-base)`,
+      boxShadow: `var(--glass-highlight), var(--glass-shadow-base)`,
       pointerEvents: 'auto',
       zIndex: 100,
       animation: 'qecSyndromePop 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards',
@@ -937,7 +929,7 @@ function QECSyndromeTableCard({ isLight, step, errorQubit = 0, onErrorQubitChang
         fontSize: '9.5px',
         fontWeight: '800',
         letterSpacing: '1.4px',
-        color: isLight ? '#475569' : '#94a3b8',
+        color: '#94a3b8',
         textTransform: 'uppercase',
         marginBottom: '8px',
       }}>
@@ -997,7 +989,7 @@ function QECSyndromeTableCard({ isLight, step, errorQubit = 0, onErrorQubitChang
 // =============================================================================
 // 7.5 TOP-LEFT QUBIT ROLES & COLOR LEGEND CARD (Dynamic per Step)
 // =============================================================================
-function QECLegendCard({ isLight, step, errorQubit = 0 }) {
+function QECLegendCard({ step, errorQubit = 0 }) {
   const [isOpen, setIsOpen] = useState(true);
 
   return (
@@ -1009,12 +1001,10 @@ function QECLegendCard({ isLight, step, errorQubit = 0 }) {
       background: 'var(--glass-bg-base)',
       backdropFilter: 'var(--glass-blur)',
       WebkitBackdropFilter: 'var(--glass-blur)',
-      border: isLight ? '1px solid rgba(0, 0, 0, 0.1)' : 'var(--glass-border-base)',
+      border: 'var(--glass-border-base)',
       borderRadius: '24px',
       padding: '14px 16px',
-      boxShadow: isLight
-        ? 'inset 0 1.2px 1.5px rgba(255,255,255,0.95), 0 16px 36px -8px rgba(0,0,0,0.12)'
-        : 'var(--glass-highlight), var(--glass-shadow-base)',
+      boxShadow: 'var(--glass-highlight), var(--glass-shadow-base)',
       pointerEvents: 'auto',
       zIndex: 100,
       transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
@@ -1038,7 +1028,7 @@ function QECLegendCard({ isLight, step, errorQubit = 0 }) {
           fontSize: '9.5px',
           fontWeight: '800',
           letterSpacing: '1.4px',
-          color: isLight ? '#475569' : '#94a3b8',
+          color: '#94a3b8',
           textTransform: 'uppercase',
         }}>
           <span style={{ fontSize: '12px' }}>🛡️</span>
@@ -1080,7 +1070,7 @@ function QECLegendCard({ isLight, step, errorQubit = 0 }) {
               <span>🛡️ Logical State</span>
               <InlineMath math="|0_L\rangle = |000\rangle" />
             </div>
-            <div style={{ fontSize: '9.5px', color: isLight ? '#475569' : '#cbd5e1', lineHeight: 1.25, marginTop: '2px' }}>
+            <div style={{ fontSize: '9.5px', color: '#cbd5e1', lineHeight: 1.25, marginTop: '2px' }}>
               3 physical qubits bound into 1 protected logical bit
             </div>
           </div>
@@ -1100,7 +1090,7 @@ function QECLegendCard({ isLight, step, errorQubit = 0 }) {
               <span>☄️ Bit-Flip Error</span>
               <InlineMath math={`X_{${errorQubit + 1}}|0\\rangle = |1\\rangle`} />
             </div>
-            <div style={{ fontSize: '9.5px', color: isLight ? '#475569' : '#cbd5e1', lineHeight: 1.25, marginTop: '2px' }}>
+            <div style={{ fontSize: '9.5px', color: '#cbd5e1', lineHeight: 1.25, marginTop: '2px' }}>
               Cosmic ray flipped Q{errorQubit + 1} from north to south pole
             </div>
           </div>
@@ -1120,7 +1110,7 @@ function QECLegendCard({ isLight, step, errorQubit = 0 }) {
               <span>🔬 Parity Check 1</span>
               <InlineMath math={`s_1 = Q_1 \\oplus Q_2 = ${SYNDROME_TABLE[errorQubit]?.s1 ?? 1}`} />
             </div>
-            <div style={{ fontSize: '9.5px', color: isLight ? '#475569' : '#cbd5e1', lineHeight: 1.25, marginTop: '2px' }}>
+            <div style={{ fontSize: '9.5px', color: '#cbd5e1', lineHeight: 1.25, marginTop: '2px' }}>
               {SYNDROME_TABLE[errorQubit]?.s1 === 1
                 ? 'Mismatch! Q₁ and Q₂ differ (s₁ = 1)'
                 : 'Parity clean! Q₁ and Q₂ agree (s₁ = 0)'}
@@ -1142,7 +1132,7 @@ function QECLegendCard({ isLight, step, errorQubit = 0 }) {
               <span>🔭 Parity Check 2</span>
               <InlineMath math={`s_2 = Q_2 \\oplus Q_3 = ${SYNDROME_TABLE[errorQubit]?.s2 ?? 1}`} />
             </div>
-            <div style={{ fontSize: '9.5px', color: isLight ? '#475569' : '#cbd5e1', lineHeight: 1.25, marginTop: '2px' }}>
+            <div style={{ fontSize: '9.5px', color: '#cbd5e1', lineHeight: 1.25, marginTop: '2px' }}>
               {SYNDROME_TABLE[errorQubit]?.s2 === 1
                 ? 'Mismatch! Q₂ and Q₃ differ (s₂ = 1)'
                 : 'Parity clean! Q₂ and Q₃ agree (s₂ = 0)'}
@@ -1164,7 +1154,7 @@ function QECLegendCard({ isLight, step, errorQubit = 0 }) {
               <span>🎯 Syndrome Decoded</span>
               <InlineMath math={`(s_1, s_2) = (${SYNDROME_TABLE[errorQubit]?.s1}, ${SYNDROME_TABLE[errorQubit]?.s2})`} />
             </div>
-            <div style={{ fontSize: '9.5px', color: isLight ? '#475569' : '#cbd5e1', lineHeight: 1.25, marginTop: '2px' }}>
+            <div style={{ fontSize: '9.5px', color: '#cbd5e1', lineHeight: 1.25, marginTop: '2px' }}>
               Parity address isolates corrupted state to Q{errorQubit + 1}!
             </div>
           </div>
@@ -1184,7 +1174,7 @@ function QECLegendCard({ isLight, step, errorQubit = 0 }) {
               <span>✅ State Restored</span>
               <InlineMath math={`X_{${errorQubit + 1}}|${errorQubit === 0 ? '100' : errorQubit === 1 ? '010' : '001'}\\rangle = |000\\rangle`} />
             </div>
-            <div style={{ fontSize: '9.5px', color: isLight ? '#475569' : '#cbd5e1', lineHeight: 1.25, marginTop: '2px' }}>
+            <div style={{ fontSize: '9.5px', color: '#cbd5e1', lineHeight: 1.25, marginTop: '2px' }}>
               Targeted X-pulse restored Q{errorQubit + 1} — logical state 100% recovered!
             </div>
           </div>
@@ -1207,10 +1197,10 @@ function QECLegendCard({ isLight, step, errorQubit = 0 }) {
               boxShadow: `0 0 8px ${pc}`,
             }} />
             <div>
-              <div style={{ fontSize: '11px', fontWeight: '700', color: isLight ? '#0f172a' : '#f8fafc', lineHeight: 1.2 }}>
+              <div style={{ fontSize: '11px', fontWeight: '700', color: '#f8fafc', lineHeight: 1.2 }}>
                 {label}
               </div>
-              <div style={{ fontSize: '9.5px', color: isLight ? '#64748b' : '#94a3b8', lineHeight: 1.25, marginTop: '1px' }}>
+              <div style={{ fontSize: '9.5px', color: '#94a3b8', lineHeight: 1.25, marginTop: '1px' }}>
                 {desc}
               </div>
             </div>
@@ -1249,11 +1239,10 @@ function QECNavOverlay({ stepIndex, totalSteps, onPrev, onNext, isFirst, isLast,
 // =============================================================================
 // 9. ROOT MODULE COMPONENT (exported)
 // =============================================================================
-export default function QuantumErrorCorrectionModule({ theme, isSidebarOpen, isGlobalMuted }) {
+export default function QuantumErrorCorrectionModule({ isSidebarOpen, isGlobalMuted }) {
   const [stepIndex, setStepIndex] = useState(0);
   const [errorQubit, setErrorQubit] = useState(0); // 0=Q1, 1=Q2, 2=Q3
   const [isExpanded, setIsExpanded] = useState(false);
-  const isLight = theme === 'light';
 
   const audio = useQECAudio(isGlobalMuted);
   const hasInited = useRef(false);
@@ -1364,7 +1353,6 @@ export default function QuantumErrorCorrectionModule({ theme, isSidebarOpen, isG
               step={currentStep?.id}
               errorQubit={errorQubit}
               onErrorQubitChange={handleErrorQubitChange}
-              theme={theme}
               isSidebarOpen={isSidebarOpen}
               isExpanded={isExpanded}
               audio={audio}
@@ -1376,11 +1364,10 @@ export default function QuantumErrorCorrectionModule({ theme, isSidebarOpen, isG
       {/* ─── 2D OVERLAYS BOUNDED TO CANVAS VIEWPORT ─────────────────────── */}
       <div style={uiBoundsStyle}>
         {/* ─── Top-Left Qubit Roles & Color Legend Card ────────────────────── */}
-        <QECLegendCard isLight={isLight} step={currentStep?.id} errorQubit={errorQubit} />
+        <QECLegendCard step={currentStep?.id} errorQubit={errorQubit} />
 
         {/* ─── Top-Right Syndrome Truth Table Card (Step 6 & 7) ────────────── */}
         <QECSyndromeTableCard
-          isLight={isLight}
           step={currentStep?.id}
           errorQubit={errorQubit}
           onErrorQubitChange={handleErrorQubitChange}
@@ -1425,7 +1412,6 @@ export default function QuantumErrorCorrectionModule({ theme, isSidebarOpen, isG
           totalSteps={QEC_STEPS.length}
           errorQubit={errorQubit}
           onErrorQubitChange={handleErrorQubitChange}
-          isLight={isLight}
           isExpanded={isExpanded}
           onToggleExpand={() => setIsExpanded(v => !v)}
         />

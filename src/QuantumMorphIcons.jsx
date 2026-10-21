@@ -32,10 +32,7 @@ import {
   Compass,
   ArrowRight,
   Zap,
-  RotateCcw,
-  Sparkle,
-  Sun,
-  Moon
+  Sparkle
 } from 'lucide';
 
 // =============================================================================
@@ -72,22 +69,6 @@ export const QuantumModuleIcon = React.memo(function QuantumModuleIcon({ moduleI
       size={size}
       color={color || 'currentColor'}
       style={{ display: 'inline-flex', verticalAlign: 'middle' }}
-    />
-  );
-});
-
-/**
- * Universal Morphing Chevron
- */
-export const MorphChevron = React.memo(function MorphChevron({ isOpen, size = 18, color = 'rgba(255, 255, 255, 0.65)', className = 'chip-chevron' }) {
-  return (
-    <MorphIcon
-      className={className}
-      icon={isOpen ? ChevronDown : ChevronRight}
-      spring="smooth"
-      strokeWidth={1}
-      size={size}
-      color={color}
     />
   );
 });
@@ -137,55 +118,5 @@ export const MorphCircuitToggleIcon = React.memo(function MorphCircuitToggleIcon
   );
 });
 
-/**
- * Morphing Dark / Light Mode Theme Icon
- */
-export const MorphThemeIcon = React.memo(function MorphThemeIcon({ theme = 'dark', size = 16, color = 'currentColor' }) {
-  return (
-    <MorphIcon
-      icon={theme === 'light' ? Moon : Sun}
-      spring="smooth"
-      strokeWidth={1}
-      size={size}
-      color={color}
-    />
-  );
-});
-
-export {
-  MorphIcon,
-  Atom,
-  Binary,
-  Brackets,
-  Variable,
-  Orbit,
-  Sparkles,
-  Layers,
-  Cpu,
-  Workflow,
-  GitFork,
-  Activity,
-  Waves,
-  Link2,
-  InfinityIcon,
-  LineChart,
-  TrendingUp,
-  Lock,
-  CopyX,
-  Timer,
-  Flame,
-  Shield,
-  ShieldCheck,
-  Volume2,
-  VolumeX,
-  ChevronDown,
-  ChevronRight,
-  ChevronLeft,
-  ChevronUp,
-  Compass,
-  ArrowRight,
-  Zap,
-  RotateCcw,
-  Sun,
-  Moon
-};
+// Re-exported for the pieces that draw a single icon of their own.
+export { MorphIcon, Atom, Variable, Zap, Compass, ArrowRight };

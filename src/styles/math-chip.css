@@ -60,5 +60,3 @@
     var(--glass-shadow-pill),
     0 0 22px color-mix(in srgb, var(--chip-c) 45%, transparent);
 }
-[data-theme='light'] .math-chip { color: #0f172a; }
-[data-theme='light'] .math-chip[data-active] { color: #0f172a; text-shadow: none; }

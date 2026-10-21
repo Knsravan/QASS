@@ -157,9 +157,9 @@ function EntanglementScene({
 
   return (
     <group position={[0, 0, 0]}>
-      <ambientLight intensity={isLight ? 0.8 : 0.5} />
-      <pointLight position={[8, 12, 8]} color="#00f2fe" intensity={isLight ? 10 : 8} distance={30} />
-      <pointLight position={[-8, -12, -8]} color="#f093fb" intensity={isLight ? 10 : 8} distance={30} />
+      <ambientLight intensity={0.5} />
+      <pointLight position={[8, 12, 8]} color="#00f2fe" intensity={8} distance={30} />
+      <pointLight position={[-8, -12, -8]} color="#f093fb" intensity={8} distance={30} />
 
       {/* ── QUBIT A (ALICE) ── */}
       <group position={posA}>
@@ -1043,7 +1043,7 @@ function EntanglementOverlay({
 // ==========================================
 // MAIN ENTANGLEMENT MODULE COMPONENT
 // ==========================================
-export default function EntanglementModule({ theme, isSidebarOpen, isGlobalMuted }) {
+export default function EntanglementModule({ isSidebarOpen, isGlobalMuted }) {
   const [stage, setStage] = useState(1);
   const [subStage, setSubStage] = useState(0);
   const [bellState, setBellState] = useState(BELL_STATES[0]);
@@ -1227,7 +1227,6 @@ export default function EntanglementModule({ theme, isSidebarOpen, isGlobalMuted
               shockwaveActive={shockwaveActive}
               shockwaveRef={shockwaveRef}
               onMeasureQubit={triggerMeasure}
-              theme={theme}
               isSidebarOpen={isSidebarOpen}
             />
           </Suspense>

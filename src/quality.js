@@ -34,9 +34,9 @@ const deviceDpr = () => (typeof window === 'undefined' ? 1 : window.devicePixelR
 const sharpDpr = () => Math.min(deviceDpr(), 1.5);
 
 export const SETTINGS = {
-  high: { dpr: sharpDpr, bloom: true, bloomScale: 1, bloomLevels: 8, fxaa: false, aberration: true, msaa: 4, stars: 1, lens: 'all', beamMs: 200, bgFps: 60 },
-  medium: { dpr: sharpDpr, bloom: true, bloomScale: 0.5, bloomLevels: 6, fxaa: false, aberration: false, msaa: 4, stars: 0.6, lens: 'small', beamMs: 400, bgFps: 30 },
-  low: { dpr: sharpDpr, bloom: true, bloomScale: 0.34, bloomLevels: 5, fxaa: false, aberration: false, msaa: 4, stars: 0.35, lens: 'none', beamMs: 800, bgFps: 20 },
+  high: { dpr: sharpDpr, bloom: true, bloomScale: 1, bloomLevels: 8, aberration: true, msaa: 4, stars: 1, lens: 'all', beamMs: 200, bgFps: 60 },
+  medium: { dpr: sharpDpr, bloom: true, bloomScale: 0.5, bloomLevels: 6, aberration: false, msaa: 4, stars: 0.6, lens: 'small', beamMs: 400, bgFps: 30 },
+  low: { dpr: sharpDpr, bloom: true, bloomScale: 0.34, bloomLevels: 5, aberration: false, msaa: 4, stars: 0.35, lens: 'none', beamMs: 800, bgFps: 20 },
 };
 
 // The single parts the panel can set, and what each choice means.
@@ -219,7 +219,6 @@ export function setLandingMode(on) {
   landing = on;
   changed();
 }
-export const isLandingMode = () => landing;
 
 /** Motion as the person (or their system) wants it. */
 export const motionReduced = () => (state ? getQuality().motion === 'reduced' : reducedMotionMedia());

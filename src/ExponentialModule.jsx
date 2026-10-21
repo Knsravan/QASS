@@ -37,8 +37,7 @@ const MAX_QUBITS = 5;
 function AnimatedQubitItem({
   index,
   qubitCount,
-  isSuperposed,
-  theme
+  isSuperposed
 }) {
   const groupRef = useRef();
   const hasInitializedRef = useRef(false);
@@ -89,7 +88,6 @@ function AnimatedQubitItem({
       <QubitCore
         position={[0, 0, 0]}
         scale={1.0}
-        theme={theme}
         activeModule="exponential"
         customVectorQuat={currentQuat}
         emissiveColor={isSuperposed ? '#c084fc' : '#00f2fe'}
@@ -246,7 +244,7 @@ function AnimatedConduit({ index, qubitCount, isSuperposed }) {
 // ==========================================
 // 3. 3D MULTI-QUBIT PROCESSOR ARRAY CONTAINER
 // ==========================================
-function MultiQubitProcessor({ qubitCount, isSuperposed, theme }) {
+function MultiQubitProcessor({ qubitCount, isSuperposed }) {
   const groupRef = useRef();
 
   useFrame((state) => {
@@ -264,7 +262,6 @@ function MultiQubitProcessor({ qubitCount, isSuperposed, theme }) {
           index={i}
           qubitCount={qubitCount}
           isSuperposed={isSuperposed}
-          theme={theme}
         />
       ))}
 
@@ -707,7 +704,6 @@ function ExponentialScene({
   targetStateIndex,
   isInterferenceActive,
   cosmicMilestone,
-  theme,
   fromHub,
   closing
 }) {
@@ -735,7 +731,6 @@ function ExponentialScene({
       <MultiQubitProcessor
         qubitCount={qubitCount}
         isSuperposed={isSuperposed}
-        theme={theme}
       />
 
       {/* 3D Hilbert Space Constellation (Mathematical Universe & Cosmic Galaxy) */}
@@ -765,7 +760,7 @@ function ExponentialScene({
 // ==========================================
 // 7. 2D INTERACTIVE OVERLAY & FROSTED GLASS HUD
 // ==========================================
-export default function ExponentialModule({ theme = 'dark', isSidebarOpen = true, isGlobalMuted = false, fromHub = false, closing = false, onRegisterChange }) {
+export default function ExponentialModule({ isSidebarOpen = true, isGlobalMuted = false, fromHub = false, closing = false, onRegisterChange }) {
   const [stage, setStage] = useState(1);
   const [qubitCount, setQubitCount] = useState(1);
   const [isSuperposed, setIsSuperposed] = useState(false);
@@ -864,7 +859,6 @@ export default function ExponentialModule({ theme = 'dark', isSidebarOpen = true
             targetStateIndex={targetStateIndex}
             isInterferenceActive={isInterferenceActive}
             cosmicMilestone={cosmicMilestone}
-            theme={theme}
             fromHub={fromHub}
             closing={closing}
           />

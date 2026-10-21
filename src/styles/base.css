@@ -35,8 +35,7 @@
 /* =============================================================================
    STANDARD GLASSMORPHISM DESIGN SYSTEM
    ============================================================================= */
-:root,
-[data-theme="dark"] {
+:root {
   --bg-color: #000000;
   --text-primary: #f5f5f7;
   --text-secondary: #94a3b8;
@@ -87,65 +86,6 @@
   --glass-spring-heavy: cubic-bezier(0.45, 1.35, 0.4, 1);
 
   /* ─── LEGACY ALIASES ─────────────────────────────────────────── */
-  --glass-bg: var(--glass-bg-base);
-  --glass-border: var(--glass-border-base);
-  --glass-shadow: var(--glass-shadow-base);
-  --nav-bg: var(--glass-bg-pill);
-  --math-bg: var(--glass-bg-base);
-  --math-border: var(--glass-border-base);
-  --card-bg: var(--glass-bg-base);
-  --card-border: var(--glass-border-base);
-  --card-shadow: var(--glass-highlight), var(--glass-shadow-base);
-}
-
-[data-theme="light"] {
-  --bg-color: #f2f4f8;
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-tertiary: #64748b;
-
-  /* ─── LIQUID GLASS MATERIAL ────────── */
-  --glass-bg-base: rgba(255, 255, 255, 0.48);
-  --glass-bg-thick: rgba(255, 255, 255, 0.62);
-  --glass-bg-pill: rgba(255, 255, 255, 0.55);
-  --glass-border-base: 1px solid rgba(255, 255, 255, 0.72);
-  --glass-border-subtle: 1px solid rgba(255, 255, 255, 0.5);
-  --glass-border-strong: 1px solid rgba(255, 255, 255, 0.92);
-
-  /* ─── HIGHLIGHT ──────────────────────────────────────── */
-  --glass-highlight:
-    inset 0 1px 1px rgba(255, 255, 255, 0.95),
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.45),
-    inset 0 -8px 16px -10px rgba(255, 255, 255, 0.55);
-  --glass-highlight-bottom: inset 0 -1px 1px rgba(255, 255, 255, 0.5);
-  --glass-specular-edge: rgba(255, 255, 255, 1);
-
-  /* ─── SHADOWS ────────────────────────── */
-  --glass-shadow-base: 0 16px 44px -10px rgba(31, 38, 135, 0.16), 0 2px 8px rgba(31, 38, 135, 0.08);
-  --glass-shadow-pill: 0 8px 22px -8px rgba(31, 38, 135, 0.12), 0 1px 4px rgba(31, 38, 135, 0.06);
-
-  /* ─── OPTICAL STACK ────────────────────────────── */
-  --glass-blur: blur(20px) saturate(170%);
-  --glass-blur-thick: blur(34px) saturate(180%);
-
-  /* ─── REFRACTION ── */
-  --lg-refract: blur(0px);
-  --lg-refract-strong: blur(0px);
-
-  /* ─── MOVING SPECULAR ── */
-  --lg-specular: rgba(255, 255, 255, 0.55);
-  --lg-specular-size: 300px;
-  --lg-sheen: none;
-  --lg-tint: none;
-
-  --adaptive-scrim: rgba(255, 255, 255, 0.5);
-
-  /* ─── SPRINGS ────────────────────────────────────────────────── */
-  --glass-spring: cubic-bezier(0.32, 0.72, 0, 1);
-  --glass-spring-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --glass-spring-heavy: cubic-bezier(0.45, 1.35, 0.4, 1);
-
-  /* ─── LEGACY ─────────────────────────────────────────────────── */
   --glass-bg: var(--glass-bg-base);
   --glass-border: var(--glass-border-base);
   --glass-shadow: var(--glass-shadow-base);

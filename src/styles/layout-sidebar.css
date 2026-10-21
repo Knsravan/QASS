@@ -163,29 +163,6 @@
   flex-shrink: 0;
 }
 
-.sidebar-theme-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  color: var(--text-primary);
-  cursor: pointer;
-  padding: 0;
-  position: relative;
-  transition: all 0.25s var(--glass-spring);
-  flex-shrink: 0;
-}
-
-.sidebar-theme-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.35);
-  transform: scale(1.06);
-}
-
 /* Pinned Header Global Audio Toggle Button */
 .sidebar-audio-btn {
   width: 32px;

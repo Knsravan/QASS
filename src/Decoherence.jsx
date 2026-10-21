@@ -449,7 +449,7 @@ const Badge = ({ icon: Icon, text, color: bc }) => {
 // ============================================================
 // MAIN MODULE
 // ============================================================
-export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted, onNavigateToModule, fromHub = false }) {
+export default function DecoherenceModule({ isSidebarOpen, isGlobalMuted, onNavigateToModule, fromHub = false }) {
   const audio = useDecoherenceAudio(isGlobalMuted);
   const [step, setStep]                           = useState('intro');
   const [introTooltipVisible, setIntroTooltipVisible] = useState(false);

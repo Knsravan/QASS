@@ -157,7 +157,7 @@ export const GATES_STEPS = [
 
 // --- 3D COMPONENTS ---
 
-function ClassicalPipeStage({ stepData, applied, isLight }) {
+function ClassicalPipeStage({ stepData, applied }) {
   const { hasClassicalEquivalent, gate } = stepData;
   const pulseRef = useRef();
 
@@ -177,7 +177,6 @@ function ClassicalPipeStage({ stepData, applied, isLight }) {
         <ClassicalBit 
           position={[0, 0, 0]} 
           scale={1.1}
-          theme={isLight ? 'light' : 'dark'}
           activeModule="gates"
           flipMode={gate === 'X' && !applied ? 'slow' : (applied && hasClassicalEquivalent ? 'force-1' : 'force-0')}
           attemptCopy={false}
@@ -244,7 +243,7 @@ function ClassicalPipeStage({ stepData, applied, isLight }) {
   );
 }
 
-function QuantumSphereStage({ stepData, applied, isLight, setProgress, setAberrationOffset }) {
+function QuantumSphereStage({ stepData, applied, setProgress, setAberrationOffset }) {
   const radius = 2.0;
   const trailRef = useRef();
   // The rotation axis fades in when the module takes over from the hub's scene,
@@ -405,15 +404,14 @@ function QuantumSphereStage({ stepData, applied, isLight, setProgress, setAberra
 
   return (
     <group position={[4.2, 0, 0]}>
-      <ambientLight intensity={isLight ? 0.8 : 0.5} />
-      <pointLight position={[8, 8, 8]} color="#00f2fe" intensity={isLight ? 12 : 8} distance={30} />
-      <pointLight position={[-8, -8, -8]} color="#f093fb" intensity={isLight ? 12 : 8} distance={30} />
+      <ambientLight intensity={0.5} />
+      <pointLight position={[8, 8, 8]} color="#00f2fe" intensity={8} distance={30} />
+      <pointLight position={[-8, -8, -8]} color="#f093fb" intensity={8} distance={30} />
       
       {/* The 3D Model from BlochSphere */}
       <QubitCore
         position={[0, 0, 0]}
         scale={1.2}
-        theme={isLight ? 'light' : 'dark'}
         activeModule="gates"
         customVectorQuat={currentQuat.current}
         sphereRotation={[0, Math.atan2(4.2, 13), 0]}
@@ -454,14 +452,12 @@ function QuantumSphereStage({ stepData, applied, isLight, setProgress, setAberra
           background: 'var(--glass-bg-base)',
           backdropFilter: 'var(--glass-blur)',
           WebkitBackdropFilter: 'var(--glass-blur)',
-          border: isLight ? '1px solid rgba(0, 0, 0, 0.1)' : 'var(--glass-border-base)',
+          border: 'var(--glass-border-base)',
           borderRadius: '24px',
           padding: '20px 24px',
           width: '320px',
-          color: isLight ? '#1e293b' : '#f8fafc',
-          boxShadow: isLight
-            ? `inset 0 1.2px 1.5px rgba(255,255,255,0.95), 0 20px 48px -10px rgba(0, 0, 0, 0.15)`
-            : `var(--glass-highlight), var(--glass-shadow-base)`,
+          color: '#f8fafc',
+          boxShadow: `var(--glass-highlight), var(--glass-shadow-base)`,
           pointerEvents: 'none',
           opacity: 0,
           transform: 'scale(0.8) translateY(20px)',
@@ -474,7 +470,7 @@ function QuantumSphereStage({ stepData, applied, isLight, setProgress, setAberra
           <p style={{ margin: '0 0 16px 0', fontSize: '13.5px', lineHeight: '1.6', fontWeight: '500', opacity: 0.9 }}>
             {stepData.animationTooltip}
           </p>
-          <div style={{ background: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)', padding: '12px', borderRadius: '14px', border: isLight ? '1px solid rgba(0,0,0,0.06)' : '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ background: 'rgba(255,255,255,0.04)', padding: '12px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.08)' }}>
             <div style={{ fontSize: '11px', fontWeight: 'bold', opacity: 0.6, marginBottom: '6px', textAlign: 'center', letterSpacing: '0.05em' }}>MATHEMATICAL OPERATOR</div>
             <BlockMath math={stepData.math} />
           </div>
@@ -486,8 +482,7 @@ function QuantumSphereStage({ stepData, applied, isLight, setProgress, setAberra
   );
 }
 
-export function GatesScene({ step, applied, theme, setProgress }) {
-  const isLight = theme === 'light';
+export function GatesScene({ step, applied, setProgress }) {
   const stepData = GATES_STEPS[step];
   const [aberrationOffset, setAberrationOffset] = useState([0, 0]);
 
@@ -498,18 +493,16 @@ export function GatesScene({ step, applied, theme, setProgress }) {
         <ChromaticAberration blendFunction={BlendFunction.NORMAL} offset={aberrationOffset} />
       </QualityComposer>
       <group position={[0, -0.5, 0]}>
-        <ClassicalPipeStage stepData={stepData} applied={applied} isLight={isLight} />
+        <ClassicalPipeStage stepData={stepData} applied={applied} />
         
         <Html position={[0, 0, 0]} center zIndexRange={[100, 0]} style={{ opacity: applied ? 0 : 1, transition: 'opacity 0.5s' }}>
           <div className="gates-extra"><div className="vs-badge" style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             background: 'var(--glass-bg-base)',
             backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)',
-            border: isLight ? '1px solid rgba(0,0,0,0.1)' : 'var(--glass-border-base)', borderRadius: '50%',
+            border: 'var(--glass-border-base)', borderRadius: '50%',
             width: '80px', height: '80px',
-            boxShadow: isLight
-              ? 'inset 0 1.2px 1px rgba(255,255,255,0.9), 0 12px 32px rgba(0,0,0,0.15)'
-              : 'var(--glass-highlight), var(--glass-shadow-base)',
+            boxShadow: 'var(--glass-highlight), var(--glass-shadow-base)',
             animation: 'pulseVS 3s infinite alternate'
           }}>
             <span style={{ fontSize: '30px', fontWeight: '900', background: 'linear-gradient(to right, #00f2fe, #f093fb)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontFamily: "'Inter', sans-serif" }}>VS</span>
@@ -524,14 +517,14 @@ export function GatesScene({ step, applied, theme, setProgress }) {
           </style>
         </Html>
 
-        <QuantumSphereStage stepData={stepData} applied={applied} isLight={isLight} setProgress={setProgress} setAberrationOffset={setAberrationOffset} />
+        <QuantumSphereStage stepData={stepData} applied={applied} setProgress={setProgress} setAberrationOffset={setAberrationOffset} />
       </group>
     </>
   );
 }
 
 // --- 2D HTML OVERLAY ---
-export function GatesOverlay({ step, applied, onToggleApply, onNext, onPrev, theme, isMuted, onToggleMute, progress }) {
+export function GatesOverlay({ step, applied, onToggleApply, onNext, onPrev, isMuted, onToggleMute, progress }) {
   const stepData = GATES_STEPS[step];
 
   return (

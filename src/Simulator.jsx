@@ -99,7 +99,7 @@ const BackgroundStars = () => {
 // ==========================================
 // Owns the per-frame gate animation progress so gsap ticks only
 // re-render this small subtree instead of the whole App.
-const GatesModuleView = ({ step, applied, theme, isSidebarOpen, uiBoundsStyle, onToggleApply, onNext, onPrev }) => {
+const GatesModuleView = ({ step, applied, isSidebarOpen, uiBoundsStyle, onToggleApply, onNext, onPrev }) => {
   const [progress, setProgress] = useState(0);
 
   return (
@@ -112,13 +112,12 @@ const GatesModuleView = ({ step, applied, theme, isSidebarOpen, uiBoundsStyle, o
       >
         <CameraShifter isSidebarOpen={isSidebarOpen} />
         <OrbitControls makeDefault enableZoom={true} enablePan={true} />
-        <GatesScene step={step} applied={applied} theme={theme} setProgress={setProgress} />
+        <GatesScene step={step} applied={applied} setProgress={setProgress} />
       </SharedCanvas>
       <div style={uiBoundsStyle}>
         <GatesOverlay
           step={step}
           applied={applied}
-          theme={theme}
           onToggleApply={onToggleApply}
           onNext={onNext}
           onPrev={onPrev}
@@ -135,7 +134,6 @@ const GatesModuleView = ({ step, applied, theme, isSidebarOpen, uiBoundsStyle, o
 // `isMobile`: the window is too narrow; the simulator keeps its state and
 // shows the blocker until it is wide again.
 export default function Simulator({ isMobile }) {
-  const [theme] = useState('dark');
   const [learningMode, setLearningMode] = useState(() => readStorage('quantumUI_learningMode') === 'advanced' ? 'advanced' : 'beginner');
   const [activeModuleId, setActiveModuleId] = useState(moduleFromHash); // the hub unless the URL names a module
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -332,10 +330,6 @@ export default function Simulator({ isMobile }) {
   useEffect(() => {
     if (stageId !== 'exponential') setExpRegister(EMPTY_REGISTER);
   }, [stageId]);
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-  }, [theme]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -602,7 +596,6 @@ export default function Simulator({ isMobile }) {
             <GatesModuleView
               step={gatesStep}
               applied={gateApplied}
-              theme={theme}
               isSidebarOpen={isSidebarOpen}
               uiBoundsStyle={uiBoundsStyle}
               onToggleApply={() => {
@@ -636,7 +629,6 @@ export default function Simulator({ isMobile }) {
                 <MultiGatesScene
                   step={multiGatesStep}
                   applied={multiGateApplied}
-                  theme={theme}
                   inputs={multiGatesInputs}
                 />
               </SharedCanvas>
@@ -646,7 +638,6 @@ export default function Simulator({ isMobile }) {
                   setStep={setMultiGatesStep}
                   applied={multiGateApplied}
                   setApplied={setMultiGateApplied}
-                  theme={theme}
                   inputs={multiGatesInputs}
                   setInputs={setMultiGatesInputs}
                   onToggleApply={() => {
@@ -721,12 +712,11 @@ export default function Simulator({ isMobile }) {
                 style={{ position: 'absolute', inset: 0, zIndex: 1, willChange: 'transform', transform: 'translateZ(0)' }}
               >
                 <CameraShifter isSidebarOpen={isSidebarOpen} />
-                <DiracScene step={diracStep} theme={theme} />
+                <DiracScene step={diracStep} />
               </SharedCanvas>
               <div style={uiBoundsStyle}>
                 <DiracOverlay
                   step={diracStep}
-                  theme={theme}
                   onNext={() => setDiracStep(s => (s + 1) % 4)}
                   onPrev={() => setDiracStep(s => Math.max(s - 1, 0))}
                 />
@@ -734,26 +724,26 @@ export default function Simulator({ isMobile }) {
             </>
           ) : stageId === 'interference' ? (
             (InterferenceLoaded
-              ? <InterferenceLoaded theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={interferenceFromHub} />
-              : <InterferenceModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={interferenceFromHub} />)
+              ? <InterferenceLoaded isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={interferenceFromHub} />
+              : <InterferenceModule isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={interferenceFromHub} />)
           ) : stageId === 'entanglement' ? (
             (EntanglementLoaded
-              ? <EntanglementLoaded theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} />
-              : <EntanglementModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} />)
+              ? <EntanglementLoaded isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} />
+              : <EntanglementModule isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} />)
           ) : stageId === 'exponential' ? (
             (ExponentialLoaded
-              ? <ExponentialLoaded theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={expFromHub} closing={stagePhase === 'closing'} onRegisterChange={setExpRegister} />
-              : <ExponentialModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={expFromHub} closing={stagePhase === 'closing'} onRegisterChange={setExpRegister} />)
+              ? <ExponentialLoaded isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={expFromHub} closing={stagePhase === 'closing'} onRegisterChange={setExpRegister} />
+              : <ExponentialModule isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={expFromHub} closing={stagePhase === 'closing'} onRegisterChange={setExpRegister} />)
           ) : stageId === 'nocloning' ? (
             (NoCloningLoaded
-              ? <NoCloningLoaded theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={ncFromHub} closing={stagePhase === 'closing'} />
-              : <NoCloningModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={ncFromHub} closing={stagePhase === 'closing'} />)
+              ? <NoCloningLoaded isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={ncFromHub} closing={stagePhase === 'closing'} />
+              : <NoCloningModule isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={ncFromHub} closing={stagePhase === 'closing'} />)
           ) : stageId === 'decoherence' ? (
             (DecoherenceLoaded
-              ? <DecoherenceLoaded theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={decFromHub} onNavigateToModule={(moduleId) => setActiveModuleId(moduleId)} />
-              : <DecoherenceModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={decFromHub} onNavigateToModule={(moduleId) => setActiveModuleId(moduleId)} />)
+              ? <DecoherenceLoaded isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={decFromHub} onNavigateToModule={(moduleId) => setActiveModuleId(moduleId)} />
+              : <DecoherenceModule isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={decFromHub} onNavigateToModule={(moduleId) => setActiveModuleId(moduleId)} />)
           ) : stageId === 'error-correction' ? (
-            <QuantumErrorCorrectionModule theme={theme} isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} />
+            <QuantumErrorCorrectionModule isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} />
           ) : (
             <SharedCanvas
               sceneId="bit-scene"
@@ -763,7 +753,6 @@ export default function Simulator({ isMobile }) {
             >
               <CameraShifter isSidebarOpen={isSidebarOpen} />
               <BlochSphere
-                theme={theme}
                 {...hubScenePose(stagePhase, stageId, pairModule)}
                 handoverTarget={hubTarget}
                 bvq={bvqScene}
@@ -795,7 +784,7 @@ export default function Simulator({ isMobile }) {
                 animation: 'idleFadeIn 1s ease-out 0.4s both', pointerEvents: 'none',
                 zIndex: 100
               }} data-jelly-host>
-                <h1 data-jelly style={{ '--j': 0, fontSize: '36px', fontWeight: 700, color: 'var(--text-primary)', textShadow: theme === 'light' ? '0 2px 10px rgba(0,0,0,0.06)' : '0 4px 20px rgba(0,0,0,0.5)', margin: '0 0 16px 0', fontFamily: "'Deltha', 'Inter', sans-serif", letterSpacing: '0.8px' }}>Where do you want to start today?</h1>
+                <h1 data-jelly style={{ '--j': 0, fontSize: '36px', fontWeight: 700, color: 'var(--text-primary)', textShadow: '0 4px 20px rgba(0,0,0,0.5)', margin: '0 0 16px 0', fontFamily: "'Deltha', 'Inter', sans-serif", letterSpacing: '0.8px' }}>Where do you want to start today?</h1>
                 <div data-jelly style={{ '--j': 1, display: 'flex', alignItems: 'center', gap: '8px', color: '#0ea5e9', fontWeight: 600, fontSize: '16px', fontFamily: "'Space Grotesk', 'Plus Jakarta Sans', 'Inter', sans-serif" }}>
                   <span style={{ animation: 'pulseHint 2s infinite ease-in-out' }}>◀</span>
                   <span>Pick a concept to explore</span>

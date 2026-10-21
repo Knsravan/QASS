@@ -336,9 +336,8 @@ export function multiGatesPose(stepData) {
   };
 }
 
-export function MultiGatesScene({ step, applied, theme, setProgress, inputs }) {
+export function MultiGatesScene({ step, applied, setProgress, inputs }) {
   const stepData = MULTI_GATES_STEPS[step] || MULTI_GATES_STEPS[0];
-  const isLight = theme === 'light';
   const { camera, controls } = useThree();
   
   const logic = useMemo(() => calculateGateLogic(stepData.id, inputs), [stepData.id, inputs]);
@@ -444,9 +443,9 @@ export function MultiGatesScene({ step, applied, theme, setProgress, inputs }) {
         <Bloom luminanceThreshold={0.3} mipmapBlur intensity={0.4} />
       </QualityComposer>
       <group position={[0, -0.5, 0]}>
-        <ambientLight intensity={isLight ? 0.8 : 0.5} />
-        <pointLight position={[8, 8, 8]} color="#00f2fe" intensity={isLight ? 12 : 8} distance={30} />
-        <pointLight position={[-8, -8, -8]} color="#f093fb" intensity={isLight ? 12 : 8} distance={30} />
+        <ambientLight intensity={0.5} />
+        <pointLight position={[8, 8, 8]} color="#00f2fe" intensity={8} distance={30} />
+        <pointLight position={[-8, -8, -8]} color="#f093fb" intensity={8} distance={30} />
 
 
       {positions.map((pos, i) => {
@@ -498,10 +497,9 @@ export function MultiGatesScene({ step, applied, theme, setProgress, inputs }) {
           <group key={i} position={currentPos} scale={[currentScale, currentScale, currentScale]} rotation={groupRotation}>
              <QubitCore
                 activeModule="multi-qubit-gates"
-                theme={theme}
                 customVectorQuat={qubitQuats.current[i]}
                 showCustomVector={true}
-                customGridColor={i === targetIndex ? (isLight ? '#0284c7' : '#0284c7') : undefined}
+                customGridColor={i === targetIndex ? '#0284c7' : undefined}
                 customRingColor={i === targetIndex ? '#38bdf8' : undefined}
                 emissiveColor={i === targetIndex ? '#0ea5e9' : '#eab308'}
                 sphereRotation={[0, pos[0] < 0 ? -Math.atan2(Math.abs(pos[0]), 15) : Math.atan2(pos[0], 15), 0]}
@@ -567,14 +565,12 @@ export function MultiGatesScene({ step, applied, theme, setProgress, inputs }) {
           background: 'var(--glass-bg-base)',
           backdropFilter: 'var(--glass-blur)',
           WebkitBackdropFilter: 'var(--glass-blur)',
-          border: isLight ? '1px solid rgba(0, 0, 0, 0.1)' : 'var(--glass-border-base)',
+          border: 'var(--glass-border-base)',
           borderRadius: '24px',
           padding: '20px 24px',
           width: '320px',
-          color: isLight ? '#1e293b' : '#f8fafc',
-          boxShadow: isLight
-            ? `inset 0 1.2px 1.5px rgba(255,255,255,0.95), 0 20px 48px -10px rgba(0, 0, 0, 0.15)`
-            : `var(--glass-highlight), var(--glass-shadow-base)`,
+          color: '#f8fafc',
+          boxShadow: `var(--glass-highlight), var(--glass-shadow-base)`,
           pointerEvents: 'none',
           opacity: 0,
           transform: 'scale(0.8) translateY(20px)',
@@ -587,7 +583,7 @@ export function MultiGatesScene({ step, applied, theme, setProgress, inputs }) {
           <p style={{ margin: '0 0 16px 0', fontSize: '13.5px', lineHeight: '1.6', fontWeight: '500', opacity: 0.9 }}>
             {tooltipContent.text}
           </p>
-          <div style={{ background: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)', padding: '12px', borderRadius: '14px', border: isLight ? '1px solid rgba(0,0,0,0.06)' : '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ background: 'rgba(255,255,255,0.04)', padding: '12px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.08)' }}>
             <div style={{ fontSize: '11px', fontWeight: 'bold', opacity: 0.6, marginBottom: '6px', textAlign: 'center', letterSpacing: '0.05em' }}>MATHEMATICAL OPERATOR</div>
             <BlockMath math={tooltipContent.math} />
           </div>
@@ -599,9 +595,8 @@ export function MultiGatesScene({ step, applied, theme, setProgress, inputs }) {
   );
 }
 
-export function MultiGatesOverlay({ step, setStep, applied, setApplied, theme, isMuted, onToggleMute, onToggleApply, onNext, onPrev, inputs, setInputs }) {
+export function MultiGatesOverlay({ step, setStep, applied, setApplied, isMuted, onToggleMute, onToggleApply, onNext, onPrev, inputs, setInputs }) {
   const stepData = MULTI_GATES_STEPS[step] || MULTI_GATES_STEPS[0];
-  const isLight = theme === 'light';
 
   // Calculate state vector and probabilities
   const activeInputs = useMemo(() => inputs.slice(0, stepData.numQubits), [inputs, stepData.numQubits]);
@@ -668,11 +663,9 @@ export function MultiGatesOverlay({ step, setStep, applied, setApplied, theme, i
                   background: 'var(--glass-bg-pill)',
                   backdropFilter: 'var(--glass-blur)',
                   WebkitBackdropFilter: 'var(--glass-blur)',
-                  border: isLight ? `1.5px solid ${stepData.color}60` : `1.5px solid ${stepData.color}80`,
-                  color: isLight ? '#0f172a' : '#ffffff',
-                  boxShadow: isLight
-                    ? 'inset 0 1.2px 1.5px rgba(255,255,255,0.95), 0 8px 20px rgba(0,0,0,0.08)'
-                    : `var(--glass-highlight), var(--glass-shadow-base)`,
+                  border: `1.5px solid ${stepData.color}80`,
+                  color: '#ffffff',
+                  boxShadow: `var(--glass-highlight), var(--glass-shadow-base)`,
                   fontSize: '18px', cursor: applied ? 'not-allowed' : 'pointer',
                   opacity: applied ? 0.5 : 1, transition: 'all 0.3s cubic-bezier(0.16,1,0.3,1)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -691,14 +684,12 @@ export function MultiGatesOverlay({ step, setStep, applied, setApplied, theme, i
            width: '340px', height: '155px',
            background: 'var(--glass-bg-base)',
            borderRadius: '24px',
-           border: isLight ? '1px solid rgba(0, 0, 0, 0.1)' : 'var(--glass-border-base)',
+           border: 'var(--glass-border-base)',
            display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', padding: '16px',
            pointerEvents: 'auto',
            backdropFilter: 'var(--glass-blur)',
            WebkitBackdropFilter: 'var(--glass-blur)',
-           boxShadow: isLight
-             ? 'inset 0 1.2px 1.5px rgba(255,255,255,0.95), 0 20px 48px -10px rgba(0, 0, 0, 0.12)'
-             : 'var(--glass-highlight), var(--glass-shadow-base)',
+           boxShadow: 'var(--glass-highlight), var(--glass-shadow-base)',
            zIndex: 300,
            fontFamily: "'Inter', sans-serif",
         }}>
@@ -715,7 +706,7 @@ export function MultiGatesOverlay({ step, setStep, applied, setApplied, theme, i
              return (
                <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', width: `${100 / probabilities.length}%`, height: '100%' }}>
                  <div style={{ 
-                   color: isEmpty ? '#64748b' : (isLight ? '#0f172a' : '#fff'), fontSize: '11px', marginBottom: '6px',
+                   color: isEmpty ? '#64748b' : '#fff', fontSize: '11px', marginBottom: '6px',
                    opacity: isEmpty ? 0 : 1, transition: 'opacity 0.3s', fontWeight: '700'
                  }}>
                    {Math.round(p.prob * 100)}%
@@ -724,7 +715,7 @@ export function MultiGatesOverlay({ step, setStep, applied, setApplied, theme, i
                  {/* Bar Track */}
                  <div style={{
                    width: '28px', height: '75px',
-                   background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)',
+                   background: 'rgba(255,255,255,0.06)',
                    borderRadius: '6px',
                    position: 'relative',
                    overflow: 'visible',

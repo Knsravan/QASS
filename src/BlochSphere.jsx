@@ -15,8 +15,7 @@ import { MathChip } from './MathChip';
 // =========================================
 // 1. CLASSICAL BIT COMPONENT (Left Side)
 // =========================================
-export const ClassicalBit = ({ position, scale = 1, theme, activeModule, flipMode, isBlank, attemptCopy, onDomainHover, onDomainUnhover }) => {
-  const isLight = theme === 'light';
+export const ClassicalBit = ({ position, scale = 1, activeModule, flipMode, isBlank, attemptCopy, onDomainHover, onDomainUnhover }) => {
   const groupRef = useRef();
   const orbRef = useRef();
   const lightRef = useRef();
@@ -100,7 +99,7 @@ export const ClassicalBit = ({ position, scale = 1, theme, activeModule, flipMod
             <sphereGeometry args={[0.22, 32, 20]} />
             <meshPhysicalMaterial color={activeColor} emissive={activeColor} emissiveIntensity={0.7} roughness={0.12} clearcoat={1} clearcoatRoughness={0.1} />
             <Halo radius={0.4} color={activeColor} opacity={0.18} />
-            <pointLight ref={lightRef} color={activeColor} intensity={isLight ? 5 : 2.5} distance={3} />
+            <pointLight ref={lightRef} color={activeColor} intensity={2.5} distance={3} />
           </mesh>
         </>
       )}
@@ -168,12 +167,11 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, onDomainHo
     if (vectorOut) vectorOut.current = vectorRef.current;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const isLight = theme === 'light';
   // The glass's lines: pale blue, unless a module tints its sphere (then in that tint).
   const lineColor = customRingColor || customGridColor || '#9fd8ff';
   const equatorColor = customRingColor || customGridColor || '#b6e9ff';
   const rimMat = useRimMaterial(0.85);
-  const axisColor = isLight ? "#cbd5e1" : "#64748b";
+  const axisColor = "#64748b";
   const axisOut = activeModule === 'gates' ? 2.95 : 2.25;
 
   const targetSphereOpacity = 1;
@@ -270,7 +268,7 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, onDomainHo
     }
     if (part === 'equator') {
       const formulaBlock = (
-        <div style={{ marginTop: '12px', background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.08)', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
+        <div style={{ marginTop: '12px', background: 'rgba(255,255,255,0.08)', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
           <BlockMath math={String.raw`\frac{|0\rangle + |1\rangle}{\sqrt{2}}`} />
         </div>
       );
@@ -281,7 +279,7 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, onDomainHo
     return { title: "", text: "" };
   };
 
-  const vectorTarget = emissiveColor || (isLight ? "#0d9488" : "#14b8a6");
+  const vectorTarget = emissiveColor || "#14b8a6";
   // The arrow's colour glides to a new one (the hub's qubit turning into a module's).
   const vecCol = useRef(null);
   const [vectorColor, setVectorColor] = useState(vectorTarget);
@@ -314,7 +312,7 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, onDomainHo
           <sphereGeometry args={[1.96, 32, 32]} />
           <meshPhysicalMaterial
             ref={glassCoreRef}
-            color={isLight ? "#e2e8f0" : "#ffffff"}
+            color="#ffffff"
             transparent={true}
             opacity={0.06}
             transmission={0.95}
@@ -489,8 +487,7 @@ export const QubitCore = ({ position, scale = 1, theme, activeModule, onDomainHo
   );
 };
 
-export default function BlochSphere({ theme, activeModule, interferenceStep, interferencePhase, vanishing = false, multi = null, handoverTarget, centerOnly = false, bvq }) {
-  const isLight = theme === 'light';
+export default function BlochSphere({ activeModule, interferenceStep, interferencePhase, vanishing = false, multi = null, handoverTarget, centerOnly = false, bvq }) {
   const controlsRef = useRef();
   const light1Ref = useRef();
   const light2Ref = useRef();
@@ -769,7 +766,7 @@ export default function BlochSphere({ theme, activeModule, interferenceStep, int
       handoff.qubitScale = sc;
     }
 
-    if (light1Ref.current && !isExp && !isDec) light1Ref.current.intensity = THREE.MathUtils.lerp(light1Ref.current.intensity, isLight ? 12 : 8, 0.05);
+    if (light1Ref.current && !isExp && !isDec) light1Ref.current.intensity = THREE.MathUtils.lerp(light1Ref.current.intensity, 8, 0.05);
   });
 
   return (
@@ -779,9 +776,9 @@ export default function BlochSphere({ theme, activeModule, interferenceStep, int
             shaders on the spot (the very frame a module starts opening). bloomGlow sets them. */}
         <Bloom ref={bloomRef} luminanceThreshold={0.3} mipmapBlur intensity={0.6} />
       </QualityComposer>
-      <ambientLight ref={ambRef} intensity={isLight ? 0.8 : lightInit.amb} />
-      <pointLight ref={light1Ref} position={lightStart[0]} color={lightInit.c1} intensity={isLight ? 12 : lightInit.i1} distance={lightInit.dist} />
-      <pointLight ref={light2Ref} position={lightStart[1]} color={lightInit.c2} intensity={isLight ? 12 : lightInit.i2} distance={lightInit.dist} />
+      <ambientLight ref={ambRef} intensity={lightInit.amb} />
+      <pointLight ref={light1Ref} position={lightStart[0]} color={lightInit.c1} intensity={lightInit.i1} distance={lightInit.dist} />
+      <pointLight ref={light2Ref} position={lightStart[1]} color={lightInit.c2} intensity={lightInit.i2} distance={lightInit.dist} />
 
       {activeModule !== 'interference' && (
         <OrbitControls
@@ -816,7 +813,7 @@ export default function BlochSphere({ theme, activeModule, interferenceStep, int
               </GrowIn>
             ) : (
               <GrowIn animate={growBack}>
-                <ClassicalBit position={[0, 0, 0]} scale={1.1} theme={theme} activeModule={activeModule} onDomainHover={() => handleHoverDomain('left')} onDomainUnhover={() => handleUnhoverDomain('left')} />
+                <ClassicalBit position={[0, 0, 0]} scale={1.1} activeModule={activeModule} onDomainHover={() => handleHoverDomain('left')} onDomainUnhover={() => handleUnhoverDomain('left')} />
               </GrowIn>
               )}
           </group>
@@ -827,9 +824,9 @@ export default function BlochSphere({ theme, activeModule, interferenceStep, int
         <Html position={[0, 0, 0]} center zIndexRange={[100, 0]}>
           <div className="vs-badge" style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            background: isLight ? 'rgba(255,255,255,0.4)' : 'linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.0))',
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.0))',
             backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
-            border: isLight ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.18)', borderRadius: '50%',
+            border: '1px solid rgba(255,255,255,0.18)', borderRadius: '50%',
             width: '80px', height: '80px', boxShadow: '0 8px 32px 0 rgba(0,0,0,0.37)',
             animation: 'pulseVS 3s infinite alternate, moduleFade 0.7s ease-out 0.5s both'
           }}>
@@ -859,7 +856,7 @@ export default function BlochSphere({ theme, activeModule, interferenceStep, int
             <>
               <group ref={targetRig} position={[targetX.current, targetY.current, 0]} scale={targetS.current}>
                 {isEnt ? (
-                  <QubitCore activeModule="entanglement" theme={theme} customVectorQuat={_Q_UP} showCustomVector={true} emissiveColor="#00f2fe" />
+                  <QubitCore activeModule="entanglement" customVectorQuat={_Q_UP} showCustomVector={true} emissiveColor="#00f2fe" />
                 ) : isDec ? (
                   <group scale={_DEC_UNIT_SECOND}>
                     <BlochSphereUnit posArr={[0, 0, 0]} color={CA} label="" isPure={false} noiseLevel={0} activeNoise={null} entranceRef={DEC_STATIC_ENTRANCE} posKey="noisy" step="intro" tempK={300} showLabels={false} dirOverride={decDir.current.b} />
@@ -867,7 +864,6 @@ export default function BlochSphere({ theme, activeModule, interferenceStep, int
                 ) : (
                   <QubitCore
                     activeModule="multi-qubit-gates"
-                    theme={theme}
                     customVectorQuat={_Q_UP}
                     showCustomVector={true}
                     customGridColor="#0284c7"
@@ -901,7 +897,6 @@ export default function BlochSphere({ theme, activeModule, interferenceStep, int
               <QubitCore 
                 position={[0, 0, 0]} 
                 scale={1.2} 
-                theme={theme} 
                 activeModule={activeModule} 
                 interferenceStep={interferenceStep}
                 interferencePhase={interferencePhase}
@@ -920,7 +915,7 @@ export default function BlochSphere({ theme, activeModule, interferenceStep, int
               </GrowIn>
             ) : (
               <GrowIn animate={growBack}>
-                <QubitCore position={[0, 0, 0]} scale={1.2} theme={theme} activeModule={activeModule} vectorOut={vecOut} startDir={wasDec.current ? _decStartLocal.copy(decDir.current.a).applyAxisAngle(_AXIS_Y, -clock.getElapsedTime() * 0.04) : undefined} customVectorQuat={isRig || centerOnly ? _Q_UP : undefined} showCustomVector={isRig || centerOnly || undefined} emissiveColor={isMulti ? '#eab308' : isEnt || isExp ? '#00f2fe' : isDec ? '#14b8a6' : undefined} fadeExtras={isMulti} onDomainHover={() => handleHoverDomain('right')} onDomainUnhover={() => handleUnhoverDomain('right')} />
+                <QubitCore position={[0, 0, 0]} scale={1.2} activeModule={activeModule} vectorOut={vecOut} startDir={wasDec.current ? _decStartLocal.copy(decDir.current.a).applyAxisAngle(_AXIS_Y, -clock.getElapsedTime() * 0.04) : undefined} customVectorQuat={isRig || centerOnly ? _Q_UP : undefined} showCustomVector={isRig || centerOnly || undefined} emissiveColor={isMulti ? '#eab308' : isEnt || isExp ? '#00f2fe' : isDec ? '#14b8a6' : undefined} fadeExtras={isMulti} onDomainHover={() => handleHoverDomain('right')} onDomainUnhover={() => handleUnhoverDomain('right')} />
               </GrowIn>
             )}
           </group>

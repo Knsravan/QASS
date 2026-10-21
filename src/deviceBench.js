@@ -13,7 +13,7 @@
  */
 
 import * as THREE from 'three';
-import { EffectComposer, RenderPass, EffectPass, BloomEffect, FXAAEffect } from 'postprocessing';
+import { EffectComposer, RenderPass, EffectPass, BloomEffect } from 'postprocessing';
 import { SETTINGS } from './quality';
 
 // Drawing budget per frame for the 3D scene alone, in ms. The rest of a 60 Hz
@@ -84,7 +84,6 @@ async function timeTier(tier, onFrame) {
       }
       effects.push(bloom);
     }
-    if (k.fxaa) effects.push(new FXAAEffect());
     if (effects.length) composer.addPass(new EffectPass(camera, ...effects));
     composer.setSize(window.innerWidth, window.innerHeight, false);
     const gl = renderer.getContext();

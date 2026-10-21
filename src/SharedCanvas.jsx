@@ -75,7 +75,7 @@ function hideHost() {
   if (!host) return;
   clearTimeout(host.reveal);
   const w = wrapperOf();
-  if (w) { w.style.transition = 'none'; w.style.opacity = '0'; w.style.filter = host.seamless ? 'none' : 'blur(10px)'; }
+  if (w) { w.style.transition = 'none'; w.style.opacity = '0'; w.style.filter = 'blur(10px)'; }
   host.reveal = setTimeout(showHost, 2500); // never stay hidden if frames stall
 }
 function showHost() {
@@ -83,15 +83,13 @@ function showHost() {
   clearTimeout(host.reveal);
   const w = wrapperOf();
   if (w) {
-    const ms = host.seamless ? 260 : 800;
-    w.style.transition = `opacity ${ms}ms ease-out, filter ${ms}ms ease-out`;
+    w.style.transition = 'opacity 800ms ease-out, filter 800ms ease-out';
     w.style.opacity = '1';
-    w.style.filter = host.seamless ? 'none' : 'blur(0px)';
-    host.reveal = setTimeout(() => { w.style.transition = ''; w.style.opacity = ''; w.style.filter = ''; }, ms + 100);
+    w.style.filter = 'blur(0px)';
+    host.reveal = setTimeout(() => { w.style.transition = ''; w.style.opacity = ''; w.style.filter = ''; }, 900);
   }
   dissolveSnap();
   revealed.forEach((cb) => cb());
-  host.seamless = false;
 }
 /** Fades the shared canvas out (the scene leaving before another comes in). */
 export function fadeOutSharedCanvas(ms) {
@@ -101,13 +99,11 @@ export function fadeOutSharedCanvas(ms) {
   if (w) { w.style.transition = `opacity ${ms}ms ease-in, filter ${ms}ms ease-in`; w.style.opacity = '0'; w.style.filter = 'blur(8px)'; }
 }
 export const showSharedCanvas = () => showHost();
-/** The next scene to come in arrives without a dissolving picture of the last. */
-/** The next scene swap is between two scenes that look the same: crossfade, no push-in or blur. */
-export function seamlessNextSwap() { if (host) host.seamless = true; }
 /** Eases the shared canvas's camera to a pose (position, orbit target) over `ms`. */
 export function settleSharedCamera(pos, target, ms, ease) { host?.settleCamera?.(pos, target, ms, ease); }
 /** The shared canvas's camera position and orbit target right now. */
 export function getSharedCameraPose() { return host?.getPose?.() || null; }
+/** The next scene to come in arrives without a dissolving picture of the last. */
 export function skipNextSnapshot() { if (host) host.skipSnap = true; }
 const revealed = new Set();
 /** Called whenever a scene has faded in on the shared canvas. */
@@ -147,13 +143,9 @@ function captureSnap(gl, advance) {
 function dissolveSnap() {
   const c = host.snap;
   if (!c || c.style.display === 'none') return;
-  // A seamless swap (the old and new scenes look the same) just crossfades.
-  const same = host.seamless;
   const a = c.animate(
-    same
-      ? [{ opacity: 1 }, { opacity: 0 }]
-      : [{ opacity: 1, transform: 'scale(1)', filter: 'blur(0px)' }, { opacity: 0, transform: 'scale(1.12)', filter: 'blur(14px)' }],
-    { duration: same ? 260 : 750, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' },
+    [{ opacity: 1, transform: 'scale(1)', filter: 'blur(0px)' }, { opacity: 0, transform: 'scale(1.12)', filter: 'blur(14px)' }],
+    { duration: 750, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' },
   );
   a.onfinish = () => { c.style.display = 'none'; a.cancel(); };
 }
@@ -210,7 +202,7 @@ function Intro() {
   useFrame((_, delta) => {
     if (++frames.current === 4) {
       showHost();
-      if (host.snap?.style.display === 'block' && !host.seamless) { cam.zoom = 0.9; push.current = true; }
+      if (host.snap?.style.display === 'block') { cam.zoom = 0.9; push.current = true; }
     }
     if (push.current) {
       cam.zoom += (1 - cam.zoom) * (1 - Math.exp(-3.4 * Math.min(delta, 0.1)));
@@ -251,16 +243,6 @@ function ensureHost() {
   return host;
 }
 
-/** Warms the renderer up before a module needs it (kept off screen). */
-export function prepareSharedCanvas() {
-  ensureHost();
-}
-
-/**
- * A drop-in for <QualityCanvas>: the scene given as children is drawn by the
- * shared canvas, which sits where this component is. `style` and `className`
- * apply to the slot, as they did to the canvas's own wrapper.
- */
 let parkedId = null; // the scene id of a SharedCanvas that just unmounted (a same-id one may mount in the same commit)
 function hideSnapNow() {
   const c = host?.snap;
@@ -270,6 +252,10 @@ function hideSnapNow() {
 }
 
 /**
+ * A drop-in for <QualityCanvas>: the scene given as children is drawn by the
+ * shared canvas, which sits where this component is. `style` and `className`
+ * apply to the slot, as they did to the canvas's own wrapper.
+ *
  * `sceneId`: two <SharedCanvas> elements with the same sceneId are one scene to
  * the canvas. When one replaces the other in a commit, the canvas just swaps
  * its children in the same frame: nothing is hidden, no picture is taken, no
