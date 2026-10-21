@@ -3,7 +3,7 @@ import { MULTI_GATES_STEPS } from './MultiQubitGates';
 import { InlineMath } from './KatexMath';
 
 // The circuit diagram each module shows in the sidebar ("Circuit Diagram"),
-// with its step-by-step flow. App.jsx renders CircuitVisualizer.
+// with its step-by-step flow. ModuleSidebarContent.jsx renders CircuitVisualizer.
 
 // --- Per-module step flow & explanation data ---
 const tooltipData = {

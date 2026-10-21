@@ -8,6 +8,8 @@ import { GatesScene, GatesOverlay, GATES_STEPS } from './QuantumGates';
 import { MultiGatesScene, MultiGatesOverlay, MULTI_GATES_STEPS } from './MultiQubitGates';
 import { isResultEntangled } from './quantumMath';
 import CameraShifter from './CameraShifter';
+import { sidebarFootprint } from './sidebarLayout';
+import { HUB_CAMERA } from './handoff';
 import { SharedCanvas } from './SharedCanvas';
 import { useExitPresence } from './useExitPresence';
 import GlassNavBar from './GlassNavBar';
@@ -106,7 +108,7 @@ const GatesModuleView = ({ step, applied, isSidebarOpen, uiBoundsStyle, onToggle
     <>
       <SharedCanvas
         sceneId="bit-scene"
-        camera={{ position: [0, 0, 13], fov: 45 }}
+        camera={{ position: HUB_CAMERA.cam, fov: 45 }}
         gl={SCENE_GL}
         style={{ position: 'absolute', inset: 0, zIndex: 1, willChange: 'transform', transform: 'translateZ(0)' }}
       >
@@ -387,7 +389,7 @@ export default function Simulator({ isMobile }) {
   const pageModule = isSidebarOpen ? activeModule : null;
   const modulePage = pageModule && listFor !== pageModule.id ? pageModule : null;
 
-  const currentSidebarWidth = isSidebarOpen ? 420 : 112;
+  const currentSidebarWidth = sidebarFootprint(isSidebarOpen);
   const uiBoundsStyle = {
     position: 'absolute',
     top: 0,
@@ -747,7 +749,7 @@ export default function Simulator({ isMobile }) {
           ) : (
             <SharedCanvas
               sceneId="bit-scene"
-              camera={{ position: [0, 0, 13], fov: 45 }}
+              camera={{ position: HUB_CAMERA.cam, fov: 45 }}
               gl={SCENE_GL}
               style={{ position: 'absolute', inset: 0, zIndex: 1, willChange: 'transform', transform: 'translateZ(0)' }}
             >

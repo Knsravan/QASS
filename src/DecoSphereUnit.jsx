@@ -4,7 +4,7 @@ import React, { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
-import { handoff } from './handoff';
+import { handoff, REST, QUBIT_R } from './handoff';
 import { Metal, useRimMaterial } from './PremiumBitQubit';
 import { SphereLines, LightLine, Halo } from './GlassBlochParts';
 import { MathChip } from './MathChip';
@@ -21,10 +21,11 @@ export const CW = '#f8fafc'; // White
 // pair splits and zooms; the module keeps it full (and shrinks it again as it closes).
 export const arrowGrow = { p: 1, target: 1 };
 
-export const SPHERE_R  = 2.75;
-export const MODEL_Y   = 1.65;
-export const PURE_POS  = [-5.8, MODEL_Y, 0];
-export const NOISY_POS = [ 5.8, MODEL_Y, 0];
+// The module's places and size, which the hub's pair zooms into (handoff.js).
+export const SPHERE_R  = REST.decoherence.scale * QUBIT_R;
+export const MODEL_Y   = REST.decoherence.y;
+export const PURE_POS  = [-REST.decoherence.pairX, MODEL_Y, 0];
+export const NOISY_POS = [ REST.decoherence.pairX, MODEL_Y, 0];
 const GHOST_N   = 12;
 
 // Where the hub's pair stands in for the module's spheres (nothing is entering): fully in, no rise.

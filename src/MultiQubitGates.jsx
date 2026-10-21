@@ -10,6 +10,7 @@ import { getInitialState, GATES_MATRICES, applyMatrix, calculateProbabilities, g
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { QualityComposer } from './QualityScene';
 import { MathChip } from './MathChip';
+import { REST } from './handoff';
 
 // --- DATA DEFINITION ---
 export const MULTI_GATES_STEPS = [
@@ -423,12 +424,13 @@ export function MultiGatesScene({ step, applied, setProgress, inputs }) {
     };
   }, [applied, setProgress, stepData, logic, camera, controls]);
 
-  // Layout positions (shifted slightly up for better framing)
-  const positions = useMemo(() => (
-    stepData.numQubits === 2
-      ? [[-2, 1.2, 0], [2, 1.2, 0]]
-      : [[-2, 3.2, 0], [2, 3.2, 0], [0, -0.3, 0]] // Toffoli triangle
-  ), [stepData.numQubits]);
+  // Layout positions (shifted slightly up for better framing); the pair is where the hub's zooms to
+  const positions = useMemo(() => {
+    const { pairX, y } = REST['multi-qubit-gates'];
+    return stepData.numQubits === 2
+      ? [[-pairX, y, 0], [pairX, y, 0]]
+      : [[-2, 3.2, 0], [2, 3.2, 0], [0, -0.3, 0]]; // Toffoli triangle
+  }, [stepData.numQubits]);
 
   const beamStarts = useMemo(() => positions.map((pos) => new THREE.Vector3(...pos)), [positions]);
 

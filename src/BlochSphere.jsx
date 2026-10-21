@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect, useLayoutEffect, useMemo } from 're
 import { useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Html, PresentationControls } from '@react-three/drei';
 import { useSpring, a } from '@react-spring/three';
-import { handoff, GLIDE } from './handoff';
+import { handoff, GLIDE, REST, HUB_CAMERA } from './handoff';
 import { BlochSphereUnit, arrowGrow, DEC_STATIC_ENTRANCE, CT, CA } from './DecoSphereUnit';
 import * as THREE from 'three';
 import { Bloom } from '@react-three/postprocessing';
@@ -119,7 +119,6 @@ export const ClassicalBit = ({ position, scale = 1, activeModule, flipMode, isBl
 // =========================================
 
 // Static THREE objects reused every frame to avoid GC pressure
-const _DEFAULT_CAM_BS = new THREE.Vector3(0, 0, 13);
 const _tmpGoal = new THREE.Color();
 const _tmpV = new THREE.Vector3();
 const _tmpL = new THREE.Vector3();
@@ -135,27 +134,29 @@ const _LIGHTS_EXP = [[10, 15, 10], [-10, -10, -10]];
 // Decoherence: a dim teal and amber pair (the pure and the noisy qubit).
 const _LIGHTS_DEC = [[-6, 6.65, 7], [6, 6.65, 7]];
 const _DEC_LIGHT = { amb: 0.16, c1: new THREE.Color('#14b8a6'), i1: 0.95, c2: new THREE.Color('#f59e0b'), i2: 0.95, dist: 1000 };
-// The Decoherence sphere is drawn at the lone qubit's size (radius 2.4) and grows to the module's (2.75) as the pair zooms.
-const _DEC_UNIT_FIRST = 2.4 / 2.75;   // inside the first qubit's rig (its base scale is 1.2)
-const _DEC_UNIT_SECOND = 2 / 2.75;    // inside the second's (base scale 1)
+// Where the modules that take this scene over keep their models (handoff.js).
+const ENT = REST.entanglement, DEC = REST.decoherence, EXP = REST.exponential, MQG = REST['multi-qubit-gates'];
+// The Decoherence sphere is drawn at the lone qubit's size and grows to the module's as the pair zooms.
+const _DEC_UNIT_FIRST = 1.2 / DEC.scale;   // inside the first qubit's rig (its base scale is 1.2)
+const _DEC_UNIT_SECOND = 1 / DEC.scale;    // inside the second's (base scale 1)
 const _UPV = new THREE.Vector3(0, 1, 0);
 // Classical Bit vs Qubit draws its pair (PremiumBitQubit.jsx) a little smaller and higher than
 // the other modules of this scene, so its readout fits underneath and the sphere stays in view
-// with the sidebar open. (App.jsx places the header pills to match: 39vh × BVQ_SCALE.)
+// with the sidebar open. (The header pills sit to match: SIDE_TITLES in stagePhases.js, 39vh × BVQ_SCALE.)
 const BVQ_SCALE = 0.86;
 const BVQ_Y = 0.45;
 const _EXP_LIGHT = { amb: 0.6, c1: new THREE.Color('#ffffff'), i1: 2.0, c2: new THREE.Color('#a855f7'), i2: 1.5, dist: 1000 };
 const _HUB_LIGHT = { amb: 0.5, c1: new THREE.Color('#00f2fe'), i1: 8, c2: new THREE.Color('#f093fb'), i2: 8, dist: 30 };
 const _ORIGIN_BS = new THREE.Vector3(0, 0, 0);
 const _AXIS_Y = new THREE.Vector3(0, 1, 0);
-const _DEC_CAM = new THREE.Vector3(0, 2.25, 20);   // Decoherence's resting view: where the camera is and what it aims at
-const _DEC_LOOK = new THREE.Vector3(0, 1.65, 0);
-const _HUB_CAM = new THREE.Vector3(0, 0, 13);
+const _DEC_CAM = new THREE.Vector3(...DEC.camera.cam);   // Decoherence's resting view: where the camera is and what it aims at
+const _DEC_LOOK = new THREE.Vector3(...DEC.camera.target);
+const _HUB_CAM = new THREE.Vector3(...HUB_CAMERA.cam);
 
 // =========================================
 // 2. QUANTUM QUBIT COMPONENT (Right Side)
 // =========================================
-export const QubitCore = ({ position, scale = 1, theme, activeModule, onDomainHover, onDomainUnhover, customVectorQuat, showCustomVector, emissiveColor, customGridColor, customRingColor, sphereRotation, visible, interferenceStep = 0, interferencePhase = 0, fadeExtras = false, vectorOut, startDir }) => {
+export const QubitCore = ({ position, scale = 1, activeModule, onDomainHover, onDomainUnhover, customVectorQuat, showCustomVector, emissiveColor, customGridColor, customRingColor, sphereRotation, visible, interferenceStep = 0, interferencePhase = 0, fadeExtras = false, vectorOut, startDir }) => {
   const coreGroupRef = useRef();
   const sphereRef = useRef(); const vectorRef = useRef(); const northPoleRef = useRef(); const southPoleRef = useRef(); const glassCoreRef = useRef();
 
@@ -517,19 +518,21 @@ export default function BlochSphere({ activeModule, interferenceStep, interferen
   const prevModule = useRef(activeModule);
   const growBack = prevModule.current === 'bit-vs-qubit' && !isBvq;
   useEffect(() => { prevModule.current = activeModule; }, [activeModule]);
-  const entX0 = handoff.entPairX || 4.6;
-  const targetX = useRef(multi === 'zoom' ? (isEnt ? entX0 : isDec ? 5.8 : 2) : multi === 'split' ? 2.4 : 0);
-  const targetY = useRef(multi === 'zoom' && !isEnt ? (isDec ? 1.65 : 1.2) : 0);
-  const targetS = useRef(multi === 'zoom' ? (isEnt ? 1.15 : isDec ? 1.375 : 1) : 1.2);
+  const pairRest = isEnt ? ENT : isDec ? DEC : MQG;       // where the module keeps its pair
+  const zoomRest = isExp ? EXP : pairRest;                 // ... or its lone qubit
+  const entX0 = handoff.entPairX || ENT.pairX;
+  const targetX = useRef(multi === 'zoom' ? (isEnt ? entX0 : pairRest.pairX) : multi === 'split' ? 2.4 : 0);
+  const targetY = useRef(multi === 'zoom' ? pairRest.y : 0);
+  const targetS = useRef(multi === 'zoom' ? pairRest.scale : 1.2);
   const [targetOn, setTargetOn] = useState(multi === 'split' || multi === 'zoom');
   // The pair's poses: 'center' (one qubit, hub size), 'split' (two, hub size), 'zoom' (two, the
   // module's size and places). Positions are in the rig's units: spheres touch at 2.4 (hub) / 2 (module).
-  // (Entanglement's zoom: Alice and Bob stand 4.6 either side of the middle at 1.15 size, on the axis.)
+  // (The zoomed places and sizes are the modules' own: REST in handoff.js.)
   const mz = isRig && multi === 'zoom';
   const mSplit = isPair && (multi === 'split' || multi === 'zoom');
-  const zoomY = isEnt ? 0 : isDec ? 1.65 : isExp ? 0.6 : 1.2;                      // the pair's height in the zoomed pose (rig units)
-  const zoomS = isEnt || isExp ? 1.15 / 1.2 : isDec ? 1.375 / 1.2 : 1 / 1.2;         // the first qubit's scale there (relative to its 1.2)
-  const zoomT = isEnt ? 1.15 : isDec ? 1.375 : 1;                     // the second qubit's scale there
+  const zoomY = zoomRest.y;              // the pair's height in the zoomed pose (rig units)
+  const zoomS = zoomRest.scale / 1.2;    // the first qubit's scale there (relative to its 1.2)
+  const zoomT = pairRest.scale;          // the second qubit's scale there
   const settleCam = useRef(0);
   const centerD0 = useRef(null);
   // Entanglement lights its pair from a little higher; the lights glide there as the pair zooms in
@@ -570,7 +573,7 @@ export default function BlochSphere({ activeModule, interferenceStep, interferen
     if (leftRig.current) leftRig.current.scale.setScalar(solo ? 0.0001 : 1);
     if (solo) setBitOn(false);
     if (rightRig.current) {
-      rightRig.current.position.x = isPair ? (zoomed ? -(isEnt ? entX0 : isDec ? 5.8 : 2) : multi === 'split' ? -2.4 : 0) : isExp ? 0 : solo ? 0 : 4.2;
+      rightRig.current.position.x = isPair ? (zoomed ? -(isEnt ? entX0 : pairRest.pairX) : multi === 'split' ? -2.4 : 0) : isExp ? 0 : solo ? 0 : 4.2;
       rightRig.current.position.y = zoomed ? zoomY : 0;
       rightRig.current.scale.setScalar(zoomed ? zoomS : 1);
     }
@@ -709,8 +712,8 @@ export default function BlochSphere({ activeModule, interferenceStep, interferen
         bloom.intensity += (it - bloom.intensity) * kb;
         bloom.luminanceMaterial.threshold += (th - bloom.luminanceMaterial.threshold) * kb;
       }
-      const pairX = mz ? (isEnt ? (handoff.entPairX || 4.6) : isDec ? 5.8 : 2) : 2.4; // half the gap between the pair
-      if (isEnt && !mz) handoff.entPairX = 4.6; // a fresh open starts from the module's default spacing
+      const pairX = mz ? (isEnt ? (handoff.entPairX || ENT.pairX) : pairRest.pairX) : 2.4; // half the gap between the pair
+      if (isEnt && !mz) handoff.entPairX = ENT.pairX; // a fresh open starts from the module's default spacing
       const lg = isEnt && mz ? _LIGHTS_ENT : isExp && mz ? _LIGHTS_EXP : isDec && mz ? _LIGHTS_DEC : _LIGHTS_HUB;
       if (light1Ref.current) light1Ref.current.position.lerp(_tmpL.set(...lg[0]), km);
       if (light2Ref.current) light2Ref.current.position.lerp(_tmpL.set(...lg[1]), km);
@@ -726,7 +729,7 @@ export default function BlochSphere({ activeModule, interferenceStep, interferen
         const goalX = isPair ? (mSplit ? -pairX : 0) : solo ? 0 : 4.2;
         r.position.x += (goalX - r.position.x) * (isRig ? km : k);
         // (Exponential's qubit floats a little in its own scene; the same bob here keeps the hand-over exact.)
-        const goalY = isExp && mz ? 0.6 + Math.sin(state.clock.getElapsedTime() * 1.2) * 0.06 : mz ? zoomY : 0;
+        const goalY = isExp && mz ? EXP.y + Math.sin(state.clock.getElapsedTime() * 1.2) * 0.06 : mz ? zoomY : 0;
         r.position.y += (goalY - r.position.y) * km;
         r.scale.setScalar(r.scale.x + ((mz ? zoomS : 1) - r.scale.x) * km);
       }
@@ -744,7 +747,7 @@ export default function BlochSphere({ activeModule, interferenceStep, interferen
     if (settleCam.current > 0 && controlsRef.current) {
       settleCam.current -= delta;
       const k = 1 - Math.exp(-4 * Math.min(delta, 0.1));
-      controlsRef.current.object.position.lerp(_DEFAULT_CAM_BS, k);
+      controlsRef.current.object.position.lerp(_HUB_CAM, k);
       controlsRef.current.target.lerp(_ORIGIN_BS, k);
       controlsRef.current.update();
     }

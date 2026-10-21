@@ -1,5 +1,5 @@
 // Self-contained modules are split into their own chunks so the landing page
-// and hub don't pay for every module's scene up front. App.jsx also uses these
+// and hub don't pay for every module's scene up front. Simulator.jsx also uses these
 // loaders to prefetch the chunks once the hub is idle, so opening one is
 // instant, and the stage choreography (useStageChoreography.js) loads a
 // module's code during its opening move.

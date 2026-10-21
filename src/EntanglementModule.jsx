@@ -15,7 +15,7 @@ import { SCENE_GL } from './sceneGl';
 import GlassSlider from './GlassSlider';
 import { QualityComposer } from './QualityScene';
 import { SharedCanvas } from './SharedCanvas';
-import { handoff } from './handoff';
+import { handoff, REST } from './handoff';
 import { BELL_OUTCOMES } from './quantumMath';
 
 
@@ -87,15 +87,13 @@ function EntanglementScene({
   shockwaveActive,
   shockwaveRef,
   onMeasureQubit,
-  theme,
   isSidebarOpen
 }) {
   const canMeasure = stage === 3 && isEntangled && !measuredState;
-  const isLight = theme === 'light';
   const { camera } = useThree();
 
   // Dynamic positions based on distance slider
-  const baseSpacing = 4.6;
+  const baseSpacing = REST.entanglement.pairX;
   const currentSpacing = baseSpacing * distanceMultiplier;
   const posA = useMemo(() => [-currentSpacing, 0, 0], [currentSpacing]);
   const posB = useMemo(() => [currentSpacing, 0, 0], [currentSpacing]);
@@ -144,12 +142,11 @@ function EntanglementScene({
 
   // Camera tracking and centered positioning
   useEffect(() => {
-    const targetZ = 14.2 + (distanceMultiplier - 1.0) * 8;
-    const targetX = isSidebarOpen ? 0.6 : 0;
+    const [x, y, z] = REST.entanglement.camera(isSidebarOpen).cam; // the resting view; further back as the pair spreads
     gsap.to(camera.position, {
-      x: targetX,
-      y: 0.2,
-      z: targetZ,
+      x,
+      y,
+      z: z + (distanceMultiplier - 1.0) * 8,
       duration: 1.2,
       ease: 'power2.out'
     });
@@ -165,8 +162,7 @@ function EntanglementScene({
       <group position={posA}>
         <QubitCore
           position={[0, 0, 0]}
-          scale={1.15}
-          theme={isLight ? 'light' : 'dark'}
+          scale={REST.entanglement.scale}
           activeModule="entanglement"
           customVectorQuat={quatAlice}
           emissiveColor={measuredState ? (measuredState[0] === '0' ? '#00f2fe' : '#f093fb') : bellState.color}
@@ -241,8 +237,7 @@ function EntanglementScene({
       <group position={posB}>
         <QubitCore
           position={[0, 0, 0]}
-          scale={1.15}
-          theme={isLight ? 'light' : 'dark'}
+          scale={REST.entanglement.scale}
           activeModule="entanglement"
           customVectorQuat={quatBob}
           emissiveColor={measuredState ? (measuredState[1] === '0' ? '#00f2fe' : '#f093fb') : bellState.color}

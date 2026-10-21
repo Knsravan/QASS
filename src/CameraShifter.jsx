@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { sidebarFootprint } from './sidebarLayout';
 
 export default function CameraShifter({ isSidebarOpen }) {
   const { camera, size } = useThree();
-  const targetSidebarWidth = isSidebarOpen ? 420 : 112;
+  const targetSidebarWidth = sidebarFootprint(isSidebarOpen);
   const currentSidebarWidth = useRef(targetSidebarWidth);
 
   useFrame((state, delta) => {

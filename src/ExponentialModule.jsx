@@ -22,6 +22,7 @@ import { QualityComposer } from './QualityScene';
 import { SharedCanvas } from './SharedCanvas';
 import { stateVectorRAM } from './quantumMath';
 import { STAGE_EVENTS } from './stagePhases';
+import { REST } from './handoff';
 
 
 // ==========================================
@@ -48,7 +49,7 @@ function AnimatedQubitItem({
     if (!isActive) {
       return { targetX: 0, targetScale: 0.0001 };
     }
-    if (qubitCount === 1) return { targetX: 0, targetScale: 1.15 };
+    if (qubitCount === 1) return { targetX: 0, targetScale: REST.exponential.scale }; // the size the hub's qubit zooms to
     if (qubitCount === 2) return { targetX: index === 0 ? -3.4 : 3.4, targetScale: 1.1 };
     if (qubitCount === 3) {
       const xs = [-4.2, 0, 4.2];
@@ -249,12 +250,12 @@ function MultiQubitProcessor({ qubitCount, isSuperposed }) {
 
   useFrame((state) => {
     if (groupRef.current) {
-      groupRef.current.position.y = 0.6 + Math.sin(state.clock.getElapsedTime() * 1.2) * 0.06;
+      groupRef.current.position.y = REST.exponential.y + Math.sin(state.clock.getElapsedTime() * 1.2) * 0.06;
     }
   });
 
   return (
-    <group ref={groupRef} position={[0, 0.6, 0]}>
+    <group ref={groupRef} position={[0, REST.exponential.y, 0]}>
       {/* 5 Seamless Animated Qubit Instances */}
       {Array.from({ length: MAX_QUBITS }).map((_, i) => (
         <AnimatedQubitItem
@@ -662,8 +663,9 @@ function CameraDroneController({ stage, qubitCount, cosmicMilestone = 50 }) {
     // Stage 4 entry is driven by the swoop tween; afterwards the camera is free
     if (stage === 4 || !isGlidingRef.current) return;
 
-    let targetZ = 13.0 + (qubitCount - 1) * 0.9;
-    let targetY = 1.4;
+    const rest = REST.exponential.camera.cam; // the 1-qubit view, where the hub's camera hands over
+    let targetZ = rest[2] + (qubitCount - 1) * 0.9;
+    let targetY = rest[1];
 
     if (stage === 2) {
       targetY = 2.2;
@@ -764,7 +766,7 @@ export default function ExponentialModule({ isSidebarOpen = true, isGlobalMuted 
   const [stage, setStage] = useState(1);
   const [qubitCount, setQubitCount] = useState(1);
   const [isSuperposed, setIsSuperposed] = useState(false);
-  // The sidebar's circuit draws this register (App.jsx).
+  // The sidebar's circuit draws this register (ModuleSidebarContent.jsx).
   useEffect(() => { onRegisterChange?.({ qubits: qubitCount, superposed: isSuperposed }); }, [qubitCount, isSuperposed, onRegisterChange]);
   const [isInterferenceActive, setIsInterferenceActive] = useState(false);
   const [cosmicMilestone, setCosmicMilestone] = useState(50); // 50 or 300

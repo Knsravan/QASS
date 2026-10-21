@@ -91,6 +91,8 @@ The simulator is designed for desktop and tablet screens. On narrow windows (und
 | `src/curriculum.jsx` | The course: each module's title and its definition, comparison, formula and misconception cards |
 | `src/ModuleSidebarContent.jsx` | A module's page in the sidebar: its cards, its circuit, and the gate pages of the two gate modules |
 | `src/useStageChoreography.js`, `src/stagePhases.js` | The animated moves between the hub and each module, and the table of their phases |
+| `src/handoff.js` | Where the modules that take over the hub's scene keep their models and camera, read by both sides of each hand-over, and the glide rate of the moves |
+| `src/sidebarLayout.js` | The sidebar's width, which the overlays and scenes lay out around (checked against the stylesheet by its test) |
 | `src/CircuitDiagrams.jsx` | The circuit diagram each module shows in the sidebar |
 | `src/moduleLoaders.js` | The modules that load on demand, as their own chunks |
 | `src/KatexMath.jsx` | `InlineMath` / `BlockMath`: KaTeX formulas as React components |
