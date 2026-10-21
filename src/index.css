@@ -7,8 +7,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, h3, h4, h5, h6,
-.deltha-heading {
+h1, h2, h3, h4, h5, h6 {
   font-family: 'Deltha', 'Inter', sans-serif;
 }
 

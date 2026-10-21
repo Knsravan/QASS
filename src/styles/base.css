@@ -102,7 +102,6 @@
    ============================================================================= */
 .glass-panel,
 .glass-panel-thick,
-.glass-pill,
 .glass-chip,
 .data-card,
 .glass-interactive,
@@ -147,20 +146,6 @@
   border-radius: 30px;
 }
 
-/* Pill — nav controls, tags, badges, small interactive pills */
-.glass-pill {
-  background-image: var(--lg-sheen), var(--lg-tint);
-  background-attachment: fixed, scroll;
-  background-color: var(--glass-bg-pill);
-  backdrop-filter: var(--lg-refract-strong) var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: var(--glass-border-base);
-  box-shadow:
-    var(--glass-highlight),
-    var(--glass-shadow-pill);
-  border-radius: 999px;
-}
-
 /* =============================================================================
    GLASSMORPHISM — HOVER EFFECTS
    ============================================================================= */
@@ -189,32 +174,12 @@
 /* =============================================================================
    EDGE REFRACTION UTILITY CLASSES — true backdrop lensing (Chromium)
    ============================================================================= */
-.glass-refract {
-  backdrop-filter: var(--lg-refract) var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-}
-
-.glass-refract-strong {
-  backdrop-filter: var(--lg-refract-strong) var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-}
-
-.glass-chromatic {
-  /* faint dispersion fringe on the rim, like light splitting at the lens edge */
-  box-shadow:
-    inset 1px 0 0 rgba(120, 220, 255, 0.10),
-    inset -1px 0 0 rgba(255, 140, 220, 0.08),
-    var(--glass-highlight),
-    var(--glass-shadow-base);
-}
 
 /* =============================================================================
    ⚡ HAPTIC SPRING — Tap/Press feedback on all glass controls
    ============================================================================= */
 .glass-btn,
-.glass-chip,
-.mode-btn,
-button.glass-pill {
+.glass-chip {
   transition:
     transform 0.22s var(--glass-spring),
     box-shadow 0.22s var(--glass-spring),
@@ -224,7 +189,6 @@ button.glass-pill {
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
-
 
 body {
   margin: 0;
@@ -249,18 +213,9 @@ h6,
 .hero-title,
 .hero-badge,
 .sidebar-branding-title,
-.sidebar-section-title,
 .section-title,
-.module-item-title,
-.module-title,
 .sidebar-title-wrapper h3,
-.gate-title,
-.stage-title,
-.pillar-label,
-.stage-indicator-pill,
-.card-header-title,
-.circuit-heading,
-.deltha-heading {
+.pillar-label {
   font-family: 'Deltha', 'Inter', sans-serif !important;
   letter-spacing: 0.6px;
 }
@@ -276,80 +231,6 @@ h6,
 /* =========================================
    FLOATING TOP NAVIGATION (BEGINNER/ADVANCED)
    ========================================= */
-.floating-nav-control {
-  position: absolute;
-  top: 18px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  width: 220px;
-  box-sizing: border-box;
-  background: var(--glass-bg-pill);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: var(--glass-border-base);
-  box-shadow:
-    var(--glass-highlight),
-    var(--glass-shadow-pill);
-  padding: 4px;
-  border-radius: 999px;
-  z-index: 1000;
-  pointer-events: auto;
-  gap: 0px;
-  transition: left 0.4s var(--glass-spring), transform 0.4s var(--glass-spring);
-  overflow: hidden;
-}
-
-.nav-glider {
-  position: absolute;
-  top: 4px;
-  bottom: 4px;
-  left: 4px;
-  width: calc(50% - 4px);
-  box-sizing: border-box;
-  background: rgba(255, 255, 255, 0.15);
-  border: var(--glass-border-strong);
-  border-radius: 999px;
-  transition: transform 0.38s var(--glass-spring);
-  box-shadow: var(--glass-shadow-pill);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  z-index: 0;
-  overflow: hidden;
-}
-
-.nav-glider.beginner {
-  transform: translateX(0);
-}
-
-.nav-glider.advanced {
-  transform: translateX(100%);
-}
-
-.mode-btn {
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: rgba(255, 255, 255, 0.65);
-  padding: 7px 22px;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.2px;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: all 0.25s var(--glass-spring);
-  position: relative;
-  z-index: 1;
-}
-
-.mode-btn:hover:not(.active) {
-  color: #ffffff;
-}
-
-.mode-btn.active {
-  color: #ffffff;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
-}
 
 /* =========================================
    🌐 COMPARISON SECTION HEADER BADGES
@@ -419,48 +300,4 @@ h6,
 /* =========================================
    🔊 TOP-RIGHT AUDIO CONTROL PILL
    ========================================= */
-.top-right-audio-btn {
-  position: fixed !important;
-  top: 20px !important;
-  right: 28px !important;
-  width: 46px !important;
-  height: 46px !important;
-  min-width: 46px !important;
-  min-height: 46px !important;
-  max-width: 46px !important;
-  max-height: 46px !important;
-  padding: 0 !important;
-  border-radius: 50% !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  background: var(--glass-bg-pill) !important;
-  backdrop-filter: var(--glass-blur) !important;
-  -webkit-backdrop-filter: var(--glass-blur) !important;
-  border: var(--glass-border-base) !important;
-  box-shadow:
-    var(--glass-highlight),
-    var(--glass-shadow-pill) !important;
-  color: #38bdf8 !important;
-  cursor: pointer !important;
-  z-index: 9999 !important;
-  pointer-events: auto !important;
-  user-select: none !important;
-  transition: all 0.3s var(--glass-spring) !important;
-}
 
-.top-right-audio-btn:hover {
-  background: rgba(255, 255, 255, 0.12) !important;
-  border-color: rgba(56, 189, 248, 0.65) !important;
-  box-shadow: inset 0 1.5px 2px rgba(255, 255, 255, 0.65),
-    0 0 24px rgba(56, 189, 248, 0.45),
-    0 20px 44px -8px rgba(0, 0, 0, 0.85) !important;
-  transform: translateY(-1px) scale(1.08) !important;
-}
-
-
-.top-right-audio-btn.muted {
-  color: #94a3b8 !important;
-  border-color: rgba(255, 255, 255, 0.15) !important;
-  background: var(--glass-bg-pill) !important;
-}

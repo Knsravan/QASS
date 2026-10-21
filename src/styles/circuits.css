@@ -100,20 +100,6 @@ button.circuit-steps-header {
   box-sizing: border-box;
 }
 
-/* 35% dark scrim behind glass when background is bright */
-.glass-card.scrim-active::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.35);
-  border-radius: 20px;
-  z-index: -1;
-  pointer-events: none;
-}
-
 .circuit-timeline-container {
   position: relative;
   width: 100%;
@@ -277,8 +263,6 @@ button.circuit-steps-header {
   -webkit-backdrop-filter: var(--glass-blur);
   box-shadow: var(--glass-highlight), var(--glass-shadow-base);
 
-
-
   /* Border with bevel */
   border: var(--glass-border-base);
 
@@ -288,9 +272,6 @@ button.circuit-steps-header {
 .liquid-gate-box:hover {
   transform: scale(1.05);
 }
-
-/* Distortion Filter application (removed for standard glassmorphism) */
-.liquid-gate-box.distort {}
 
 /* Per-Gate Render Rules */
 .liquid-gate-x {
@@ -336,84 +317,6 @@ button.circuit-steps-header {
   padding: 0 12px;
   font-size: 16px;
 }
-
-              /* 3-Step Hover Tooltip */
-              .circuit-glass-tooltip {
-                position: absolute;
-                top: -140px;
-                left: 50%;
-                transform: translateX(-50%);
-                width: 280px;
-                background: var(--glass-bg-thick);
-                backdrop-filter: var(--glass-blur-thick);
-                -webkit-backdrop-filter: var(--glass-blur-thick);
-                border-radius: 16px;
-                border: var(--glass-border-base);
-                padding: 16px;
-                box-shadow: var(--glass-highlight), var(--glass-shadow-base);
-                z-index: 10;
-                /* Reset font inherited from gate-wrapper */
-                font-family: 'Inter', -apple-system, sans-serif;
-                font-size: 14px;
-                font-weight: 400;
-                text-align: left;
-                text-shadow: none;
-                /* Condensation fade-in */
-                opacity: 0;
-                filter: blur(4px);
-                pointer-events: none;
-                transition: opacity 0.2s ease, filter 0.2s ease, top 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-              }
-
-              .circuit-glass-tooltip.visible {
-                opacity: 1;
-                filter: blur(0px);
-                top: -130px;
-              }
-
-              .circuit-tooltip-step {
-                display: flex;
-                align-items: flex-start;
-                gap: 8px;
-                margin-bottom: 8px;
-                font-size: 12px;
-                color: #cbd5e1;
-                line-height: 1.4;
-              }
-
-              .circuit-tooltip-step:last-child {
-                margin-bottom: 0;
-              }
-
-              .tooltip-step-num {
-                font-family: 'Fira Code', monospace;
-                font-size: 11px;
-                background: rgba(255, 255, 255, 0.1);
-                padding: 2px 6px;
-                border-radius: 4px;
-                color: #94a3b8;
-                white-space: nowrap;
-                flex-shrink: 0;
-              }
-
-              .tooltip-accent {
-                font-weight: 700;
-              }
-
-              .tooltip-check {
-                color: #10b981;
-                margin-right: 4px;
-              }
-
-              /* Leader Line */
-              .tooltip-leader-line {
-                position: absolute;
-                bottom: -30px;
-                left: 50%;
-                width: 2px;
-                height: 30px;
-                background: linear-gradient(to bottom, rgba(255, 255, 255, 0.4), transparent);
-              }
 
               /* MULTI-QUBIT GLASS CIRCUITS */
               .liquid-multi-circuit {
@@ -964,17 +867,7 @@ button.circuit-steps-header {
                 background: linear-gradient(180deg, #eab308, #06b6d4);
               }
 
-
               /* Removed old sidebar toggle */
-
-              .sidebar-badge {
-                font-size: 10px;
-                font-weight: 700;
-                letter-spacing: 1.5px;
-                color: #00f2fe;
-                margin-bottom: 6px;
-                text-transform: uppercase;
-              }
 
               .sidebar-panel h2 {
                 margin: 0 0 20px 0;
@@ -1013,49 +906,6 @@ button.circuit-steps-header {
                 margin: 5px 0 !important;
                 overflow-x: auto;
                 overflow-y: hidden;
-              }
-
-              .curriculum-list {
-                margin-top: 10px;
-                display: flex;
-                flex-direction: column;
-                gap: 4px;
-              }
-
-              .curriculum-item {
-                padding: 10px 12px;
-                border-radius: 12px;
-                cursor: pointer;
-                font-size: 13px;
-                font-weight: 500;
-                color: var(--text-secondary);
-                background: rgba(255, 255, 255, 0.015);
-                border: 1px solid transparent;
-                transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
-                white-space: normal;
-                word-break: break-word;
-                line-height: 1.4;
-                display: flex;
-                align-items: center;
-                gap: 12px;
-              }
-
-              .curriculum-item:hover {
-                background: rgba(255, 255, 255, 0.05);
-                border: 1px solid rgba(255, 255, 255, 0.08);
-                color: var(--text-primary);
-                transform: translateY(-1px);
-              }
-
-              .curriculum-item:active {
-                transform: translateY(1px);
-              }
-
-              .curriculum-item.active {
-                background: rgba(255, 255, 255, 0.03);
-                color: var(--text-primary);
-                border: var(--glass-border-base);
-                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 4px 12px rgba(0, 0, 0, 0.2);
               }
 
               /* =========================================
@@ -1098,7 +948,6 @@ button.circuit-steps-header {
                   transform: translateY(0);
                 }
               }
-
 
               /* ==========================================
    MULTI-QUBIT GATES SIDEBAR ENHANCEMENTS
@@ -1353,78 +1202,8 @@ button.circuit-steps-header {
                 overflow: hidden;
               }
 
-              .chip-chevron {
-                width: 15px;
-                height: 15px;
-                fill: none;
-                stroke: rgba(255, 255, 255, 0.45);
-                stroke-width: 2;
-                stroke-linecap: round;
-                stroke-linejoin: round;
-                transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease, stroke 0.25s ease;
-                flex-shrink: 0;
-              }
-
-              .sidebar-panel.collapsed .chip-chevron {
-                opacity: 0;
-                width: 0;
-                margin: 0;
-                overflow: hidden;
-              }
-
               .sidebar-panel.collapsed::-webkit-scrollbar {
                 display: none;
-              }
-
-              .glass-chip:hover .chip-chevron {
-                stroke: rgba(255, 255, 255, 0.9);
-              }
-
-              .glass-chip-group.active .chip-chevron {
-                transform: rotate(180deg);
-                stroke: var(--module-accent, #ffffff);
-              }
-
-              /* The expanding drawer */
-              .chip-content-drawer {
-                display: grid;
-                grid-template-rows: 0fr;
-                transition: grid-template-rows 0.32s cubic-bezier(0.16, 1, 0.3, 1);
-                overflow: hidden;
-                will-change: grid-template-rows;
-                transform: translateZ(0);
-              }
-
-              .chip-content-drawer.open {
-                grid-template-rows: 1fr;
-              }
-
-              .drawer-inner {
-                min-height: 0;
-                margin-top: 8px;
-                margin-bottom: 4px;
-                overflow: hidden;
-                /* Critical for grid expansion to work smoothly */
-                background: transparent;
-                border: 1px solid rgba(255, 255, 255, 0.08);
-                border-radius: 16px;
-                box-shadow: none;
-                transform: translateZ(0);
-                will-change: transform, opacity;
-                contain: layout style paint;
-              }
-
-              .drawer-content-wrapper {
-                padding: 20px;
-                opacity: 0;
-                transform: translateY(-8px);
-                transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-              }
-
-              .chip-content-drawer.open .drawer-content-wrapper {
-                opacity: 1;
-                transform: translateY(0);
-                transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1) 0.06s, transform 0.28s cubic-bezier(0.16, 1, 0.3, 1) 0.06s;
               }
 
               /* Add icon accent colors */
@@ -1478,7 +1257,6 @@ button.circuit-steps-header {
                 filter: drop-shadow(0 0 5px rgba(244, 63, 94, 0.5));
               }
 
-
               /* --- FINAL OVERRIDES FOR COLLAPSED ICON RAIL --- */
               .sidebar-panel.collapsed {
                 padding: 24px 8px !important;
@@ -1514,15 +1292,6 @@ button.circuit-steps-header {
 
               .sidebar-panel.collapsed .chip-title {
                 display: none !important;
-              }
-
-              .sidebar-panel.collapsed .chip-chevron {
-                display: none !important;
-                visibility: hidden !important;
-                width: 0 !important;
-                height: 0 !important;
-                opacity: 0 !important;
-                margin: 0 !important;
               }
 
               .sidebar-panel.collapsed .chip-content-wrap {
@@ -1588,10 +1357,6 @@ button.circuit-steps-header {
 
               .sidebar-toggle-btn:active {
                 transform: translateY(-50%) scale(0.92) !important;
-              }
-
-              .module-viewport-fade {
-                animation: moduleEnter 0.3s ease-out forwards;
               }
 
               @keyframes moduleEnter {
