@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { MODULE_LOADERS } from './moduleLoaders';
 import { MULTI_GATES_STEPS, multiGatesPose } from './MultiQubitGates';
 import { fadeOutSharedCanvas, showSharedCanvas, skipNextSnapshot, settleSharedCamera, getSharedCameraPose, onSharedCanvasRevealed } from './SharedCanvas';
-import { glideMs } from './handoff';
+import { glideMs, REST, HUB_CAMERA } from './handoff';
 import { STAGE_PHASES, STAGE_EVENTS } from './stagePhases';
 
 /**
@@ -70,7 +70,7 @@ export function useStageChoreography({ activeModuleId, isSidebarOpen, multiGates
       const zoomAt = glideMs(1000);
       const t1 = setTimeout(() => {
         setStagePhase('multi-zoom');
-        settleSharedCamera([0, 1.4, 13], [0, 0, 0], glideMs(1700));
+        settleSharedCamera(REST.exponential.camera.cam, REST.exponential.camera.target, glideMs(1700));
       }, zoomAt);
       const t2 = setTimeout(() => {
         done = true;
@@ -124,9 +124,9 @@ export function useStageChoreography({ activeModuleId, isSidebarOpen, multiGates
       const zoomAt = splitAt + glideMs(1000);
       const t1 = setTimeout(() => setStagePhase('multi-split'), splitAt);
       const pose = activeModuleId === 'entanglement'
-        ? { cam: [isSidebarOpen ? 0.6 : 0, 0.2, 14.2], target: [0, 0, 0] } // where the Entanglement scene rests
+        ? REST.entanglement.camera(isSidebarOpen) // where the Entanglement scene rests
         : activeModuleId === 'decoherence'
-          ? { cam: [0, 2.25, 20], target: [0, 1.65, 0] }                  // and Decoherence's
+          ? REST.decoherence.camera               // and Decoherence's
           : multiGatesPose(MULTI_GATES_STEPS[multiGatesStep]);
       const t1b = setTimeout(() => {
         setStagePhase('multi-zoom');
@@ -191,7 +191,7 @@ export function useStageChoreography({ activeModuleId, isSidebarOpen, multiGates
       let done = false;
       setStagePhase('closing');
       setJellyState('out');
-      settleSharedCamera([0, 0, 13], [0, 0, 0], 1100);
+      settleSharedCamera(HUB_CAMERA.cam, HUB_CAMERA.target, 1100);
       const t = setTimeout(() => {
         done = true;
         setInterferenceFromHub(false);
@@ -222,7 +222,7 @@ export function useStageChoreography({ activeModuleId, isSidebarOpen, multiGates
       let done = false;
       setStagePhase('closing');
       setJellyState('out');
-      settleSharedCamera([0, 0, 13], [0, 0, 0], 650);
+      settleSharedCamera(HUB_CAMERA.cam, HUB_CAMERA.target, 650);
       const t = setTimeout(() => {
         done = true;
         setJellyState('wait');
@@ -338,7 +338,7 @@ export function useStageChoreography({ activeModuleId, isSidebarOpen, multiGates
       // (A lone qubit has no second one to merge in, so it goes straight on to its hub place.)
       const lone = pairModule === 'exponential';
       const dec = pairModule === 'decoherence';
-      if (!dec) settleSharedCamera([0, 0, 13], [0, 0, 0], glideMs(lone ? 1100 : 1500));
+      if (!dec) settleSharedCamera(HUB_CAMERA.cam, HUB_CAMERA.target, glideMs(lone ? 1100 : 1500));
       const t = setTimeout(() => { setHubTarget([0, 0, 0]); setStagePhase(lone ? 'morph' : 'multi-merge'); }, glideMs(lone ? 1100 : dec ? 1250 : 1500));
       return () => clearTimeout(t);
     }

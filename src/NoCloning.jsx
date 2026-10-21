@@ -377,7 +377,7 @@ function ModelEntranceAnimator({ entranceRef, groupBit1, groupBit2, groupVS, gro
 }
 
 // ==========================================================
-export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted, fromHub = false, closing = false }) {
+export default function NoCloningModule({ isSidebarOpen, isGlobalMuted, fromHub = false, closing = false }) {
   // Interactive Story Steps:
   // 'intro' -> 'classical_focus' -> 'classical_copying' -> 'classical_done' -> 'quantum_focus' -> 'quantum_cnot' -> 'quantum_collapse' -> 'summary'
   const [step, setStep] = useState('intro');
@@ -417,7 +417,6 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted, f
   }, []);
   useEffect(() => clearPendingTimeouts, [clearPendingTimeouts]);
 
-  const isLight = theme === 'light';
   const currentSidebarWidth = isSidebarOpen ? 420 : 112;
 
   const uiBoundsStyle = {
@@ -716,9 +715,9 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted, f
               groupQubitB={groupQubitB}
             />
 
-            <ambientLight intensity={isLight ? 0.85 : 0.5} />
-            <pointLight position={[-10, 10, 10]} color={CC} intensity={isLight ? 14 : 9} distance={35} />
-            <pointLight position={[10, 10, 10]} color={CP} intensity={isLight ? 14 : 9} distance={35} />
+            <ambientLight intensity={0.5} />
+            <pointLight position={[-10, 10, 10]} color={CC} intensity={9} distance={35} />
+            <pointLight position={[10, 10, 10]} color={CP} intensity={9} distance={35} />
             <pointLight position={[0, -6, 12]} color="#ffffff" intensity={2.5} distance={25} />
 
             {/* ========================================================== */}
@@ -729,7 +728,6 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted, f
               <ClassicalBit
                 position={[0, 0, 0]}
                 scale={1.85}
-                theme={theme}
                 activeModule="nocloning"
                 flipMode={step === 'intro' || step === 'classical_focus' ? 'slow' : 'force-1'}
                 attemptCopy={false}
@@ -758,7 +756,6 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted, f
               <ClassicalBit
                 position={[0, 0, 0]}
                 scale={1.85}
-                theme={theme}
                 activeModule="nocloning"
                 isBlank={!isCopied}
                 flipMode={isCopied ? 'force-1' : 'static'}
@@ -800,7 +797,6 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted, f
               <QubitCore
                 position={[0, 0, 0]}
                 scale={1.55}
-                theme={theme}
                 activeModule="entanglement"
                 customVectorQuat={quatQubitA.current}
                 customGridColor={step === 'quantum_collapse' || step === 'summary' ? CR : CP}
@@ -834,7 +830,6 @@ export default function NoCloningModule({ theme, isSidebarOpen, isGlobalMuted, f
               <QubitCore
                 position={[0, 0, 0]}
                 scale={1.55}
-                theme={theme}
                 activeModule="entanglement"
                 customVectorQuat={quatQubitB.current}
                 customGridColor={step === 'quantum_cnot' ? CP : (step === 'quantum_collapse' || step === 'summary' ? CR : '#f59e0b')}

@@ -66,7 +66,7 @@ The app opens at <http://localhost:3000>. Other scripts:
 | `npm run build` | Optimized production build in `build/` |
 | `npm run preview` | Serves the production build locally |
 | `npm test` | Runs the unit tests (Vitest) |
-| `npm run test:e2e` | Builds the app and opens every module in headless Chromium (Playwright), once more at High quality to run the WebGL glass; run `npx playwright install chromium` once first |
+| `npm run test:e2e` | Builds the app and opens every module in headless Chromium (Playwright), once more at High quality to run the WebGL glass, and checks the sidebar; run `npx playwright install chromium` once first |
 | `npm run lint` | Lints the source (ESLint, fails on any warning) |
 | `npm run screenshots` | Builds the app and recaptures this README's screenshots (`docs/screenshots`) at High quality in headless Chromium |
 
@@ -91,6 +91,8 @@ The simulator is designed for desktop and tablet screens. On narrow windows (und
 | `src/curriculum.jsx` | The course: each module's title and its definition, comparison, formula and misconception cards |
 | `src/ModuleSidebarContent.jsx` | A module's page in the sidebar: its cards, its circuit, and the gate pages of the two gate modules |
 | `src/useStageChoreography.js`, `src/stagePhases.js` | The animated moves between the hub and each module, and the table of their phases |
+| `src/handoff.js` | Where the modules that take over the hub's scene keep their models and camera, read by both sides of each hand-over, and the glide rate of the moves |
+| `src/sidebarLayout.js` | The sidebar's width, which the overlays and scenes lay out around (checked against the stylesheet by its test) |
 | `src/CircuitDiagrams.jsx` | The circuit diagram each module shows in the sidebar |
 | `src/moduleLoaders.js` | The modules that load on demand, as their own chunks |
 | `src/KatexMath.jsx` | `InlineMath` / `BlockMath`: KaTeX formulas as React components |
@@ -119,7 +121,7 @@ Everything stays on the GPU in the scene's own context; the DOM element keeps on
 
 The CSS glass: the sidebar (and its toggle), the top bar (the Beginner / Advanced tabs and the mute button) and the buttons are liquid glass lenses there too. `src/glassLens.js` builds an SVG filter for each surface's size that runs inside `backdrop-filter`: the scene behind the glass is frosted in the middle and bent at the rim like the curved edge of a glass slab, and a fixed light from the top-left catches the rim as a reflection. Chrome does not load images inside `backdrop-filter`, so the filter makes its own displacement map from a blurred rectangle (the glass "height") with offsets and arithmetic composites. On large surfaces, only four thin rim strips run the costly steps.
 
-`LiquidGlass.js` applies the lens to a `::before` layer of each surface. On the element itself, its drop shadow would shift Chrome's filter coordinates. Lenses are built in idle time for each surface's size and are rebuilt after a resize settles; until then the surface shows plain frost. How the glass bends follows the quality tier (see below). Disabled (faded) buttons always use plain frost. Cards, tooltips and badges keep the frosted material with a lit rim. Refraction needs a Chromium-based browser; Safari and Firefox get the frosted glass without the bending.
+`LiquidGlass.js` applies the lens to a `::before` layer of each surface. On the element itself, its drop shadow would shift Chrome's filter coordinates. Lenses are built in idle time for each surface's size and are rebuilt after a resize settles; until then the surface shows plain frost. None is built while the WebGL glass draws the surface; it is queued once the WebGL glass lets go of it. How the glass bends follows the quality tier (see below). Disabled (faded) buttons always use plain frost. Cards, tooltips and badges keep the frosted material with a lit rim. Refraction needs a Chromium-based browser; Safari and Firefox get the frosted glass without the bending.
 
 The glass also moves like liquid (`src/glassMotion.js`, springs on CSS `scale` / `translate`):
 

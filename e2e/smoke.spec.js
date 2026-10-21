@@ -28,11 +28,40 @@ function collectErrors(page) {
   return errors;
 }
 
+// Waits until the stage rests on `id` (a module, or 'hub'): the move between
+// the hub and the module has ended and the cards are in or popping
+// (.canvas-container's data-stage and data-jelly-state, Simulator.jsx).
+async function waitForStage(page, id) {
+  const stage = page.locator('.canvas-container');
+  await expect(stage).toHaveAttribute('data-stage', id, { timeout: 60_000 });
+  await expect(stage).not.toHaveAttribute('data-jelly-state', /^(wait|out)$/, { timeout: 30_000 });
+}
+
+// Opens a module the way a link or the Back button would (the URL's hash), or the hub with ''.
+async function goTo(page, id) {
+  await page.evaluate((m) => { window.location.hash = m; }, id);
+  await waitForStage(page, id || 'hub');
+}
+
+// A returning visitor: no landing page, and the device test is skipped when
+// `tier` is given (it is saved for this runner's GPU, which quality.js checks).
+async function returningVisitor(page, tier) {
+  await page.addInitScript((t) => {
+    localStorage.setItem('quantumUI_initialized', 'true');
+    if (!t) return;
+    const gl = document.createElement('canvas').getContext('webgl');
+    const info = gl?.getExtension('WEBGL_debug_renderer_info');
+    const gpu = gl ? String(info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)) : 'none';
+    localStorage.setItem('quantumUI_device', JSON.stringify({ tier: t, why: 'test', gpu, at: Date.now() }));
+  }, tier);
+}
+
 async function expectModuleRendered(page, id) {
   await expect(page.locator('[data-module-load-error]')).toHaveCount(0);
   await expect(page.locator('.katex-error')).toHaveCount(0);
   await expect(page).toHaveTitle(`${MODULES[id]} · QASS`);
-  expect(await page.locator('canvas').count()).toBeGreaterThan(0);
+  // The module's own scene, not the star field behind the page.
+  await expect(page.locator('.canvas-container canvas').first()).toBeAttached();
 }
 
 test('the landing page boots into the hub', async ({ page }) => {
@@ -53,12 +82,9 @@ test('every module opens from the hub and closes back to it', async ({ page }) =
 
   for (const id of Object.keys(MODULES)) {
     await test.step(id, async () => {
-      // Open it the way a link or the Back button would (the URL's hash).
-      await page.evaluate((m) => { window.location.hash = m; }, id);
-      await page.waitForTimeout(6000); // the opening move and the cards' pop
+      await goTo(page, id);
       await expectModuleRendered(page, id);
-      await page.evaluate(() => { window.location.hash = ''; });
-      await page.waitForTimeout(5000); // the closing move
+      await goTo(page, '');
       await expect(page.locator('[data-module-load-error]')).toHaveCount(0);
       await expect(page).toHaveTitle('QASS · Quantum Algorithm State Simulator');
     });
@@ -68,10 +94,10 @@ test('every module opens from the hub and closes back to it', async ({ page }) =
 
 test('a module named in the URL opens directly after the device test', async ({ page }) => {
   const errors = collectErrors(page);
-  await page.addInitScript(() => localStorage.setItem('quantumUI_initialized', 'true'));
+  await returningVisitor(page);
   await page.goto('/#entanglement');
   await expect(page.locator('[data-module]')).toHaveCount(MODULE_COUNT, { timeout: 120_000 });
-  await page.waitForTimeout(4000);
+  await waitForStage(page, 'entanglement');
   await expectModuleRendered(page, 'entanglement');
   expect(errors).toEqual([]);
 });
@@ -82,7 +108,7 @@ test('a module named in the URL opens directly after the device test', async ({ 
 // marks them [data-gl].
 test('at High quality the scenes draw the glass, and modules open and close', async ({ page }) => {
   const errors = collectErrors(page);
-  await page.addInitScript(() => localStorage.setItem('quantumUI_initialized', 'true'));
+  await returningVisitor(page);
   await page.goto('/?quality=high');
   await expect(page.locator('[data-module]')).toHaveCount(MODULE_COUNT, { timeout: 120_000 });
   await expect(page.locator('html')).toHaveAttribute('data-quality', 'high');
@@ -97,12 +123,10 @@ test('at High quality the scenes draw the glass, and modules open and close', as
   // One module of each kind: the hub's own scene, a module loaded on demand, and a scene of its own.
   for (const id of ['gates', 'entanglement', 'superposition']) {
     await test.step(id, async () => {
-      await page.evaluate((m) => { window.location.hash = m; }, id);
-      await page.waitForTimeout(6000);
+      await goTo(page, id);
       await expectModuleRendered(page, id);
       await expect.poll(drawnGlass, { timeout: 15_000 }).toBeGreaterThan(0);
-      await page.evaluate(() => { window.location.hash = ''; });
-      await page.waitForTimeout(5000);
+      await goTo(page, '');
       await expect(page).toHaveTitle('QASS · Quantum Algorithm State Simulator');
     });
   }
@@ -110,14 +134,8 @@ test('at High quality the scenes draw the glass, and modules open and close', as
 });
 
 test("if the simulator's code can't be downloaded, the page says so and offers a reload", async ({ page }) => {
-  // A returning visitor whose device test is saved (for this runner's GPU) goes straight to the simulator.
-  await page.addInitScript(() => {
-    const gl = document.createElement('canvas').getContext('webgl');
-    const info = gl?.getExtension('WEBGL_debug_renderer_info');
-    const gpu = gl ? String(info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)) : 'none';
-    localStorage.setItem('quantumUI_initialized', 'true');
-    localStorage.setItem('quantumUI_device', JSON.stringify({ tier: 'low', why: 'test', gpu, at: Date.now() }));
-  });
+  // A returning visitor whose device test is saved goes straight to the simulator.
+  await returningVisitor(page, 'low');
   await page.route(/\/assets\/Simulator-[^/]*\.js$/, (route) => route.abort());
   await page.goto('/');
   const alert = page.locator('[data-module-load-error]');
@@ -132,8 +150,7 @@ test('Classical Bit vs Qubit: flip the bit, measure the qubit, count the results
   await page.goto('/');
   await page.getByText('Initialize Simulator').click();
   await expect(page.locator('[data-module]')).toHaveCount(MODULE_COUNT, { timeout: 120_000 });
-  await page.evaluate(() => { window.location.hash = 'bit-vs-qubit'; });
-  await page.waitForTimeout(6000);
+  await goTo(page, 'bit-vs-qubit');
 
   const bit = page.getByRole('region', { name: 'Classical bit' });
   const qubit = page.getByRole('region', { name: 'Qubit' });
@@ -157,10 +174,10 @@ test('Classical Bit vs Qubit: flip the bit, measure the qubit, count the results
 
 test('Dirac Notation: the caption walks the four shots, replays and starts over', async ({ page }) => {
   const errors = collectErrors(page);
-  await page.addInitScript(() => localStorage.setItem('quantumUI_initialized', 'true'));
+  await returningVisitor(page);
   await page.goto('/#dirac-notation');
   await expect(page.locator('[data-module]')).toHaveCount(MODULE_COUNT, { timeout: 120_000 });
-  await page.waitForTimeout(4000);
+  await waitForStage(page, 'dirac-notation');
 
   const caption = page.getByRole('region', { name: 'Dirac notation' });
   const titles = ['The ket', 'The ket |1⟩', 'Superposition', 'The bra ⟨ψ|'];
@@ -177,10 +194,10 @@ test('Dirac Notation: the caption walks the four shots, replays and starts over'
 
 test('Superposition: the cards build up, the sphere measures, and the state can be prepared again', async ({ page }) => {
   const errors = collectErrors(page);
-  await page.addInitScript(() => localStorage.setItem('quantumUI_initialized', 'true'));
+  await returningVisitor(page);
   await page.goto('/#superposition');
   await expect(page.locator('[data-module]')).toHaveCount(MODULE_COUNT, { timeout: 120_000 });
-  await page.waitForTimeout(4000);
+  await waitForStage(page, 'superposition');
 
   const next = page.locator('.quantum-nav-btn.next-btn');
   await expect(page.locator('.sp-card.sp-tl')).toContainText('The Ground State');
@@ -192,10 +209,59 @@ test('Superposition: the cards build up, the sphere measures, and the state can 
   await expect(page.locator('.sp-card.sp-tr')).toContainText('Infinite Possibilities');
   await next.click();
   await expect(page.locator('.sp-card.sp-br')).toContainText('Collapse: Your Turn');
-  // Measure State: the state collapses to |0> or |1>
+  // Measure State: the state collapses to |0> or |1>. The collapse is an animation
+  // in the scene's own time, which runs slowly at a software renderer's frame rate.
   await next.click();
-  await expect(page.locator('.sp-card.sp-br')).toContainText('Wave Function Collapsed', { timeout: 15_000 });
+  await expect(page.locator('.sp-card.sp-br')).toContainText('Wave Function Collapsed', { timeout: 90_000 });
   await page.locator('.sp-again').click();
   await expect(page.locator('.sp-card.sp-br')).toContainText('Collapse: Your Turn');
+  expect(errors).toEqual([]);
+});
+
+test("the sidebar: the circuit opens from the keyboard and draws the module's register; Advanced says it's coming", async ({ page }) => {
+  const errors = collectErrors(page);
+  await returningVisitor(page, 'low');
+  await page.goto('/#exponential');
+  await waitForStage(page, 'exponential');
+  await page.locator('.sidebar-toggle-btn').click();
+  const sidebar = page.locator('.sidebar-panel');
+
+  // The circuit card is a real button: Enter opens it, Space closes it.
+  const header = sidebar.getByRole('button', { name: 'Circuit Diagram' });
+  await expect(header).toHaveAttribute('aria-expanded', 'false');
+  await header.focus();
+  await page.keyboard.press('Enter');
+  await expect(header).toHaveAttribute('aria-expanded', 'true');
+  const summary = sidebar.locator('.liquid-exp-summary');
+  await expect(summary).toContainText('1 Qubit = 2¹ Basis States');
+
+  // It draws the register the module has: pick 3 qubits, then put them all in superposition.
+  await page.locator('.quantum-pill-btn', { hasText: /^3Q/ }).click();
+  await expect(summary).toContainText('3 Qubits = 2³ Basis States');
+  await expect(summary).toContainText('1 of 8 basis states');
+  await expect(sidebar.locator('.liquid-multi-row')).toHaveCount(3);
+  await page.getByRole('button', { name: '2. Superposition Explosion' }).click();
+  await page.getByRole('button', { name: /Apply Hadamard to All/ }).click();
+  await expect(summary).toContainText('8 amplitudes, all equal');
+  await expect(sidebar.locator('.liquid-gate-h')).toHaveCount(3);
+
+  await header.focus();
+  await page.keyboard.press(' ');
+  await expect(header).toHaveAttribute('aria-expanded', 'false');
+  await expect(summary).toHaveCount(0);
+
+  // Advanced isn't built yet: the tab says so and offers the way back.
+  await page.getByRole('tab', { name: 'Advanced' }).click();
+  await expect(sidebar.locator('.sidebar-advanced')).toContainText('Advanced mode is coming soon');
+  await sidebar.getByRole('button', { name: 'Back to Beginner' }).click();
+  await expect(page.getByRole('tab', { name: 'Beginner' })).toHaveAttribute('aria-selected', 'true');
+  await expect(header).toBeVisible();
+
+  // Decoherence's and No-Cloning's pages carry no buttons for scenes that ignored them.
+  for (const [id, gone] of [['decoherence', 'Thermal Noise Injection'], ['nocloning', 'Copy Operation']]) {
+    await goTo(page, id);
+    await expect(sidebar.getByRole('button', { name: 'Circuit Diagram' })).toBeVisible();
+    await expect(sidebar.getByText(gone)).toHaveCount(0);
+  }
   expect(errors).toEqual([]);
 });

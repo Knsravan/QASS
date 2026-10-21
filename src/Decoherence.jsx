@@ -15,7 +15,7 @@ import { QualityComposer } from './QualityScene';
 import { SharedCanvas } from './SharedCanvas';
 
 
-import { handoff } from './handoff';
+import { handoff, REST } from './handoff';
 import { densityMatrix } from './quantumMath';
 import { CT, CA, CR, CP, CB, CG, CW, SPHERE_R, MODEL_Y, PURE_POS, NOISY_POS, arrowGrow, BlochSphereUnit } from './DecoSphereUnit';
 import { STAGE_EVENTS } from './stagePhases';
@@ -38,7 +38,7 @@ const STEP_NOISE = {
 
 // Cinematic drone camera waypoints (Positioned for zero UI overlap)
 const CAM_WP = {
-  intro:               { pos: [0,    MODEL_Y + 0.6, 20.0], look: [0,    MODEL_Y, 0] },
+  intro:               { pos: REST.decoherence.camera.cam, look: REST.decoherence.camera.target }, // the resting view
   what_is_decoherence: { pos: [3.8,  MODEL_Y + 0.3, 13.0], look: [5.8,  MODEL_Y, 0] },
   density_matrix:      { pos: [7.2,  MODEL_Y + 0.8, 10.2], look: [5.8,  MODEL_Y, 0] },
   noise_types:         { pos: [6.8,  MODEL_Y + 0.6, 11.2], look: [5.8,  MODEL_Y, 0] },
@@ -449,7 +449,7 @@ const Badge = ({ icon: Icon, text, color: bc }) => {
 // ============================================================
 // MAIN MODULE
 // ============================================================
-export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted, onNavigateToModule, fromHub = false }) {
+export default function DecoherenceModule({ isSidebarOpen, isGlobalMuted, onNavigateToModule, fromHub = false }) {
   const audio = useDecoherenceAudio(isGlobalMuted);
   const [step, setStep]                           = useState('intro');
   const [introTooltipVisible, setIntroTooltipVisible] = useState(false);
@@ -676,7 +676,7 @@ export default function DecoherenceModule({ theme, isSidebarOpen, isGlobalMuted,
       {/* 3D CANVAS WITH CAMERA SHIFTER */}
       <SharedCanvas
         sceneId="bit-scene"
-        camera={{ position: [0, MODEL_Y + 0.6, 20.0], fov: 44 }}
+        camera={{ position: REST.decoherence.camera.cam, fov: 44 }}
         gl={SCENE_GL}
         style={{ position: 'absolute', inset: 0, zIndex: 1 }}
       >

@@ -229,6 +229,7 @@ function setLensLevel(level) {
       queueLens(node, node.dataset.lgShape);
     } else {
       lensQueue.delete(node);
+      parked.delete(node);
       node.style.setProperty('--lg-backdrop', node._lgBase);
     }
   }
@@ -259,6 +260,11 @@ export function resetLensFallback() {
 
 const lensQueue = new Map(); // node → shape key it was queued for
 let lensHandle = 0;
+// Glass the scene draws in WebGL ([data-gl], glassGL.js) doesn't show its CSS
+// lens (src/styles/webgl-glass.css), so none is built for it: it waits here,
+// and is queued again once the WebGL glass lets it go.
+const parked = new WeakMap(); // node → shape key
+const drawnInWebGL = (node) => node.hasAttribute('data-gl');
 const idle = window.requestIdleCallback
   ? (fn) => window.requestIdleCallback(fn, { timeout: 400 })
   : (fn) => setTimeout(() => fn({ timeRemaining: () => 8, didTimeout: true }), 60);
@@ -271,6 +277,7 @@ function drainLensQueue(deadline) {
     if (built > 0 && deadline.timeRemaining() < 8) break;
     lensQueue.delete(node);
     if (!node.isConnected || node.dataset.lgShape !== key) continue;
+    if (drawnInWebGL(node)) { parked.set(node, key); continue; }
     const { w, h, radius = 0, blur, saturation } = node._lgPending;
     if (!lensAllowed(w, h)) continue;
     node.style.setProperty('--lg-backdrop', `url(#${lensFilterId(w, h, blur, Math.round(radius))}) saturate(${saturation})`);
@@ -280,8 +287,23 @@ function drainLensQueue(deadline) {
 }
 
 function queueLens(node, key) {
+  parked.delete(node);
   lensQueue.set(node, key);
   if (!lensHandle) lensHandle = idle(drainLensQueue);
+}
+
+// The WebGL glass let this element go: it shows its CSS lens again, at once
+// if one of its size is built already.
+function unpark(node) {
+  const key = parked.get(node);
+  if (!key || drawnInWebGL(node)) return;
+  parked.delete(node);
+  if (node.dataset.lgShape !== key || !node._lgPending) return;
+  const { w, h, radius = 0, blur, saturation } = node._lgPending;
+  if (!lensAllowed(w, h)) return;
+  const cached = filterCache.get(lensKey(w, h, blur, Math.round(radius)));
+  if (cached) node.style.setProperty('--lg-backdrop', `url(#${cached}) saturate(${saturation})`);
+  else queueLens(node, key);
 }
 
 // ─── Applying the material ──────────────────────────────────────────────────
@@ -386,7 +408,7 @@ function followResize(node) {
     liveNodes.clear();
     for (const [n, w, h] of sizes) {
       const v = n._lgVariant;
-      if (!v || w < 4 || h < 4) continue;
+      if (!v || w < 4 || h < 4 || drawnInWebGL(n)) continue;
       if (!lensAllowed(w, h)) { if (n._lgBase) n.style.setProperty('--lg-backdrop', n._lgBase); continue; }
       n.style.setProperty('--lg-backdrop', `url(#${lensFilterId(w, h, v.blur, Math.round(cornerRadius(n, w, h)))}) saturate(${v.saturation})`);
     }
@@ -488,6 +510,8 @@ export function startLiquidGlass(root = document.body) {
           lensed.delete(n);
           n.querySelectorAll?.('.lg-lensed').forEach((c) => lensed.delete(c));
         });
+      } else if (record.attributeName === 'data-gl') {
+        unpark(record.target);
       } else if (record.target.nodeType === 1) {
         const node = record.target;
         if (node._lgClasses) {
@@ -503,7 +527,7 @@ export function startLiquidGlass(root = document.body) {
       }
     }
   });
-  mutationObserver.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+  mutationObserver.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'data-gl'] });
   setLensLevel(getQuality().lens);
   const stopWatching = subscribeQuality((q) => setLensLevel(q.lens));
 

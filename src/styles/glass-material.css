@@ -5,8 +5,7 @@
    specular rim into --lg-rim; this layer supplies the rest of the recipe:
    surface tint, soft shadow, content colour and spring press response.
    ============================================================================= */
-:root,
-[data-theme="dark"] {
+:root {
   --lg-surface: rgba(18, 18, 18, 0.40);        /* #121212 @ SURFACE_OPACITY */
   --lg-surface-thick: rgba(18, 18, 18, 0.56);
   --lg-surface-hover: rgba(34, 34, 38, 0.46);
@@ -19,18 +18,6 @@
   --lg-inset-fill: rgba(255, 255, 255, 0.04);
   --lg-spring-press: linear(0, 0.0902, 0.2642, 0.4422, 0.594, 0.7127, 0.8009, 0.8641, 0.9084, 0.9389, 0.9596, 0.9734, 0.9826, 0.9887, 0.9927, 0.9953, 0.997, 0.9981, 1);
   --lg-spring-glass: linear(0, 0.0537, 0.1795, 0.3358, 0.4949, 0.64, 0.7623, 0.8588, 0.9305, 0.9802, 1.0118, 1.0296, 1.0372, 1.0381, 1.0349, 1.0295, 1.0234, 1.0174, 1.0121, 1.0077, 1.0044, 1.0019, 1.0003, 0.9993, 0.9987, 0.9985, 0.9986, 0.9987, 0.9989, 0.9992, 1);
-}
-
-[data-theme="light"] {
-  --lg-surface: rgba(250, 250, 250, 0.40);
-  --lg-surface-thick: rgba(250, 250, 250, 0.56);
-  --lg-surface-hover: rgba(255, 255, 255, 0.52);
-  --lg-content: #000000;
-  --lg-content-secondary: rgba(0, 0, 0, 0.65);
-  --lg-indicator: rgba(255, 255, 255, 0.5);
-  --lg-edge: rgba(0, 0, 0, 0.08);
-  --lg-row-hover: rgba(0, 0, 0, 0.05);
-  --lg-inset-fill: rgba(0, 0, 0, 0.03);
 }
 
 /* ── The surface ────────────────────────────────────────────────────────── */

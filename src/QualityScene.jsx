@@ -1,7 +1,7 @@
 import React, { Children, cloneElement, useEffect, useMemo, useSyncExternalStore } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { EffectComposer, Bloom, ChromaticAberration, FXAA } from '@react-three/postprocessing';
+import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing';
 import { getQuality, subscribeQuality } from './quality';
 import { GLASS_FRAGMENT, GLASS_VERTEX, MAX_GLASS, glassHold, fillGlassUniforms, glassEnabled, glassFrame, registerGlassCanvas } from './glassGL';
 
@@ -12,9 +12,9 @@ import { GLASS_FRAGMENT, GLASS_VERTEX, MAX_GLASS, glassHold, fillGlassUniforms, 
  *   keeps to a chosen frame-rate limit. With `background`, it draws only as
  *   often as the level allows (the slow star field doesn't need 60 frames a
  *   second).
- * - QualityComposer: an <EffectComposer> that works the glow out at the
- *   tier's size, adds edge smoothing (FXAA) where there's no multisampling,
- *   leaves the colour fringe to the high level and drops out when glow is off.
+ * - QualityComposer: a multisampled <EffectComposer> that works the glow out
+ *   at the tier's size, leaves the colour fringe to the high level and drops
+ *   out when glow is off.
  * - useQuality(): the current tier's settings, re-rendering on a change.
  * - GlassLayer (in every QualityCanvas): draws the liquid glass of the
  *   glass elements sitting on this scene, over the finished frame (glassGL.js).
@@ -173,7 +173,6 @@ export function QualityComposer({ children, ...props }) {
   return (
     <EffectComposer multisampling={q.msaa} {...props} key={q.tier}>
       {passes}
-      {q.fxaa && <FXAA />}
     </EffectComposer>
   );
 }

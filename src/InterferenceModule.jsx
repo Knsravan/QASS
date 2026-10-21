@@ -311,7 +311,7 @@ function IntroLights({ ramp }) {
   );
 }
 
-function InterferenceScene({ theme, stage, subStage, setSubStage, interferencePhase, isSidebarOpen, audio, fromHub = false }) {
+function InterferenceScene({ stage, subStage, setSubStage, interferencePhase, isSidebarOpen, audio, fromHub = false }) {
   const { camera } = useThree();
   const groupRef = useRef();
   const cyanWaveRef = useRef();
@@ -436,7 +436,6 @@ function InterferenceScene({ theme, stage, subStage, setSubStage, interferencePh
       <group ref={introRef}>
       <group ref={sphereGroupRef}>
         <BlochSphere
-          theme={theme}
           activeModule="interference"
           interferencePhase={interferencePhase}
           interferenceStep={interferenceStep}
@@ -588,7 +587,7 @@ const MiniWaveRibbon = ({ isCrest, color }) => {
 };
 
 // --- DOM Overlays ---
-function InterferenceOverlay({ theme, stage, setStage, subStage, setSubStage, interferencePhase, setPhase, isSidebarOpen, audio, onNext, onPrev }) {
+function InterferenceOverlay({ stage, setStage, subStage, setSubStage, interferencePhase, setPhase, isSidebarOpen, audio, onNext, onPrev }) {
   const [isButtonHovered, setIsButtonHovered] = useState(false);
   const [isAutoPopped, setIsAutoPopped] = useState(true);
   // Tracks which audio zone the phase slider currently sits in, so the
@@ -1367,7 +1366,7 @@ function InterferenceOverlay({ theme, stage, setStage, subStage, setSubStage, in
 }
 
 // --- Main Module Component ---
-export default function InterferenceModule({ theme, isSidebarOpen, isGlobalMuted, fromHub = false }) {
+export default function InterferenceModule({ isSidebarOpen, isGlobalMuted, fromHub = false }) {
   const [stage, setStage] = useState(1);
   const [subStage, setSubStage] = useState(0); 
   const [interferencePhase, setInterferencePhase] = useState(0); 
@@ -1442,7 +1441,6 @@ export default function InterferenceModule({ theme, isSidebarOpen, isGlobalMuted
           )}
           <Suspense fallback={null}>
             <InterferenceScene 
-              theme={theme}
               stage={stage}
               subStage={subStage}
               setSubStage={setSubStage}

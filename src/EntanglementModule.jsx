@@ -15,7 +15,7 @@ import { SCENE_GL } from './sceneGl';
 import GlassSlider from './GlassSlider';
 import { QualityComposer } from './QualityScene';
 import { SharedCanvas } from './SharedCanvas';
-import { handoff } from './handoff';
+import { handoff, REST } from './handoff';
 import { BELL_OUTCOMES } from './quantumMath';
 
 
@@ -87,15 +87,13 @@ function EntanglementScene({
   shockwaveActive,
   shockwaveRef,
   onMeasureQubit,
-  theme,
   isSidebarOpen
 }) {
   const canMeasure = stage === 3 && isEntangled && !measuredState;
-  const isLight = theme === 'light';
   const { camera } = useThree();
 
   // Dynamic positions based on distance slider
-  const baseSpacing = 4.6;
+  const baseSpacing = REST.entanglement.pairX;
   const currentSpacing = baseSpacing * distanceMultiplier;
   const posA = useMemo(() => [-currentSpacing, 0, 0], [currentSpacing]);
   const posB = useMemo(() => [currentSpacing, 0, 0], [currentSpacing]);
@@ -144,12 +142,11 @@ function EntanglementScene({
 
   // Camera tracking and centered positioning
   useEffect(() => {
-    const targetZ = 14.2 + (distanceMultiplier - 1.0) * 8;
-    const targetX = isSidebarOpen ? 0.6 : 0;
+    const [x, y, z] = REST.entanglement.camera(isSidebarOpen).cam; // the resting view; further back as the pair spreads
     gsap.to(camera.position, {
-      x: targetX,
-      y: 0.2,
-      z: targetZ,
+      x,
+      y,
+      z: z + (distanceMultiplier - 1.0) * 8,
       duration: 1.2,
       ease: 'power2.out'
     });
@@ -157,16 +154,15 @@ function EntanglementScene({
 
   return (
     <group position={[0, 0, 0]}>
-      <ambientLight intensity={isLight ? 0.8 : 0.5} />
-      <pointLight position={[8, 12, 8]} color="#00f2fe" intensity={isLight ? 10 : 8} distance={30} />
-      <pointLight position={[-8, -12, -8]} color="#f093fb" intensity={isLight ? 10 : 8} distance={30} />
+      <ambientLight intensity={0.5} />
+      <pointLight position={[8, 12, 8]} color="#00f2fe" intensity={8} distance={30} />
+      <pointLight position={[-8, -12, -8]} color="#f093fb" intensity={8} distance={30} />
 
       {/* ── QUBIT A (ALICE) ── */}
       <group position={posA}>
         <QubitCore
           position={[0, 0, 0]}
-          scale={1.15}
-          theme={isLight ? 'light' : 'dark'}
+          scale={REST.entanglement.scale}
           activeModule="entanglement"
           customVectorQuat={quatAlice}
           emissiveColor={measuredState ? (measuredState[0] === '0' ? '#00f2fe' : '#f093fb') : bellState.color}
@@ -241,8 +237,7 @@ function EntanglementScene({
       <group position={posB}>
         <QubitCore
           position={[0, 0, 0]}
-          scale={1.15}
-          theme={isLight ? 'light' : 'dark'}
+          scale={REST.entanglement.scale}
           activeModule="entanglement"
           customVectorQuat={quatBob}
           emissiveColor={measuredState ? (measuredState[1] === '0' ? '#00f2fe' : '#f093fb') : bellState.color}
@@ -1043,7 +1038,7 @@ function EntanglementOverlay({
 // ==========================================
 // MAIN ENTANGLEMENT MODULE COMPONENT
 // ==========================================
-export default function EntanglementModule({ theme, isSidebarOpen, isGlobalMuted }) {
+export default function EntanglementModule({ isSidebarOpen, isGlobalMuted }) {
   const [stage, setStage] = useState(1);
   const [subStage, setSubStage] = useState(0);
   const [bellState, setBellState] = useState(BELL_STATES[0]);
@@ -1227,7 +1222,6 @@ export default function EntanglementModule({ theme, isSidebarOpen, isGlobalMuted
               shockwaveActive={shockwaveActive}
               shockwaveRef={shockwaveRef}
               onMeasureQubit={triggerMeasure}
-              theme={theme}
               isSidebarOpen={isSidebarOpen}
             />
           </Suspense>

@@ -22,6 +22,7 @@ import { QualityComposer } from './QualityScene';
 import { SharedCanvas } from './SharedCanvas';
 import { stateVectorRAM } from './quantumMath';
 import { STAGE_EVENTS } from './stagePhases';
+import { REST } from './handoff';
 
 
 // ==========================================
@@ -37,8 +38,7 @@ const MAX_QUBITS = 5;
 function AnimatedQubitItem({
   index,
   qubitCount,
-  isSuperposed,
-  theme
+  isSuperposed
 }) {
   const groupRef = useRef();
   const hasInitializedRef = useRef(false);
@@ -49,7 +49,7 @@ function AnimatedQubitItem({
     if (!isActive) {
       return { targetX: 0, targetScale: 0.0001 };
     }
-    if (qubitCount === 1) return { targetX: 0, targetScale: 1.15 };
+    if (qubitCount === 1) return { targetX: 0, targetScale: REST.exponential.scale }; // the size the hub's qubit zooms to
     if (qubitCount === 2) return { targetX: index === 0 ? -3.4 : 3.4, targetScale: 1.1 };
     if (qubitCount === 3) {
       const xs = [-4.2, 0, 4.2];
@@ -89,7 +89,6 @@ function AnimatedQubitItem({
       <QubitCore
         position={[0, 0, 0]}
         scale={1.0}
-        theme={theme}
         activeModule="exponential"
         customVectorQuat={currentQuat}
         emissiveColor={isSuperposed ? '#c084fc' : '#00f2fe'}
@@ -246,17 +245,17 @@ function AnimatedConduit({ index, qubitCount, isSuperposed }) {
 // ==========================================
 // 3. 3D MULTI-QUBIT PROCESSOR ARRAY CONTAINER
 // ==========================================
-function MultiQubitProcessor({ qubitCount, isSuperposed, theme }) {
+function MultiQubitProcessor({ qubitCount, isSuperposed }) {
   const groupRef = useRef();
 
   useFrame((state) => {
     if (groupRef.current) {
-      groupRef.current.position.y = 0.6 + Math.sin(state.clock.getElapsedTime() * 1.2) * 0.06;
+      groupRef.current.position.y = REST.exponential.y + Math.sin(state.clock.getElapsedTime() * 1.2) * 0.06;
     }
   });
 
   return (
-    <group ref={groupRef} position={[0, 0.6, 0]}>
+    <group ref={groupRef} position={[0, REST.exponential.y, 0]}>
       {/* 5 Seamless Animated Qubit Instances */}
       {Array.from({ length: MAX_QUBITS }).map((_, i) => (
         <AnimatedQubitItem
@@ -264,7 +263,6 @@ function MultiQubitProcessor({ qubitCount, isSuperposed, theme }) {
           index={i}
           qubitCount={qubitCount}
           isSuperposed={isSuperposed}
-          theme={theme}
         />
       ))}
 
@@ -665,8 +663,9 @@ function CameraDroneController({ stage, qubitCount, cosmicMilestone = 50 }) {
     // Stage 4 entry is driven by the swoop tween; afterwards the camera is free
     if (stage === 4 || !isGlidingRef.current) return;
 
-    let targetZ = 13.0 + (qubitCount - 1) * 0.9;
-    let targetY = 1.4;
+    const rest = REST.exponential.camera.cam; // the 1-qubit view, where the hub's camera hands over
+    let targetZ = rest[2] + (qubitCount - 1) * 0.9;
+    let targetY = rest[1];
 
     if (stage === 2) {
       targetY = 2.2;
@@ -707,7 +706,6 @@ function ExponentialScene({
   targetStateIndex,
   isInterferenceActive,
   cosmicMilestone,
-  theme,
   fromHub,
   closing
 }) {
@@ -735,7 +733,6 @@ function ExponentialScene({
       <MultiQubitProcessor
         qubitCount={qubitCount}
         isSuperposed={isSuperposed}
-        theme={theme}
       />
 
       {/* 3D Hilbert Space Constellation (Mathematical Universe & Cosmic Galaxy) */}
@@ -765,11 +762,11 @@ function ExponentialScene({
 // ==========================================
 // 7. 2D INTERACTIVE OVERLAY & FROSTED GLASS HUD
 // ==========================================
-export default function ExponentialModule({ theme = 'dark', isSidebarOpen = true, isGlobalMuted = false, fromHub = false, closing = false, onRegisterChange }) {
+export default function ExponentialModule({ isSidebarOpen = true, isGlobalMuted = false, fromHub = false, closing = false, onRegisterChange }) {
   const [stage, setStage] = useState(1);
   const [qubitCount, setQubitCount] = useState(1);
   const [isSuperposed, setIsSuperposed] = useState(false);
-  // The sidebar's circuit draws this register (App.jsx).
+  // The sidebar's circuit draws this register (ModuleSidebarContent.jsx).
   useEffect(() => { onRegisterChange?.({ qubits: qubitCount, superposed: isSuperposed }); }, [qubitCount, isSuperposed, onRegisterChange]);
   const [isInterferenceActive, setIsInterferenceActive] = useState(false);
   const [cosmicMilestone, setCosmicMilestone] = useState(50); // 50 or 300
@@ -864,7 +861,6 @@ export default function ExponentialModule({ theme = 'dark', isSidebarOpen = true
             targetStateIndex={targetStateIndex}
             isInterferenceActive={isInterferenceActive}
             cosmicMilestone={cosmicMilestone}
-            theme={theme}
             fromHub={fromHub}
             closing={closing}
           />
