@@ -40,6 +40,7 @@ import { useStageChoreography } from './useStageChoreography';
 import { hubScenePose, SHARED_SCENE_STAGES, SIDE_TITLES } from './stagePhases';
 import BitVsQubitPanel from './BitVsQubitPanel';
 import { bvqLive } from './bitVsQubitLive';
+import { motionReduced } from './quality';
 
 const InterferenceModule = lazy(MODULE_LOADERS.interference);
 const EntanglementModule = lazy(MODULE_LOADERS.entanglement);
@@ -133,9 +134,9 @@ const GatesModuleView = ({ step, applied, isSidebarOpen, uiBoundsStyle, onToggle
 // ==========================================
 // THE SIMULATOR (mounted by App.jsx once the landing page is done)
 // ==========================================
-// `isMobile`: the window is too narrow; the simulator keeps its state and
+// `isMobile`: a phone-sized touch screen; the simulator keeps its state and
 // shows the blocker until it is wide again.
-export default function Simulator({ isMobile }) {
+export default function Simulator({ isMobile, onContinueAnyway }) {
   const [learningMode, setLearningMode] = useState(() => readStorage('quantumUI_learningMode') === 'advanced' ? 'advanced' : 'beginner');
   const [activeModuleId, setActiveModuleId] = useState(moduleFromHash); // the hub unless the URL names a module
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -200,6 +201,7 @@ export default function Simulator({ isMobile }) {
 
   const [idleFactIdx, setIdleFactIdx] = useState(0);
   const [isFactFading, setIsFactFading] = useState(false);
+  const factHeld = useRef(false);
 
   // Keep the URL in step with the open module. Each change is a history
   // entry, so Back returns to the previous module or the hub.
@@ -285,6 +287,9 @@ export default function Simulator({ isMobile }) {
     if (!activeModuleId && !isMobile) {
       if (!isGlobalMuted) playIdleAmbient();
       interval = setInterval(() => {
+        // Held while the pointer or focus is on it, and with reduced motion: the fact
+        // (and where "Jump to" leads) must not change under the reader.
+        if (factHeld.current || motionReduced()) return;
         setIsFactFading(true);
         fadeTimeout = setTimeout(() => {
           setIdleFactIdx((prev) => (prev + 1) % IDLE_FACTS.length);
@@ -333,6 +338,29 @@ export default function Simulator({ isMobile }) {
     if (stageId !== 'exponential') setExpRegister(EMPTY_REGISTER);
   }, [stageId]);
 
+  // Keyboard users: when the control they were on goes away (a step's button replaced,
+  // a card unmounted) or is disabled, focus lands on the lesson's own controls (its
+  // Next / Prev, else the stage itself) instead of falling back to the top of the page.
+  const stageRef = useRef(null);
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return undefined;
+    let last = null;
+    const onIn = (e) => { last = e.target; };
+    const rescue = () => {
+      const lost = last && (!last.isConnected || last.disabled);
+      const active = document.activeElement;
+      if (!lost || (active && active !== document.body && active !== last)) return;
+      last = null;
+      const home = stage.querySelector('.quantum-nav-btn:not([disabled]):not(.disabled)') || stage;
+      home.focus({ preventScroll: true });
+    };
+    const watch = new MutationObserver(rescue);
+    watch.observe(stage, { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled'] });
+    stage.addEventListener('focusin', onIn);
+    return () => { watch.disconnect(); stage.removeEventListener('focusin', onIn); };
+  }, []);
+
   // The Dirac step whose sound last played (entering plays step 0 itself).
   const prevDiracStepRef = useRef(0);
   useEffect(() => {
@@ -379,7 +407,7 @@ export default function Simulator({ isMobile }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [diracStep]);
 
-  if (isMobile) return <MobileBlocker />;
+  if (isMobile) return <MobileBlocker onContinue={onContinueAnyway} />;
 
   // ==========================================
   // MAIN SIMULATOR UI
@@ -451,7 +479,7 @@ export default function Simulator({ isMobile }) {
               )}
             </div>
 
-            <div className="sidebar-body">
+            <div className="sidebar-body" id="sidebar-mode-panel" role="tabpanel" aria-label={learningMode === 'advanced' ? 'Advanced' : 'Beginner'}>
 
             {learningMode === 'beginner' ? (
               <SidebarPages
@@ -555,7 +583,10 @@ export default function Simulator({ isMobile }) {
         {/* ── Right Content & 3D Canvas (flex-grow: 1, naturally centered) ──
             data-stage: the module on stage (or the hub); with data-jelly-state,
             what the smoke tests wait on (e2e/smoke.spec.js). */}
-        <div className="canvas-container" data-stage={stageId || 'hub'} data-jelly-state={jellyState || undefined}>
+        <div ref={stageRef} tabIndex={-1} aria-label={activeModule?.title || 'Hub'} className="canvas-container" data-stage={stageId || 'hub'} data-jelly-state={jellyState || undefined}>
+
+          {/* The open module's title as the page's main heading (the hub shows its own). */}
+          {activeModule && <h1 className="visually-hidden">{activeModule.title}</h1>}
 
           {/* Floating chrome sits above every module's overlay layer (those use
               uiBoundsStyle's z-index 10 too, and render later in the DOM). */}
@@ -563,6 +594,7 @@ export default function Simulator({ isMobile }) {
             {/* Liquid Glass tab bar: learning mode tabs + standalone audio circle */}
             <GlassNavBar
               ariaLabel="Learning mode"
+              panelId="sidebar-mode-panel"
               tabs={LEARNING_MODE_TABS}
               selectedIndex={learningMode === 'advanced' ? 1 : 0}
               onSelect={(index) => setLearningMode(LEARNING_MODE_TABS[index].key)}
@@ -571,6 +603,15 @@ export default function Simulator({ isMobile }) {
                 active: !isGlobalMuted,
                 onClick: handleToggleGlobalAudio,
                 icon: <MorphAudioIcon isMuted={isGlobalMuted} size={22} color="currentColor" />,
+              }}
+              // Display & accessibility, reachable with the sidebar collapsed too (it opens the sidebar).
+              extra={{
+                label: 'Display & accessibility',
+                active: displayOpen,
+                onClick: () => {
+                  if (!isSidebarOpen) { setIsSidebarOpen(true); setDisplayOpen(true); } else setDisplayOpen((o) => !o);
+                },
+                icon: <DisplayPanelIcon />,
               }}
             />
 
@@ -798,27 +839,25 @@ export default function Simulator({ isMobile }) {
                 </div>
                 {/* Contextual Smart Default CTA */}
                 <div data-jelly style={{ '--j': 2, marginTop: '24px', pointerEvents: 'auto' }}>
-                  <div
-                    className="idle-hud-cta glass-interactive"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setActiveModuleId(lastClosedModuleId || 'bit-vs-qubit')}
-                    onKeyDown={(e) => {
-                      if (e.target !== e.currentTarget || (e.key !== 'Enter' && e.key !== ' ')) return;
-                      e.preventDefault();
-                      setActiveModuleId(lastClosedModuleId || 'bit-vs-qubit');
-                    }}
-                  >
-                    <MorphIcon icon={Compass} spring="smooth" strokeWidth={1.5} size={16} color="#38bdf8" />
-                    <span style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '13.5px', fontFamily: "'Space Grotesk', 'Plus Jakarta Sans', 'Inter', sans-serif" }}>
-                      {lastClosedModuleId ? `Continue: ${curriculumData.find(m => m.id === lastClosedModuleId)?.title}` : 'New here? Start with Classical Bit vs Qubit'}
-                    </span>
+                  {/* The pill holds two buttons side by side (a button can't hold another). */}
+                  <div className="idle-hud-cta glass-interactive">
+                    <button
+                      type="button"
+                      onClick={() => setActiveModuleId(lastClosedModuleId || 'bit-vs-qubit')}
+                      style={{ display: 'flex', alignItems: 'center', gap: 'inherit', background: 'none', border: 'none', padding: 0, margin: 0, color: 'inherit', font: 'inherit', cursor: 'pointer' }}
+                    >
+                      <MorphIcon icon={Compass} spring="smooth" strokeWidth={1.5} size={16} color="#38bdf8" />
+                      <span style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '13.5px', fontFamily: "'Space Grotesk', 'Plus Jakarta Sans', 'Inter', sans-serif" }}>
+                        {lastClosedModuleId ? `Continue: ${curriculumData.find(m => m.id === lastClosedModuleId)?.title}` : 'New here? Start with Classical Bit vs Qubit'}
+                      </span>
+                    </button>
                     {lastClosedModuleId && (
                       <button
-                        onClick={(e) => { e.stopPropagation(); setLastClosedModuleId(null); }}
+                        type="button"
+                        onClick={() => setLastClosedModuleId(null)}
                         style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0 2px 0 6px', fontSize: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
                         title="Dismiss"
-                        aria-label="Dismiss"
+                        aria-label="Dismiss the suggestion"
                       >×</button>
                     )}
                   </div>
@@ -826,7 +865,15 @@ export default function Simulator({ isMobile }) {
               </div>
 
               {/* Fact Ticker */}
-              <div className={`idle-fact-ticker glass-interactive ${isFactFading ? 'fading' : ''}`} data-jelly style={{ '--j': 3, '--tx': '-50%' }}>
+              <div
+                className={`idle-fact-ticker glass-interactive ${isFactFading ? 'fading' : ''}`}
+                data-jelly
+                style={{ '--j': 3, '--tx': '-50%' }}
+                onMouseEnter={() => { factHeld.current = true; }}
+                onMouseLeave={() => { factHeld.current = false; }}
+                onFocus={() => { factHeld.current = true; }}
+                onBlur={() => { factHeld.current = false; }}
+              >
                 <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1.4px', color: 'var(--text-tertiary)', marginBottom: '10px', fontWeight: 800, fontFamily: "'Deltha', 'Inter', sans-serif" }}>Did You Know?</div>
                 <div style={{ fontSize: '14px', color: 'var(--text-primary)', lineHeight: 1.55, marginBottom: '16px', minHeight: '42px', fontWeight: 500, fontFamily: "'Space Grotesk', 'Plus Jakarta Sans', 'Inter', sans-serif" }}>
                   {IDLE_FACTS[idleFactIdx].text}

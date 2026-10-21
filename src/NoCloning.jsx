@@ -14,6 +14,17 @@ import { SCENE_GL } from './sceneGl';
 import { QualityComposer } from './QualityScene';
 import { SharedCanvas, onSharedCanvasRevealed } from './SharedCanvas';
 import { STAGE_EVENTS } from './stagePhases';
+import Announcer from './Announcer';
+
+// What a screen reader hears at each step of the story.
+const STEP_SAYS = {
+  classical_copying: 'Copying the classical bit.',
+  classical_done: 'Copied: the classical bit now has a perfect duplicate.',
+  quantum_focus: 'Now try to copy an unknown qubit.',
+  quantum_cnot: 'The CNOT links the qubit and the blank: they become entangled, not copied.',
+  quantum_collapse: 'Measured: the original state is gone. The copy failed, as the No-Cloning Theorem says it must.',
+  summary: 'Summary: no machine can copy an unknown quantum state.',
+};
 
 
 // Color Palette
@@ -659,6 +670,7 @@ export default function NoCloningModule({ isSidebarOpen, isGlobalMuted, fromHub 
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
+      <Announcer message={STEP_SAYS[step]} />
       <style>{`
         @keyframes ncTooltipEnter {
           from {
@@ -987,7 +999,7 @@ export default function NoCloningModule({ isSidebarOpen, isGlobalMuted, fromHub 
                 borderRadius: '8px',
                 background: 'rgba(0, 242, 254, 0.15)',
                 border: '1px solid rgba(0, 242, 254, 0.35)',
-                fontSize: '9px',
+                fontSize: '10px',
                 fontWeight: '900',
                 letterSpacing: '1px',
                 textTransform: 'uppercase',
@@ -1067,7 +1079,7 @@ export default function NoCloningModule({ isSidebarOpen, isGlobalMuted, fromHub 
               borderRadius: '10px',
               background: 'rgba(0, 242, 254, 0.12)',
               border: '1px solid rgba(0, 242, 254, 0.35)',
-              fontSize: '9.5px',
+              fontSize: '10px',
               fontWeight: '900',
               letterSpacing: '1.2px',
               textTransform: 'uppercase',
@@ -1160,7 +1172,7 @@ export default function NoCloningModule({ isSidebarOpen, isGlobalMuted, fromHub 
               borderRadius: '10px',
               background: 'rgba(34, 197, 94, 0.15)',
               border: '1px solid rgba(34, 197, 94, 0.4)',
-              fontSize: '9.5px',
+              fontSize: '10px',
               fontWeight: '900',
               letterSpacing: '1.2px',
               textTransform: 'uppercase',
@@ -1239,7 +1251,7 @@ export default function NoCloningModule({ isSidebarOpen, isGlobalMuted, fromHub 
               borderRadius: '10px',
               background: 'rgba(192, 132, 252, 0.15)',
               border: '1px solid rgba(192, 132, 252, 0.4)',
-              fontSize: '9.5px',
+              fontSize: '10px',
               fontWeight: '900',
               letterSpacing: '1.2px',
               textTransform: 'uppercase',
@@ -1318,7 +1330,7 @@ export default function NoCloningModule({ isSidebarOpen, isGlobalMuted, fromHub 
               borderRadius: '10px',
               background: 'rgba(192, 132, 252, 0.15)',
               border: '1px solid rgba(192, 132, 252, 0.4)',
-              fontSize: '9.5px',
+              fontSize: '10px',
               fontWeight: '900',
               letterSpacing: '1.2px',
               textTransform: 'uppercase',
@@ -1425,7 +1437,7 @@ export default function NoCloningModule({ isSidebarOpen, isGlobalMuted, fromHub 
               borderRadius: '10px',
               background: 'rgba(239, 68, 68, 0.15)',
               border: '1px solid rgba(239, 68, 68, 0.4)',
-              fontSize: '9.5px',
+              fontSize: '10px',
               fontWeight: '900',
               letterSpacing: '1.2px',
               textTransform: 'uppercase',
@@ -1544,7 +1556,7 @@ export default function NoCloningModule({ isSidebarOpen, isGlobalMuted, fromHub 
                 borderRadius: '8px',
                 background: 'rgba(56, 189, 248, 0.15)',
                 border: '1px solid rgba(56, 189, 248, 0.35)',
-                fontSize: '9px',
+                fontSize: '10px',
                 fontWeight: '900',
                 letterSpacing: '1px',
                 textTransform: 'uppercase',

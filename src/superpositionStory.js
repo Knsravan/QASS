@@ -589,6 +589,8 @@ export function createSuperpositionStory(renderer, { onChange = () => {}, onHove
       go(0);
     },
     prev() { go(step - 1); },
+    /** A measurement, as a tap on the sphere would make (the ground state, or the prepared state). */
+    measure() { if (step === 0 || step === 3) measure(); },
     prepareAgain() {
       if (step !== 3 || collapsed === null || anim) return;
       collapsed = null;

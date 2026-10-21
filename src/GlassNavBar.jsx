@@ -25,7 +25,8 @@ const DRAG_SLOP = 8;
 
 const prefersReducedMotion = motionReduced;
 
-export default function GlassNavBar({ tabs, selectedIndex, onSelect, standalone, extra, ariaLabel }) {
+// `panelId`: the id of the element the tabs switch (their tabpanel).
+export default function GlassNavBar({ tabs, selectedIndex, onSelect, standalone, extra, ariaLabel, panelId }) {
   const rowRef = useRef(null);
   const indicatorRef = useRef(null);
   const geometry = useRef({ step: 0, width: 0 });
@@ -175,9 +176,10 @@ export default function GlassNavBar({ tabs, selectedIndex, onSelect, standalone,
   };
 
   const handleKeyDown = (e) => {
-    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const moves = { ArrowRight: selectedIndex + 1, ArrowLeft: selectedIndex - 1, Home: 0, End: tabs.length - 1 };
+    if (!(e.key in moves)) return;
     e.preventDefault();
-    const next = Math.min(tabs.length - 1, Math.max(0, selectedIndex + (e.key === 'ArrowRight' ? 1 : -1)));
+    const next = Math.min(tabs.length - 1, Math.max(0, moves[e.key]));
     if (next !== selectedIndex) {
       onSelect(next);
       rowRef.current?.children[next]?.focus();
@@ -196,6 +198,7 @@ export default function GlassNavBar({ tabs, selectedIndex, onSelect, standalone,
           className="lg-nav-row"
           ref={rowRef}
           role="tablist"
+          aria-label={ariaLabel}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={(e) => endDrag(e, false)}
@@ -211,6 +214,7 @@ export default function GlassNavBar({ tabs, selectedIndex, onSelect, standalone,
                 role="tab"
                 aria-label={tab.label}
                 aria-selected={selected}
+                aria-controls={panelId}
                 tabIndex={selected ? 0 : -1}
                 className={`lg-nav-tab${selected ? ' is-selected' : ''}`}
                 onClick={() => handleTabClick(index)}

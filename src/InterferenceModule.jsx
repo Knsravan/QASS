@@ -18,6 +18,7 @@ import GlassSlider from './GlassSlider';
 import { QualityCanvas } from './QualityScene';
 import { SharedCanvas } from './SharedCanvas';
 import { interferenceProbabilities } from './quantumMath';
+import Announcer from './Announcer';
 
 const COLORS = {
   primary: '#0ea5e9', // Cyan
@@ -233,7 +234,7 @@ function DraggableGate({ type, initialPosition, onDrop, visible, topDown = false
               {type}
             </div>
             <div style={{
-              fontSize: '8px',
+              fontSize: '10px',
               fontWeight: 700,
               letterSpacing: '1.5px',
               textTransform: 'uppercase',
@@ -311,7 +312,44 @@ function IntroLights({ ramp }) {
   );
 }
 
-function InterferenceScene({ stage, subStage, setSubStage, interferencePhase, isSidebarOpen, audio, fromHub = false }) {
+// Stage 2's three gates. They are applied by dragging them onto the sphere (the scene)
+// or with the overlay's buttons (keyboard, switch and screen-reader users): both come here.
+function useGateSequence(stage, setSubStage, audio) {
+  const hGateTimerRef = useRef(null);
+  const zGateTimerRef = useRef(null);
+
+  const applyH1 = useCallback(() => {
+    clearTimeout(hGateTimerRef.current);
+    setSubStage(1); // Triggers wave split
+    if (audio?.playHGateSplit) audio.playHGateSplit();
+    hGateTimerRef.current = setTimeout(() => setSubStage(2), 1800); // Prompt Z-Gate promptly
+  }, [setSubStage, audio]);
+
+  const applyZ = useCallback(() => {
+    clearTimeout(zGateTimerRef.current);
+    setSubStage(3); // Triggers phase shift & out-of-phase wave motion
+    if (audio?.playZGateInversion) audio.playZGateInversion();
+    zGateTimerRef.current = setTimeout(() => setSubStage(4), 1800); // Prompt 2nd H-Gate promptly
+  }, [setSubStage, audio]);
+
+  const applyH2 = useCallback(() => {
+    setSubStage(5); // Triggers recombination & South Pole vector landing |1⟩
+    if (audio?.playHGateResolve) audio.playHGateResolve();
+  }, [setSubStage, audio]);
+
+  // Cancel pending gate-drop timers whenever the stage changes (and on unmount)
+  // so a stray setSubStage can't fire into a different stage
+  useEffect(() => {
+    return () => {
+      clearTimeout(hGateTimerRef.current);
+      clearTimeout(zGateTimerRef.current);
+    };
+  }, [stage]);
+
+  return useMemo(() => ({ applyH1, applyZ, applyH2 }), [applyH1, applyZ, applyH2]);
+}
+
+function InterferenceScene({ stage, subStage, setSubStage, interferencePhase, isSidebarOpen, audio, gates, fromHub = false }) {
   const { camera } = useThree();
   const groupRef = useRef();
   const cyanWaveRef = useRef();
@@ -348,38 +386,6 @@ function InterferenceScene({ stage, subStage, setSubStage, interferencePhase, is
   const normPhase = Math.abs(interferencePhase);
   const isConstructive = isStage3 && (normPhase < 0.15 || Math.abs(normPhase - 2 * Math.PI) < 0.15);
   const isDestructive = isStage3 && Math.abs(normPhase - Math.PI) < 0.15;
-
-  // Track timers so we can cancel on unmount / re-trigger
-  const hGateTimerRef = useRef(null);
-  const zGateTimerRef = useRef(null);
-
-  const onDropHGate1 = useCallback(() => {
-    clearTimeout(hGateTimerRef.current);
-    setSubStage(1); // Triggers wave split
-    if (audio?.playHGateSplit) audio.playHGateSplit();
-    hGateTimerRef.current = setTimeout(() => setSubStage(2), 1800); // Prompt Z-Gate promptly
-  }, [setSubStage, audio]);
-
-  const onDropZGate = useCallback(() => {
-    clearTimeout(zGateTimerRef.current);
-    setSubStage(3); // Triggers phase shift & out-of-phase wave motion
-    if (audio?.playZGateInversion) audio.playZGateInversion();
-    zGateTimerRef.current = setTimeout(() => setSubStage(4), 1800); // Prompt 2nd H-Gate promptly
-  }, [setSubStage, audio]);
-
-  const onDropHGate2 = useCallback(() => {
-    setSubStage(5); // Triggers recombination & South Pole vector landing |1⟩
-    if (audio?.playHGateResolve) audio.playHGateResolve();
-  }, [setSubStage, audio]);
-
-  // Cancel pending gate-drop timers whenever the stage changes (and on unmount)
-  // so a stray setSubStage can't fire into a different stage
-  useEffect(() => {
-    return () => {
-      clearTimeout(hGateTimerRef.current);
-      clearTimeout(zGateTimerRef.current);
-    };
-  }, [stage]);
 
   // Dynamic interference step mapped to BlochSphere state vector
   const interferenceStep = stage === 1 ? 0
@@ -482,9 +488,9 @@ function InterferenceScene({ stage, subStage, setSubStage, interferencePhase, is
       {/* Stage 2 Drag-and-Drop Gates */}
       {stage === 2 && (
         <>
-          <DraggableGate type="H" initialPosition={[-4, 2.5, 0]} visible={subStage === 0} onDrop={onDropHGate1} audio={audio} />
-          <DraggableGate type="Z" initialPosition={[4, 0, 3.5]} visible={subStage === 2} onDrop={onDropZGate} topDown={true} audio={audio} />
-          <DraggableGate type="H" initialPosition={[-4.6, 0, 0.4]} visible={subStage === 4} onDrop={onDropHGate2} topDown={true} audio={audio} />
+          <DraggableGate type="H" initialPosition={[-4, 2.5, 0]} visible={subStage === 0} onDrop={gates.applyH1} audio={audio} />
+          <DraggableGate type="Z" initialPosition={[4, 0, 3.5]} visible={subStage === 2} onDrop={gates.applyZ} topDown={true} audio={audio} />
+          <DraggableGate type="H" initialPosition={[-4.6, 0, 0.4]} visible={subStage === 4} onDrop={gates.applyH2} topDown={true} audio={audio} />
         </>
       )}
 
@@ -587,7 +593,7 @@ const MiniWaveRibbon = ({ isCrest, color }) => {
 };
 
 // --- DOM Overlays ---
-function InterferenceOverlay({ stage, setStage, subStage, setSubStage, interferencePhase, setPhase, isSidebarOpen, audio, onNext, onPrev }) {
+function InterferenceOverlay({ stage, setStage, subStage, setSubStage, interferencePhase, setPhase, isSidebarOpen, audio, gates, onNext, onPrev }) {
   const [isButtonHovered, setIsButtonHovered] = useState(false);
   const [isAutoPopped, setIsAutoPopped] = useState(true);
   // Tracks which audio zone the phase slider currently sits in, so the
@@ -595,32 +601,16 @@ function InterferenceOverlay({ stage, setStage, subStage, setSubStage, interfere
   // every change event inside it
   const audioZoneRef = useRef(null);
 
-  // Auto-pop the tooltip for 3 seconds every 3 seconds, unless hovered
+  // The tooltip shows once for a few seconds, then on hover or focus (it used to
+  // blink on and off every 3 seconds for as long as the step was open).
   useEffect(() => {
     if (stage !== 2 || subStage !== 5) {
       setIsAutoPopped(false);
-      return;
+      return undefined;
     }
-
     setIsAutoPopped(true);
-
-    let hideTimer = null;
-    // Show for 3s, hide for 3s (6s total cycle)
-    const interval = setInterval(() => {
-      setIsAutoPopped(true);
-      hideTimer = setTimeout(() => {
-        setIsAutoPopped(false);
-      }, 3000);
-    }, 6000);
-
-    hideTimer = setTimeout(() => {
-      setIsAutoPopped(false);
-    }, 3000);
-
-    return () => {
-      clearInterval(interval);
-      clearTimeout(hideTimer);
-    };
+    const hideTimer = setTimeout(() => setIsAutoPopped(false), 4000);
+    return () => clearTimeout(hideTimer);
   }, [stage, subStage]);
 
   const showSandboxTooltip = isButtonHovered || isAutoPopped;
@@ -726,7 +716,7 @@ function InterferenceOverlay({ stage, setStage, subStage, setSubStage, interfere
 
               {/* ── Header ── */}
               <div style={{ marginBottom: '14px' }}>
-                <div style={{ fontSize: '9.5px', fontWeight: '700', letterSpacing: '2.5px', color: 'rgba(0,229,255,0.75)', textTransform: 'uppercase', fontFamily: "'Inter', sans-serif", display: 'flex', alignItems: 'center', gap: '7px' }}>
+                <div style={{ fontSize: '10px', fontWeight: '700', letterSpacing: '2.5px', color: 'rgba(0,229,255,0.75)', textTransform: 'uppercase', fontFamily: "'Inter', sans-serif", display: 'flex', alignItems: 'center', gap: '7px' }}>
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#00e5ff', boxShadow: '0 0 7px #00e5ff, 0 0 14px rgba(0,229,255,0.4)', flexShrink: 0 }} />
                   Quantum Interference
                 </div>
@@ -766,7 +756,7 @@ function InterferenceOverlay({ stage, setStage, subStage, setSubStage, interfere
 
               {/* ── Types ── */}
               <div style={{ marginBottom: '18px' }}>
-                <div style={{ fontSize: '9.5px', fontWeight: '700', letterSpacing: '2px', color: 'rgba(192,132,252,0.85)', textTransform: 'uppercase', marginBottom: '10px', fontFamily: "'Inter', sans-serif" }}>Two Types of Interference</div>
+                <div style={{ fontSize: '10px', fontWeight: '700', letterSpacing: '2px', color: 'rgba(192,132,252,0.85)', textTransform: 'uppercase', marginBottom: '10px', fontFamily: "'Inter', sans-serif" }}>Two Types of Interference</div>
 
                 {/* Constructive */}
                 <div className="lg-type-card" style={{
@@ -850,7 +840,7 @@ function InterferenceOverlay({ stage, setStage, subStage, setSubStage, interfere
           boxShadow: 'var(--glass-highlight), var(--glass-shadow-base)',
           zIndex: 25
         }}>
-          <div style={{ fontSize: '9.5px', fontWeight: 700, letterSpacing: '1.5px', color: '#c084fc', textTransform: 'uppercase', marginBottom: '2px', textAlign: 'center' }}>
+          <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '1.5px', color: '#c084fc', textTransform: 'uppercase', marginBottom: '2px', textAlign: 'center' }}>
             Wave Notation
           </div>
           <div style={{ background: 'rgba(0,0,0,0.4)', padding: '6px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', marginTop: '6px' }}>
@@ -871,6 +861,14 @@ function InterferenceOverlay({ stage, setStage, subStage, setSubStage, interfere
         </div>
       )}
 
+      <Announcer message={stage !== 2 ? `Stage ${stage} of 3.` : [
+        'Apply the H gate to split the probability wave.',
+        'The wave splits into two paths.',
+        'Apply the Z gate to shift the phase.',
+        'The magenta wave is now 180 degrees out of phase.',
+        'Apply the second H gate to recombine the paths.',
+        'The paths interfere: the qubit lands in detector 1.',
+      ][subStage]} />
       {/* STAGE 2: Guided Core Panel */}
       {stage === 2 && (
         <>
@@ -886,11 +884,11 @@ function InterferenceOverlay({ stage, setStage, subStage, setSubStage, interfere
               padding: '14px 18px',
               borderRadius: '18px'
             }}>
-              {subStage === 0 && <p style={{ margin: 0, fontSize: '15px' }}>Drag the <strong>H-Gate</strong> onto the sphere to split the probability wave.</p>}
+              {subStage === 0 && <><p style={{ margin: 0, fontSize: '15px' }}>Drag the <strong>H-Gate</strong> onto the sphere to split the probability wave.</p><button type="button" className="quantum-pill-btn" style={{ marginTop: '10px', padding: '6px 14px', fontSize: '12.5px' }} onClick={gates.applyH1}>Apply the H gate</button></>}
               {subStage === 1 && <p style={{ margin: 0, fontSize: '15px', color: COLORS.primary }}>The wave splits into two paths.</p>}
-              {subStage === 2 && <p style={{ margin: 0, fontSize: '15px' }}>Drag the <strong>Z-Gate</strong> to apply a Phase Shift.</p>}
+              {subStage === 2 && <><p style={{ margin: 0, fontSize: '15px' }}>Drag the <strong>Z-Gate</strong> to apply a Phase Shift.</p><button type="button" className="quantum-pill-btn" style={{ marginTop: '10px', padding: '6px 14px', fontSize: '12.5px' }} onClick={gates.applyZ}>Apply the Z gate</button></>}
               {subStage === 3 && <p style={{ margin: 0, fontSize: '15px', color: COLORS.secondary }}>The magenta wave is shifted 180° out of phase.</p>}
-              {subStage === 4 && <p style={{ margin: 0, fontSize: '15px' }}>Drag the <strong>2nd H-Gate</strong> to recombine the interfering paths.</p>}
+              {subStage === 4 && <><p style={{ margin: 0, fontSize: '15px' }}>Drag the <strong>2nd H-Gate</strong> to recombine the interfering paths.</p><button type="button" className="quantum-pill-btn" style={{ marginTop: '10px', padding: '6px 14px', fontSize: '12.5px' }} onClick={gates.applyH2}>Apply the second H gate</button></>}
             </div>
           )}
 
@@ -943,6 +941,8 @@ function InterferenceOverlay({ stage, setStage, subStage, setSubStage, interfere
                 }}
                 onMouseEnter={() => setIsButtonHovered(true)}
                 onMouseLeave={() => setIsButtonHovered(false)}
+                onFocus={() => setIsButtonHovered(true)}
+                onBlur={() => setIsButtonHovered(false)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -987,7 +987,7 @@ function InterferenceOverlay({ stage, setStage, subStage, setSubStage, interfere
               padding: '14px 16px',
               borderRadius: '18px'
             }}>
-              <div style={{ fontSize: '9.5px', fontWeight: 700, letterSpacing: '1.5px', color: '#00e5ff', textTransform: 'uppercase', marginBottom: '4px' }}>
+              <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '1.5px', color: '#00e5ff', textTransform: 'uppercase', marginBottom: '4px' }}>
                 Hadamard Split
               </div>
               <h3 style={{ margin: '0 0 6px 0', fontSize: '15px', fontWeight: 800, color: '#fff' }}>What Just Happened?</h3>
@@ -1012,7 +1012,7 @@ function InterferenceOverlay({ stage, setStage, subStage, setSubStage, interfere
               padding: '14px 16px',
               borderRadius: '18px'
             }}>
-              <div style={{ fontSize: '9.5px', fontWeight: 700, letterSpacing: '1.5px', color: '#d946ef', textTransform: 'uppercase', marginBottom: '4px' }}>
+              <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '1.5px', color: '#d946ef', textTransform: 'uppercase', marginBottom: '4px' }}>
                 Phase Inversion
               </div>
               <h3 style={{ margin: '0 0 6px 0', fontSize: '15px', fontWeight: 800, color: '#fff' }}>What Just Happened?</h3>
@@ -1037,7 +1037,7 @@ function InterferenceOverlay({ stage, setStage, subStage, setSubStage, interfere
               padding: '14px 16px',
               borderRadius: '18px'
             }}>
-              <div style={{ fontSize: '9.5px', fontWeight: 700, letterSpacing: '1.5px', color: '#6ee7b7', textTransform: 'uppercase', marginBottom: '4px' }}>
+              <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '1.5px', color: '#6ee7b7', textTransform: 'uppercase', marginBottom: '4px' }}>
                 Recombination
               </div>
               <h3 style={{ margin: '0 0 6px 0', fontSize: '15px', fontWeight: 800, color: '#fff' }}>What Just Happened?</h3>
@@ -1086,7 +1086,7 @@ function InterferenceOverlay({ stage, setStage, subStage, setSubStage, interfere
               {/* Header with Title and Mode Badge */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <div>
-                  <div style={{ fontSize: '9.5px', fontWeight: 700, letterSpacing: '1.5px', color: 'rgba(0,229,255,0.8)', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '1.5px', color: 'rgba(0,229,255,0.8)', textTransform: 'uppercase' }}>
                     Interactive Sandbox
                   </div>
                   <div style={{ fontSize: '15px', fontWeight: 800, color: '#fff', marginTop: '1px' }}>
@@ -1098,7 +1098,7 @@ function InterferenceOverlay({ stage, setStage, subStage, setSubStage, interfere
                 <div style={{
                   padding: '3px 8px',
                   borderRadius: '16px',
-                  fontSize: '9.5px',
+                  fontSize: '10px',
                   fontWeight: 700,
                   letterSpacing: '0.4px',
                   background: isConstructive ? 'rgba(0, 229, 255, 0.15)' : isDestructive ? 'rgba(244, 63, 94, 0.15)' : isSuperposition ? 'rgba(192, 132, 252, 0.15)' : 'rgba(255, 255, 255, 0.08)',
@@ -1138,7 +1138,7 @@ function InterferenceOverlay({ stage, setStage, subStage, setSubStage, interfere
                   aria-label="Relative phase"
                   style={{ margin: '4px 0' }}
                 />
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: '#64748b', fontWeight: 600 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#8a9ab0', fontWeight: 600 }}>
                   <span>-π</span>
                   <span>-π/2</span>
                   <span style={{ color: '#00e5ff', fontWeight: 700 }}>0</span>
@@ -1237,7 +1237,7 @@ function InterferenceOverlay({ stage, setStage, subStage, setSubStage, interfere
 
               {/* Real-time Quantum Detection Probability Gauges */}
               <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: '12px', padding: '10px 12px', border: '1px solid rgba(255,255,255,0.06)', marginBottom: '12px' }}>
-                <div style={{ fontSize: '9.5px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>
+                <div style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>
                   Detection Probabilities
                 </div>
 
@@ -1315,7 +1315,7 @@ function InterferenceOverlay({ stage, setStage, subStage, setSubStage, interfere
               boxShadow: 'var(--glass-highlight), var(--glass-shadow-base)',
               zIndex: 25
             }}>
-              <div style={{ fontSize: '9.5px', fontWeight: 700, letterSpacing: '1.5px', color: isConstructive ? '#00e5ff' : isDestructive ? '#f43f5e' : '#c084fc', textTransform: 'uppercase', marginBottom: '4px' }}>
+              <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '1.5px', color: isConstructive ? '#00e5ff' : isDestructive ? '#f43f5e' : '#c084fc', textTransform: 'uppercase', marginBottom: '4px' }}>
                 {isConstructive ? 'Constructive' : isDestructive ? 'Destructive' : 'Superposition'}
               </div>
               <h3 style={{ margin: '0 0 6px 0', fontSize: '15px', fontWeight: 800, color: '#fff' }}>
@@ -1372,6 +1372,7 @@ export default function InterferenceModule({ isSidebarOpen, isGlobalMuted, fromH
   const [interferencePhase, setInterferencePhase] = useState(0); 
   
   const audio = useInterferenceAudio(!!isGlobalMuted);
+  const gates = useGateSequence(stage, setSubStage, audio);
 
   // Init audio on mount (user already clicked sidebar = valid gesture)
   useEffect(() => {
@@ -1447,6 +1448,7 @@ export default function InterferenceModule({ isSidebarOpen, isGlobalMuted, fromH
               interferencePhase={interferencePhase}
               isSidebarOpen={isSidebarOpen}
               audio={audio}
+              gates={gates}
               fromHub={fromHub}
             />
           </Suspense>
@@ -1469,6 +1471,7 @@ export default function InterferenceModule({ isSidebarOpen, isGlobalMuted, fromH
           setPhase={setInterferencePhase}
           isSidebarOpen={isSidebarOpen}
           audio={audio}
+          gates={gates}
         />
       </div>
     </>

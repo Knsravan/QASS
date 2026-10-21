@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef } from 'react';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { handoff } from './handoff';
+import { motionReduced } from './quality';
 
 export default function useInterferenceCinematic({ stage, subStage, camera, sceneRefs, audio, fromHub = false }) {
   const lookTarget = useRef(new THREE.Vector3(0, 0, 0));
@@ -81,6 +82,8 @@ export default function useInterferenceCinematic({ stage, subStage, camera, scen
       duration: 2,
       ease: 'power2.inOut'
     }, '<');
+    // Reduced motion: no fly-in, the camera starts where the flight would end.
+    if (motionReduced()) tl.progress(1);
 
     const lookAtTarget = lookTarget.current;
     return () => {

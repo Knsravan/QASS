@@ -308,8 +308,8 @@ function DensityMatrixDisplay({ noiseLevel, onSliderChange }) {
   return (
     <div style={{ background: 'rgba(0,0,0,0.35)', border: '1px solid ' + tColor + '44', borderRadius: '14px', padding: '12px 14px', marginTop: '10px', transition: 'border-color 0.3s ease' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-        <span style={{ fontSize: '9.5px', color: '#64748b', fontWeight: '700', letterSpacing: '1.2px', textTransform: 'uppercase', fontFamily: "'Inter', sans-serif" }}>Live Density Matrix ρ</span>
-        <span style={{ fontSize: '9px', fontWeight: '800', letterSpacing: '1px', color: tColor, background: tColor + '22', padding: '2px 8px', borderRadius: '8px', transition: 'all 0.3s ease', fontFamily: "'Inter', sans-serif" }}>{pLabel}</span>
+        <span style={{ fontSize: '10px', color: '#8a9ab0', fontWeight: '700', letterSpacing: '1.2px', textTransform: 'uppercase', fontFamily: "'Inter', sans-serif" }}>Live Density Matrix ρ</span>
+        <span style={{ fontSize: '10px', fontWeight: '800', letterSpacing: '1px', color: tColor, background: tColor + '22', padding: '2px 8px', borderRadius: '8px', transition: 'all 0.3s ease', fontFamily: "'Inter', sans-serif" }}>{pLabel}</span>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', fontFamily: "'Inter', monospace", fontSize: '13px', fontWeight: '700', borderLeft: '2px solid ' + tColor + '66', borderRight: '2px solid ' + tColor + '66', padding: '6px 10px', margin: '0 8px 8px', borderRadius: '2px' }}>
@@ -337,7 +337,7 @@ function DensityMatrixDisplay({ noiseLevel, onSliderChange }) {
             format={(v) => `${v}%`}
             aria-label="Noise level"
           />
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: '#64748b', marginTop: '4px', fontFamily: "'Inter', sans-serif" }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#8a9ab0', marginTop: '4px', fontFamily: "'Inter', sans-serif" }}>
             <span style={{ color: CG, fontWeight: '700' }}>◀ Pure (1.0)</span>
             <span style={{ color: '#94a3b8' }}>Drag to test Decoherence</span>
             <span style={{ color: CR, fontWeight: '700' }}>Mixed (0.5) ▶</span>
@@ -418,8 +418,8 @@ function TemperatureMeter({ tempK }) {
   return (
     <div style={{ background: 'rgba(0,0,0,0.35)', border: '1.5px solid ' + color + '55', borderRadius: '14px', padding: '12px 16px', marginTop: '10px', transition: 'border-color 0.4s ease', boxShadow: '0 0 24px ' + color + '22' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-        <span style={{ fontSize: '9.5px', color: '#64748b', fontWeight: '800', letterSpacing: '1.4px', textTransform: 'uppercase', fontFamily: "'Inter', sans-serif" }}>Operating Temperature</span>
-        <span style={{ fontSize: '9px', fontWeight: '800', letterSpacing: '1px', color, background: color + '22', padding: '2px 8px', borderRadius: '8px', fontFamily: "'Inter', sans-serif" }}>CRYOGENIC</span>
+        <span style={{ fontSize: '10px', color: '#8a9ab0', fontWeight: '800', letterSpacing: '1.4px', textTransform: 'uppercase', fontFamily: "'Inter', sans-serif" }}>Operating Temperature</span>
+        <span style={{ fontSize: '10px', fontWeight: '800', letterSpacing: '1px', color, background: color + '22', padding: '2px 8px', borderRadius: '8px', fontFamily: "'Inter', sans-serif" }}>CRYOGENIC</span>
       </div>
       <div style={{ fontSize: '24px', fontWeight: '900', color, fontFamily: 'Inter, monospace', transition: 'color 0.4s ease' }}>{label}</div>
       <div style={{ background: 'rgba(0,0,0,0.4)', borderRadius: '4px', height: '6px', overflow: 'hidden', marginTop: '8px' }}>
@@ -713,7 +713,7 @@ export default function DecoherenceModule({ isSidebarOpen, isGlobalMuted, onNavi
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            fontSize: '9.5px',
+            fontSize: '10px',
             fontWeight: '800',
             letterSpacing: '1.4px',
             color: '#94a3b8',
@@ -745,7 +745,7 @@ export default function DecoherenceModule({ isSidebarOpen, isGlobalMuted, onNavi
                   <div style={{ fontSize: '11px', fontWeight: '700', color: '#f8fafc', lineHeight: 1.2 }}>
                     {label}
                   </div>
-                  <div style={{ fontSize: '9.5px', color: '#64748b', lineHeight: 1.25 }}>
+                  <div style={{ fontSize: '10px', color: '#8a9ab0', lineHeight: 1.25 }}>
                     {desc}
                   </div>
                 </div>
@@ -767,7 +767,7 @@ export default function DecoherenceModule({ isSidebarOpen, isGlobalMuted, onNavi
               animation: 'ncTooltipEnter 0.3s cubic-bezier(0.16,1,0.3,1) forwards',
               pointerEvents: 'auto',
             }}>
-              <div style={{ fontSize: '9.5px', fontWeight: '800', letterSpacing: '1.8px', color: CT, textTransform: 'uppercase', marginBottom: '6px', fontFamily: "'Inter', sans-serif" }}>
+              <div style={{ fontSize: '10px', fontWeight: '800', letterSpacing: '1.8px', color: CT, textTransform: 'uppercase', marginBottom: '6px', fontFamily: "'Inter', sans-serif" }}>
                 💧 Did You Know?
               </div>
               <div style={{ fontSize: '13.5px', fontWeight: '700', color: CW, marginBottom: '6px', fontFamily: "'Inter', sans-serif", lineHeight: 1.35 }}>
@@ -800,7 +800,7 @@ export default function DecoherenceModule({ isSidebarOpen, isGlobalMuted, onNavi
               </div>
             </div>
 
-            <div style={{ fontSize: '12px', color: '#64748b', fontStyle: 'italic', marginBottom: '10px', fontFamily: "'Inter', sans-serif" }}>👉 Watch the Noisy Qubit's vector wobble, shrink & blur on the right</div>
+            <div style={{ fontSize: '12px', color: '#8a9ab0', fontStyle: 'italic', marginBottom: '10px', fontFamily: "'Inter', sans-serif" }}>👉 Watch the Noisy Qubit's vector wobble, shrink & blur on the right</div>
             <button onClick={() => handleNext('density_matrix')} style={btnP}>Next: The Density Matrix →</button>
           </div>
         )}
@@ -844,6 +844,7 @@ export default function DecoherenceModule({ isSidebarOpen, isGlobalMuted, onNavi
                 <button
                   key={id}
                   onClick={() => handleNoiseType(id)}
+                  aria-pressed={activeNoise === id}
                   style={{
                     flex: '1 0 0',
                     padding: '10px 5px',
@@ -865,7 +866,7 @@ export default function DecoherenceModule({ isSidebarOpen, isGlobalMuted, onNavi
                     <MorphIcon icon={IconComponent} spring="smooth" strokeWidth={1} size={18} color={bc} />
                   </div>
                   <div style={{ lineHeight: 1.25 }}>{label}</div>
-                  <div style={{ fontSize: '9px', opacity: 0.78, marginTop: '3px', fontWeight: '600' }}>{desc}</div>
+                  <div style={{ fontSize: '10px', opacity: 0.78, marginTop: '3px', fontWeight: '600' }}>{desc}</div>
                 </button>
               ))}
             </div>
@@ -900,7 +901,7 @@ export default function DecoherenceModule({ isSidebarOpen, isGlobalMuted, onNavi
                     <span style={{ fontSize: '15px', fontWeight: '900', color: bc, fontFamily: 'Inter, monospace' }}>{sym}</span>
                     <span style={{ fontSize: '11px', fontWeight: '700', color: '#94a3b8', fontFamily: "'Inter', sans-serif" }}>{name}</span>
                   </div>
-                  <div style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.4, fontFamily: "'Inter', sans-serif" }}>{desc}</div>
+                  <div style={{ fontSize: '11px', color: '#8a9ab0', lineHeight: 1.4, fontFamily: "'Inter', sans-serif" }}>{desc}</div>
                 </div>
               ))}
             </div>
@@ -919,7 +920,7 @@ export default function DecoherenceModule({ isSidebarOpen, isGlobalMuted, onNavi
             </div>
 
             <DecayCurveChart noiseLevel={noiseLevel} />
-            <div style={{ fontSize: '9.5px', color: '#64748b', marginTop: '4px', textAlign: 'center', fontFamily: "'Inter', sans-serif" }}>● Live qubit state │ T₂ crossover in amber │ e⁻ᵗᐟᵀ₂ in teal</div>
+            <div style={{ fontSize: '10px', color: '#8a9ab0', marginTop: '4px', textAlign: 'center', fontFamily: "'Inter', sans-serif" }}>● Live qubit state │ T₂ crossover in amber │ e⁻ᵗᐟᵀ₂ in teal</div>
             <button onClick={() => handleNext('lindblad')} style={{ ...btnP, marginTop: '10px' }}>Next: The Lindblad Equation →</button>
           </div>
         )}
@@ -942,7 +943,7 @@ export default function DecoherenceModule({ isSidebarOpen, isGlobalMuted, onNavi
               ].map(({ sym, color: bc, desc }) => (
                 <div key={sym} style={{ display: 'flex', gap: '8px', marginBottom: '5px', alignItems: 'flex-start' }}>
                   <span style={{ fontSize: '10.5px', fontWeight: '700', color: bc, minWidth: '82px', fontFamily: 'Inter, monospace', paddingTop: '1px', whiteSpace: 'nowrap' }}>{sym}</span>
-                  <span style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.45, fontFamily: "'Inter', sans-serif" }}>{desc}</span>
+                  <span style={{ fontSize: '11px', color: '#8a9ab0', lineHeight: 1.45, fontFamily: "'Inter', sans-serif" }}>{desc}</span>
                 </div>
               ))}
             </div>
@@ -959,7 +960,7 @@ export default function DecoherenceModule({ isSidebarOpen, isGlobalMuted, onNavi
             
             {/* Real-World Temperature Comparison Table */}
             <div style={{ ...mathStyle, padding: '8px 12px', marginBottom: '10px' }}>
-              <div style={{ fontSize: '9.5px', fontWeight: '800', color: '#64748b', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px', fontFamily: "'Inter', sans-serif" }}>Temperature Comparison</div>
+              <div style={{ fontSize: '10px', fontWeight: '800', color: '#8a9ab0', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px', fontFamily: "'Inter', sans-serif" }}>Temperature Comparison</div>
               {[
                 { env: 'Room temperature', T: '300 K',   color: CR },
                 { env: 'Liquid nitrogen',  T: '77 K',    color: CA },
@@ -989,7 +990,7 @@ export default function DecoherenceModule({ isSidebarOpen, isGlobalMuted, onNavi
                 <button onClick={handleExploreQEC} style={{ ...btnP, background: 'linear-gradient(135deg, ' + CT + '33, ' + CT + '18)', border: '1.5px solid ' + CT + '77', color: CW, marginTop: 0 }}>
                   Explore Quantum Error Correction →
                 </button>
-                <button onClick={handleReset} style={{ ...btnP, background: 'transparent', border: '1px solid rgba(255,255,255,0.12)', color: '#64748b', fontSize: '11px', padding: '7px 12px', marginTop: 0 }}>
+                <button onClick={handleReset} style={{ ...btnP, background: 'transparent', border: '1px solid rgba(255,255,255,0.12)', color: '#8a9ab0', fontSize: '11px', padding: '7px 12px', marginTop: 0 }}>
                   ↺ Restart Experience
                 </button>
               </div>

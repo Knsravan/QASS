@@ -28,7 +28,7 @@ import './styles/bit-vs-qubit.css';
 import './styles/dirac.css';
 import './styles/superposition.css';
 import { QualityCanvas, QualityComposer, useCount } from './QualityScene';
-import { setLandingMode, deviceProfile } from './quality';
+import { setLandingMode, deviceProfile, motionReduced } from './quality';
 import { glassDrawnOn } from './glassGL';
 import { startBoot } from './BootLoader';
 import QassLogo from './QassLogo';
@@ -44,6 +44,10 @@ import { readStorage, writeStorage } from './storage';
  * for any of it; the loading screen fetches it, with the modules, while it
  * tests the device.
  */
+const STAY_KEY = 'quantumUI_smallScreenOk';
+const isSmallTouchScreen = () =>
+  !!window.matchMedia?.('(pointer: coarse)').matches && Math.min(window.screen.width, window.screen.height) < 600;
+
 const loadSimulator = () => import('./Simulator');
 const Simulator = lazy(loadSimulator);
 // The simulator and every module's code; a failed download is handled where
@@ -88,7 +92,7 @@ function LandingBackground({ exiting = false }) {
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
 
-    state.camera.position.z = THREE.MathUtils.lerp(state.camera.position.z, 14 + Math.sin(t * 0.5) * 1.5, 0.05);
+    state.camera.position.z = THREE.MathUtils.lerp(state.camera.position.z, 14 + (motionReduced() ? 0 : Math.sin(t * 0.5) * 1.5), 0.05);
     state.camera.lookAt(0, 0, 0);
 
     if (starsRef.current) { starsRef.current.rotation.y += 0.0005; starsRef.current.rotation.x += 0.0002; }
@@ -140,9 +144,18 @@ export default function App() {
   // ==========================================
   // MOBILE DEVICE BLOCKER
   // ==========================================
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  // Phones: a touch screen too small for the sidebar and the scene side by side. Not the
+  // window's width: zooming a desktop browser in narrows it too, and a low-vision visitor
+  // at 200% must still get in. The blocker offers a way past it anyway.
+  const [smallScreen, setSmallScreen] = useState(isSmallTouchScreen);
+  const [stayAnyway, setStayAnyway] = useState(() => { try { return sessionStorage.getItem(STAY_KEY) === '1'; } catch { return false; } });
+  const isMobile = smallScreen && !stayAnyway;
+  const continueAnyway = () => {
+    setStayAnyway(true);
+    try { sessionStorage.setItem(STAY_KEY, '1'); } catch { /* this visit only */ }
+  };
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    const handleResize = () => setSmallScreen(isSmallTouchScreen());
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -183,12 +196,12 @@ export default function App() {
     screen = (
       <ModuleErrorBoundary moduleTitle="The simulator" boundsStyle={SIMULATOR_BOUNDS} onRetry={() => window.location.reload()}>
         <Suspense fallback={<div className="boot-hold" />}>
-          <Simulator isMobile={isMobile} />
+          <Simulator isMobile={isMobile} onContinueAnyway={continueAnyway} />
         </Suspense>
       </ModuleErrorBoundary>
     );
   } else if (isMobile) {
-    screen = <MobileBlocker />;
+    screen = <MobileBlocker onContinue={continueAnyway} />;
   } else if (booting) {
     screen = <div className="boot-hold" />;
   } else {
@@ -218,21 +231,21 @@ export default function App() {
               <div className="feature-icon">
                 <MorphIcon icon={Atom} spring="smooth" strokeWidth={1} size={32} color="#00e5ff" />
               </div>
-              <h4>Dual Reality Engine</h4>
+              <h2>Dual Reality Engine</h2>
               <p>Compare silicon Classical Bits against fluid Quantum Qubits in real-time, side-by-side.</p>
             </div>
             <div className="feature-card glass-interactive">
               <div className="feature-icon">
                 <MorphIcon icon={Zap} spring="smooth" strokeWidth={1} size={32} color="#f59e0b" />
               </div>
-              <h4>Interactive Physics</h4>
+              <h2>Interactive Physics</h2>
               <p>Manipulate superposition, trigger decoherence noise, and violate the no-cloning theorem yourself.</p>
             </div>
             <div className="feature-card glass-interactive">
               <div className="feature-icon">
                 <MorphIcon icon={Variable} spring="smooth" strokeWidth={1} size={32} color="#c084fc" />
               </div>
-              <h4>Math Made Visual</h4>
+              <h2>Math Made Visual</h2>
               <p>Watch Dirac notation and probability amplitudes mathematically react as you interact with the hardware.</p>
             </div>
           </div>

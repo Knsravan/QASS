@@ -70,7 +70,7 @@ The app opens at <http://localhost:3000>. Other scripts:
 | `npm run lint` | Lints the source (ESLint, fails on any warning) |
 | `npm run screenshots` | Builds the app and recaptures this README's screenshots (`docs/screenshots`) at High quality in headless Chromium |
 
-The simulator is designed for desktop and tablet screens. On narrow windows (under 768 px) it shows a message asking you to use a larger screen.
+The simulator is designed for desktop and tablet screens. On phone-sized touch screens it suggests a larger screen, with a way to continue anyway; a desktop window zoomed in stays usable.
 
 ## Built with
 

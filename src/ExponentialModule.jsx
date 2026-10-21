@@ -598,7 +598,7 @@ function StateSpaceConstellation({
             {/* Billboard KaTeX Ket Label */}
             <Html position={[0, node.pos[1] > 0 ? 0.28 : -0.28, 0]} center zIndexRange={[70, 0]}>
               <div ref={(d) => { if (d) labelRefs.current[node.index] = d; else delete labelRefs.current[node.index]; }} style={{
-                color: isTarget ? '#4ade80' : isDimmed ? '#64748b' : '#c084fc',
+                color: isTarget ? '#4ade80' : isDimmed ? '#8a9ab0' : '#c084fc',
                 fontFamily: "'Inter', sans-serif",
                 fontSize: qubitCount <= 3 ? '11px' : qubitCount === 4 ? '9px' : '8px',
                 fontWeight: '700',
@@ -988,6 +988,7 @@ export default function ExponentialModule({ isSidebarOpen = true, isGlobalMuted 
                   if (s.num === 4 || s.num === 3) audio.playDroneWhoosh();
                 }
               }}
+              aria-current={stage === s.num ? 'step' : undefined}
               className={`entangle-stage-pill ${stage === s.num ? 'active' : ''}`}
             >
               {s.label}
@@ -1006,7 +1007,7 @@ export default function ExponentialModule({ isSidebarOpen = true, isGlobalMuted 
         '--card-border': stage === 3 ? (cosmicMilestone === 300 ? '#f43f5e80' : '#a855f780') : '#a855f780',
         '--card-glow': stage === 3 ? (cosmicMilestone === 300 ? '#f43f5e25' : '#a855f725') : '#a855f725'
       }}>
-        <div style={{ fontSize: '8.5px', textTransform: 'uppercase', letterSpacing: '0.8px', color: stage === 3 ? (cosmicMilestone === 300 ? '#fb7185' : '#c084fc') : '#c084fc', marginBottom: '2px', fontWeight: '800' }}>
+        <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.8px', color: stage === 3 ? (cosmicMilestone === 300 ? '#fb7185' : '#c084fc') : '#c084fc', marginBottom: '2px', fontWeight: '800' }}>
           🌌 Hilbert Space Dimension
         </div>
         <div style={{
@@ -1031,7 +1032,7 @@ export default function ExponentialModule({ isSidebarOpen = true, isGlobalMuted 
             {stage === 3 ? `${cosmicMilestone}Q` : `${qubitCount}Q`}
           </span>
         </div>
-        <div style={{ fontSize: '9px', color: '#94a3b8', marginTop: '3px', whiteSpace: 'nowrap' }}>
+        <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '3px', whiteSpace: 'nowrap' }}>
           Simulated RAM:{' '}
           <span style={{ color: '#f8fafc', fontWeight: '600' }}>
             {stage === 3
@@ -1216,7 +1217,7 @@ export default function ExponentialModule({ isSidebarOpen = true, isGlobalMuted 
             >
               <div style={{ fontSize: '10.5px', color: '#c084fc', fontWeight: '800', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <span><InlineMath math={String.raw`N = 50`} /> QUBITS</span>
-                {cosmicMilestone === 50 && <span style={{ fontSize: '9px', background: '#a855f7', color: '#fff', padding: '1px 5px', borderRadius: '8px' }}>ACTIVE</span>}
+                {cosmicMilestone === 50 && <span style={{ fontSize: '10px', background: '#a855f7', color: '#fff', padding: '1px 5px', borderRadius: '8px' }}>ACTIVE</span>}
               </div>
               <div style={{ fontSize: '12.5px', fontWeight: '700', color: '#fff', marginBottom: '2px' }}>
                 <InlineMath math={String.raw`2^{50} \approx 1.13 \times 10^{15}`} />
@@ -1241,7 +1242,7 @@ export default function ExponentialModule({ isSidebarOpen = true, isGlobalMuted 
             >
               <div style={{ fontSize: '10.5px', color: '#f43f5e', fontWeight: '800', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <span><InlineMath math={String.raw`N = 300`} /> QUBITS</span>
-                {cosmicMilestone === 300 && <span style={{ fontSize: '9px', background: '#f43f5e', color: '#fff', padding: '1px 5px', borderRadius: '8px' }}>ACTIVE</span>}
+                {cosmicMilestone === 300 && <span style={{ fontSize: '10px', background: '#f43f5e', color: '#fff', padding: '1px 5px', borderRadius: '8px' }}>ACTIVE</span>}
               </div>
               <div style={{ fontSize: '12.5px', fontWeight: '700', color: '#fff', marginBottom: '2px' }}>
                 <InlineMath math={String.raw`2^{300} \approx 2.04 \times 10^{90}`} />

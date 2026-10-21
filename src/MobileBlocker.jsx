@@ -1,8 +1,9 @@
 import React from 'react';
 import QassLogo from './QassLogo';
 
-// Shown on windows narrower than 768 px: the simulator needs a larger screen.
-export default function MobileBlocker() {
+// Shown on phone-sized touch screens (App.jsx): the simulator needs a larger screen,
+// but the visitor can go on anyway.
+export default function MobileBlocker({ onContinue }) {
   return (
     <div className="mobile-blocker-overlay">
       <div className="glass-card mobile-blocker-card">
@@ -14,6 +15,11 @@ export default function MobileBlocker() {
         <p style={{ fontSize: '16px', color: '#4facfe', fontWeight: '600' }}>
           Please experience it in a Desktop or Tablet Browser.
         </p>
+        {onContinue && (
+          <button type="button" className="glass-btn" style={{ marginTop: '18px' }} onClick={onContinue}>
+            Continue anyway
+          </button>
+        )}
       </div>
     </div>
   );

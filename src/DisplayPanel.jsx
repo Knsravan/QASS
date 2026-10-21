@@ -85,13 +85,20 @@ export default function DisplayPanel({ open, onClose }) {
   const ref = useRef(null);
   const titleId = useId();
 
-  // Escape closes it; focus moves in when it opens.
+  // Escape closes it; focus moves in when it opens, and back to the button that
+  // opened it when it closes (it is inert once closed, so focus can't stay inside).
   useEffect(() => {
     if (!open) return undefined;
+    const opener = document.activeElement;
+    const panel = ref.current;
     const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
     window.addEventListener('keydown', onKey);
     requestAnimationFrame(() => ref.current?.querySelector('button.is-on, button')?.focus({ preventScroll: true }));
-    return () => window.removeEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      const active = document.activeElement;
+      if (opener?.isConnected && (!active || active === document.body || panel?.contains(active))) opener.focus({ preventScroll: true });
+    };
   }, [open, onClose]);
 
   const custom = Object.keys(info.parts).length > 0;

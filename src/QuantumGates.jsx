@@ -11,6 +11,7 @@ import { GATE_ROTATIONS } from './quantumMath';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { QualityComposer } from './QualityScene';
 import { MathChip } from './MathChip';
+import { motionReduced } from './quality';
 
 // --- DATA DEFINITION ---
 const q0 = new THREE.Quaternion().identity(); 
@@ -304,8 +305,9 @@ function QuantumSphereStage({ stepData, applied, setProgress, setAberrationOffse
     animProxy.current.progress = 0;
     
     if (!applied) {
-      gsap.to(camera.position, { x: 0, y: 0, z: 13, duration: 2, ease: "power2.inOut" });
-      if (controls) gsap.to(controls.target, { x: 0, y: 0, z: 0, duration: 2, ease: "power2.inOut" });
+      const camMove = motionReduced() ? 0 : 2; // reduced motion: a cut
+      gsap.to(camera.position, { x: 0, y: 0, z: 13, duration: camMove, ease: "power2.inOut" });
+      if (controls) gsap.to(controls.target, { x: 0, y: 0, z: 0, duration: camMove, ease: "power2.inOut" });
       if (trailRef.current) gsap.to(trailRef.current.material, { opacity: 0, duration: 0.5 });
       if (animTooltipRef.current) gsap.to(animTooltipRef.current, { opacity: 0, scale: 0.8, y: 20, duration: 0.3 });
     }

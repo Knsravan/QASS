@@ -7,6 +7,7 @@ import './styles/math-chip.css';
 import { QuantumNavButtons } from './QuantumNavButtons';
 import { useQuantumAudio } from './useQuantumAudio';
 import { motionReduced } from './quality';
+import Announcer from './Announcer';
 
 // Superposition & Measurement: the 3D scene (superpositionStory.js) and, outside the
 // canvas, the module's four corner cards (each joined to the sphere by a dashed arrow),
@@ -243,6 +244,7 @@ export function SuperpositionOverlay({ isGlobalMuted }) {
                   <span className="sp-m">{s.ground[0] ? `measured ${s.ground[0]}× → 0 every time` : 'tap the sphere to measure'}</span>
                 </>}
           </div>
+          <button type="button" className="sp-again" onClick={() => bus.story?.measure()}>Measure it</button>
         </>
       ))}
 
@@ -314,6 +316,11 @@ export function SuperpositionOverlay({ isGlobalMuted }) {
         accentColor="#00f2fe"
         containerStyle={{ position: 'absolute', bottom: '40px', left: '50%', transform: 'translateX(-50%)', right: 'auto' }}
       />
+      <Announcer message={
+        s?.collapsed != null ? `Measured: the state collapsed to ${s.collapsed}.`
+          : step === 0 && s?.ground[0] ? `Measured 0. ${s.ground[0]} of ${s.ground[0]} measurements gave 0.`
+          : `Step ${step + 1} of 4.`
+      } />
     </div>
   );
 }

@@ -213,7 +213,7 @@ test('Superposition: the cards build up, the sphere measures, and the state can 
   // in the scene's own time, which runs slowly at a software renderer's frame rate.
   await next.click();
   await expect(page.locator('.sp-card.sp-br')).toContainText('Wave Function Collapsed', { timeout: 90_000 });
-  await page.locator('.sp-again').click();
+  await page.getByRole('button', { name: 'Prepare |ψ⟩ again' }).click();
   await expect(page.locator('.sp-card.sp-br')).toContainText('Collapse: Your Turn');
   expect(errors).toEqual([]);
 });
@@ -315,4 +315,59 @@ test("a module that can't load lets you back to the hub", async ({ page }) => {
   await waitForStage(page, 'hub');
   await expect(alert).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Where do you want to start today?' })).toBeVisible();
+});
+
+test('accessibility: the Interference lesson works from the keyboard, results are announced, focus is kept', async ({ page }) => {
+  const errors = collectErrors(page);
+  await returningVisitor(page, 'low');
+  await page.goto('/#interference');
+  await waitForStage(page, 'interference');
+
+  // Stage 2's gates, without dragging anything.
+  await page.getByRole('button', { name: /Explore Quantum Interference/ }).click();
+  for (const name of ['Apply the H gate', 'Apply the Z gate', 'Apply the second H gate']) {
+    const apply = page.getByRole('button', { name });
+    await apply.focus();
+    await page.keyboard.press('Enter');
+    await expect(apply).toHaveCount(0, { timeout: 20_000 });
+  }
+  await expect(page.getByText('What Just Happened?')).toBeVisible({ timeout: 20_000 });
+
+  // Entanglement: a measurement is read out, and focus moves to the button that replaces Measure.
+  await goTo(page, '');
+  await goTo(page, 'entanglement');
+  await page.getByRole('button', { name: '3. Spooky Action Lab' }).click();
+  const measure = page.getByRole('button', { name: /Measure Alice/ });
+  await measure.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('status').filter({ hasText: /Measured: Alice [01], Bob [01]\./ })).toHaveCount(1);
+  await expect(page.getByRole('button', { name: /Re-Entangle/ })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('button', { name: /Measure Alice/ })).toBeFocused();
+
+  // Display & accessibility opens from the top bar with the sidebar collapsed; Escape returns focus.
+  const display = page.locator('.lg-nav').getByRole('button', { name: 'Display & accessibility' });
+  await display.click();
+  await expect(page.locator('.sidebar-panel')).not.toHaveClass(/collapsed/);
+  await page.keyboard.press('Escape');
+  await expect(display).toBeFocused();
+  expect(errors).toEqual([]);
+});
+
+test('a phone gets the larger-screen message and can go on; a zoomed-in desktop is let in', async ({ browser }) => {
+  const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, screen: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const page = await phone.newPage();
+  await page.goto('/');
+  await expect(page.getByText('requires a larger screen')).toBeVisible();
+  await page.getByRole('button', { name: 'Continue anyway' }).click();
+  await expect(page.getByText('Initialize Simulator')).toBeVisible();
+  await phone.close();
+
+  // 1440 px at 200% zoom is a 720 px window.
+  const desktop = await browser.newContext({ viewport: { width: 720, height: 450 } });
+  const zoomed = await desktop.newPage();
+  await zoomed.goto('/');
+  await expect(zoomed.getByText('Initialize Simulator')).toBeVisible();
+  await expect(zoomed.getByText('requires a larger screen')).toHaveCount(0);
+  await desktop.close();
 });

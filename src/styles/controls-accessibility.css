@@ -273,3 +273,6 @@
   70% { transform: scale(.88) translateY(14px); opacity: 1; }
   100% { transform: scale(.82) translateY(20px); opacity: 0; }
 }
+
+/* The stage takes focus only when a control focus was on goes away (Simulator.jsx). */
+.canvas-container:focus { outline: none; }

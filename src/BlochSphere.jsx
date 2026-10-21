@@ -7,7 +7,7 @@ import { BlochSphereUnit, arrowGrow, DEC_STATIC_ENTRANCE, CT, CA } from './DecoS
 import * as THREE from 'three';
 import { Bloom } from '@react-three/postprocessing';
 import { BlockMath, InlineMath } from './KatexMath';
-import { QualityComposer } from './QualityScene';
+import { QualityComposer, useQuality } from './QualityScene';
 import { PremiumBlochSphere, PremiumBit, GrowIn, Metal, GlassMaterial, useRimMaterial } from './PremiumBitQubit';
 import { SphereLines, LightLine, Halo } from './GlassBlochParts';
 import { MathChip } from './MathChip';
@@ -358,7 +358,7 @@ export const QubitCore = ({ position, scale = 1, activeModule, onDomainHover, on
                 <h4 style={activeModule === 'entanglement' ? { margin: '0 0 2px 0', fontSize: '11px', color: '#f093fb' } : {}}>
                   {getTooltipContent('equator').title}
                 </h4>
-                <div style={activeModule === 'entanglement' ? { margin: 0, fontSize: '9.5px', color: '#cbd5e1', lineHeight: '1.35' } : { margin: 0, fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                <div style={activeModule === 'entanglement' ? { margin: 0, fontSize: '10px', color: '#cbd5e1', lineHeight: '1.35' } : { margin: 0, fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
                   {getTooltipContent('equator').text}
                 </div>
               </div>
@@ -444,7 +444,7 @@ export const QubitCore = ({ position, scale = 1, activeModule, onDomainHover, on
                 <h4 style={activeModule === 'entanglement' ? { margin: '0 0 2px 0', fontSize: '11px', color: '#00f2fe' } : {}}>
                   {getTooltipContent('north').title}
                 </h4>
-                <p style={activeModule === 'entanglement' ? { margin: 0, fontSize: '9.5px', color: '#cbd5e1', lineHeight: '1.35' } : {}}>
+                <p style={activeModule === 'entanglement' ? { margin: 0, fontSize: '10px', color: '#cbd5e1', lineHeight: '1.35' } : {}}>
                   {getTooltipContent('north').text}
                 </p>
               </div>
@@ -479,7 +479,7 @@ export const QubitCore = ({ position, scale = 1, activeModule, onDomainHover, on
                 <h4 style={activeModule === 'entanglement' ? { margin: '0 0 2px 0', fontSize: '11px', color: '#f093fb' } : {}}>
                   {getTooltipContent('south').title}
                 </h4>
-                <p style={activeModule === 'entanglement' ? { margin: 0, fontSize: '9.5px', color: '#cbd5e1', lineHeight: '1.35' } : {}}>
+                <p style={activeModule === 'entanglement' ? { margin: 0, fontSize: '10px', color: '#cbd5e1', lineHeight: '1.35' } : {}}>
                   {getTooltipContent('south').text}
                 </p>
               </div>
@@ -496,6 +496,7 @@ export const QubitCore = ({ position, scale = 1, activeModule, onDomainHover, on
 
 export default function BlochSphere({ activeModule, interferenceStep, interferencePhase, vanishing = false, multi = null, handoverTarget, centerOnly = false, bvq }) {
   const controlsRef = useRef();
+  const motionStill = useQuality().motion === 'reduced'; // the hub's slow turn stops with reduced motion
   const light1Ref = useRef();
   const light2Ref = useRef();
   const { camera, clock } = useThree();
@@ -800,7 +801,7 @@ export default function BlochSphere({ activeModule, interferenceStep, interferen
           enablePan={false}
           minDistance={5}
           maxDistance={20}
-          autoRotate={!activeModule && !centerOnly}
+          autoRotate={!activeModule && !centerOnly && !motionStill}
           autoRotateSpeed={0.5}
         />
       )}
