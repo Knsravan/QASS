@@ -333,11 +333,14 @@ export default function Simulator({ isMobile }) {
     if (stageId !== 'exponential') setExpRegister(EMPTY_REGISTER);
   }, [stageId]);
 
+  // The Dirac step whose sound last played (entering plays step 0 itself).
+  const prevDiracStepRef = useRef(0);
   useEffect(() => {
     let isCancelled = false;
     // Reset dirac step when leaving dirac module
     if (activeModuleId !== 'dirac-notation') {
       setDiracStep(0);
+      prevDiracStepRef.current = 0; // step 0 plays on entry; the next step must play again
       diracAudio.stopAll();
     } else {
       // Entering dirac module — init audio graph + preload buffers + play step 0
@@ -365,7 +368,6 @@ export default function Simulator({ isMobile }) {
   }, [activeModuleId]);
 
   // Play the step's synthesized sound whenever the Dirac step changes
-  const prevDiracStepRef = useRef(-1);
   useEffect(() => {
     if (activeModuleId !== 'dirac-notation') return;
     if (prevDiracStepRef.current === diracStep) return;
@@ -591,6 +593,7 @@ export default function Simulator({ isMobile }) {
             // bit and the qubit), so moving between them morphs it in place.
             key={!stageId || SHARED_SCENE_STAGES.has(stageId) ? 'bit-scene' : stageId}
             moduleTitle={curriculumData.find(m => m.id === stageId)?.title}
+            resetKey={stageId}
             boundsStyle={uiBoundsStyle}
             onRetry={() => window.location.reload()}
             onBackToHub={() => setActiveModuleId(null)}

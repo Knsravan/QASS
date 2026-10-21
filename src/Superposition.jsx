@@ -47,6 +47,7 @@ export function SuperpositionScene() {
       scene.remove(story.root);
       if (scene.environment === story.environment) scene.environment = prevEnv;
       if (bus.story === story) bus.story = null;
+      bus.event = null; // a sound from this visit must not play on the next
       if (window.__qassSuperposition?.story === story) delete window.__qassSuperposition;
       bus.hover = null;
       story.dispose();

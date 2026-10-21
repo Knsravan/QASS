@@ -265,3 +265,54 @@ test("the sidebar: the circuit opens from the keyboard and draws the module's re
   }
   expect(errors).toEqual([]);
 });
+
+// Moves cut short: the stage must always come to rest with its cards in.
+test('moves cancelled part-way leave the hub and the modules whole', async ({ page }) => {
+  const errors = collectErrors(page);
+  await returningVisitor(page, 'low');
+  await page.goto('/');
+  await waitForStage(page, 'hub');
+  const headline = page.getByRole('heading', { name: 'Where do you want to start today?' });
+  const hash = (m) => page.evaluate((h) => { window.location.hash = h; }, m);
+
+  // Close a module, start opening another while the hub's text waits to pop, then go back.
+  await goTo(page, 'dirac-notation');
+  await hash('');
+  await expect(page.locator('.canvas-container')).toHaveAttribute('data-stage', 'hub', { timeout: 60_000 });
+  await hash('superposition');
+  await page.waitForTimeout(150);
+  await hash('');
+  await waitForStage(page, 'hub');
+  await expect(headline).toBeVisible({ timeout: 15_000 });
+
+  // Back while the hub's qubit is on its way to Interference: the hub is whole again.
+  await hash('interference');
+  await page.waitForTimeout(400);
+  await hash('');
+  await waitForStage(page, 'hub');
+  await expect(headline).toBeVisible({ timeout: 15_000 });
+
+  // Open a module again while it is closing: its cards come back.
+  await goTo(page, 'decoherence');
+  await hash('');
+  await page.waitForTimeout(300);
+  await hash('decoherence');
+  await waitForStage(page, 'decoherence');
+  await expect(page.locator('.canvas-container')).toHaveAttribute('data-jelly-state', 'run');
+  await expect(page).toHaveTitle(`${MODULES.decoherence} · QASS`);
+  expect(errors).toEqual([]);
+});
+
+test("a module that can't load lets you back to the hub", async ({ page }) => {
+  await returningVisitor(page, 'low');
+  await page.route(/\/assets\/EntanglementModule-[^/]*\.js$/, (route) => route.abort());
+  await page.goto('/');
+  await waitForStage(page, 'hub');
+  await page.evaluate(() => { window.location.hash = 'entanglement'; });
+  const alert = page.locator('[data-module-load-error]');
+  await expect(alert).toBeVisible({ timeout: 60_000 });
+  await alert.getByRole('button', { name: 'Back to hub' }).click();
+  await waitForStage(page, 'hub');
+  await expect(alert).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Where do you want to start today?' })).toBeVisible();
+});

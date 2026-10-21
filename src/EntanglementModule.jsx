@@ -143,13 +143,14 @@ function EntanglementScene({
   // Camera tracking and centered positioning
   useEffect(() => {
     const [x, y, z] = REST.entanglement.camera(isSidebarOpen).cam; // the resting view; further back as the pair spreads
-    gsap.to(camera.position, {
+    const tween = gsap.to(camera.position, {
       x,
       y,
       z: z + (distanceMultiplier - 1.0) * 8,
       duration: 1.2,
       ease: 'power2.out'
     });
+    return () => tween.kill(); // the camera is shared: the next scene must not inherit this move
   }, [distanceMultiplier, isSidebarOpen, camera]);
 
   return (

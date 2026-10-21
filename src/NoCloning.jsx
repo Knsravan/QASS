@@ -470,10 +470,20 @@ export default function NoCloningModule({ isSidebarOpen, isGlobalMuted, fromHub 
   }, []);
 
   // Closing to the hub: once the panels have sprung out, the entrance plays backwards.
+  // A close cancelled part-way (the module opened again) plays the entrance forward
+  // from wherever the models had got to.
   useEffect(() => {
     if (!closing) return undefined;
-    const t = setTimeout(() => { entranceAnim.current.leaveAt = performance.now(); }, 450);
-    return () => clearTimeout(t);
+    const a = entranceAnim.current;
+    const t = setTimeout(() => { a.leaveAt = performance.now(); }, 450);
+    return () => {
+      clearTimeout(t);
+      if (a.leaveAt == null || a.gone) return;
+      const now = performance.now();
+      const elapsed = Math.max(0, ENTRANCE_TOTAL - (now - a.leaveAt) / 1000);
+      a.startedAt = now - elapsed * 1000;
+      a.leaveAt = null;
+    };
   }, [closing]);
 
   // Precession animation loop for Qubits (Matches 1st Module natural superposition rotation)
