@@ -55,6 +55,33 @@ let frameKey = -1;
 let frame = null;             // { byCanvas: Map(canvas -> pieces[]), light: [x, y] }
 const marked = new Set();     // elements carrying data-gl
 
+// The glass elements on the page. Matching SELECTOR over the whole page took
+// about a millisecond, so it runs again only once elements or classes have
+// changed, and every REFIND_MS for glass that comes from an inline style.
+const REFIND_MS = 500;
+let found = [];
+let foundAt = -Infinity;
+let foundStale = true;
+let pageWatch = null;
+function glassElements(now) {
+  if (!pageWatch) {
+    pageWatch = new MutationObserver(() => { foundStale = true; });
+    pageWatch.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+  }
+  if (foundStale || now - foundAt > REFIND_MS) {
+    found = [...document.querySelectorAll(SELECTOR)];
+    foundAt = now;
+    foundStale = false;
+  }
+  return found;
+}
+function stopWatchingPage() {
+  pageWatch?.disconnect();
+  pageWatch = null;
+  found = [];
+  foundStale = true;
+}
+
 const stateOf = (el) => {
   let s = glassState.get(el);
   if (!s) { s = { glow: 0, glowT: 0, gx: 0, gy: 0, radii: null, radiiKey: '', opacity: 1, opacityAt: -1 }; glassState.set(el, s); }
@@ -78,7 +105,7 @@ export function registerGlassCanvas(canvas) {
   startEdges();
   return () => {
     canvases.delete(canvas);
-    if (!canvases.size) { clearMarks(); stopEdges(); }
+    if (!canvases.size) { clearMarks(); stopEdges(); stopWatchingPage(); }
   };
 }
 
@@ -399,8 +426,8 @@ export function glassFrame() {
   const keep = new Set();
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  for (const el of document.querySelectorAll(SELECTOR)) {
-    if (el.classList.contains('lg-inset') || el.closest('.lg-solid')) continue;
+  for (const el of glassElements(now)) {
+    if (!el.isConnected || el.classList.contains('lg-inset') || el.closest('.lg-solid')) continue;
     const r = el.getBoundingClientRect();
     if (r.width < 4 || r.height < 4 || r.right < 0 || r.bottom < 0 || r.left > vw || r.top > vh) continue;
     // The topmost scene canvas that covers it (and isn't inside it).
