@@ -625,7 +625,7 @@ const NoCloningLiquidCircuit = ({ tooltipData }) => {
 
         <div className="liquid-multi-row">
           <div className="circuit-state-label" style={{ left: 0, color: '#94a3b8' }}>
-            <InlineMath math={String.raw`|0\rangle`} /> <span style={{ fontSize: '9px', color: '#64748b' }}>Anc</span>
+            <InlineMath math={String.raw`|0\rangle`} /> <span style={{ fontSize: '10px', color: '#8a9ab0' }}>Anc</span>
           </div>
           <div className="qubit-wire-timeline"><div className="wire-flow-indicator" style={{ animationDelay: '0.4s' }} /></div>
           <div className="liquid-multi-gate-col">
@@ -776,7 +776,7 @@ const ErrorCorrectionLiquidCircuit = ({ tooltipData }) => {
               </div>
             )}
             {r >= 3 && (
-              <div className="circuit-state-label" style={{ right: 0, fontSize: '11px', color: (r === 3 ? s1 : s2) ? '#f59e0b' : '#64748b' }}>
+              <div className="circuit-state-label" style={{ right: 0, fontSize: '11px', color: (r === 3 ? s1 : s2) ? '#f59e0b' : '#8a9ab0' }}>
                 {r === 3 ? `s₁=${s1}` : `s₂=${s2}`}
               </div>
             )}

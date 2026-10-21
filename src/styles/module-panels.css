@@ -218,7 +218,7 @@
 }
 
 .bvq-bloch-hint {
-  font-size: 9px;
+  font-size: 10px;
   color: rgba(148, 163, 184, 0.45);
   letter-spacing: 0.5px;
   text-align: center;
@@ -425,7 +425,7 @@
 
 /* Verdict line */
 .bvq-verdict {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.5px;
   text-align: center;
   padding: 4px 8px;

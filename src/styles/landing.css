@@ -118,7 +118,7 @@
   filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
 }
 
-.feature-card h4 {
+.feature-card h2 {
   color: #f8fafc;
   margin: 0 0 10px 0;
   font-size: 16px;

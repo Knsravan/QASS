@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import { useThree } from '@react-three/fiber';
 import { OrbitControls, Html } from '@react-three/drei';
 import { Bloom } from '@react-three/postprocessing';
@@ -17,6 +17,7 @@ import { QualityComposer } from './QualityScene';
 import { SharedCanvas } from './SharedCanvas';
 import { handoff, REST } from './handoff';
 import { BELL_OUTCOMES } from './quantumMath';
+import Announcer from './Announcer';
 
 
 // ==========================================
@@ -349,7 +350,7 @@ function BellMeasurementTooltip({ bellState, measuredState }) {
       }}
     >
       <div style={{
-        fontSize: '9px',
+        fontSize: '10px',
         fontWeight: 700,
         letterSpacing: '1.2px',
         color: bellState.color,
@@ -386,7 +387,7 @@ function BellMeasurementTooltip({ bellState, measuredState }) {
       </p>
 
       <div style={{
-        fontSize: '9.5px',
+        fontSize: '10px',
         fontWeight: 700,
         color: isParallel ? '#38bdf8' : '#f472b6',
         letterSpacing: '0.4px',
@@ -428,9 +429,20 @@ function EntanglementOverlay({
   audio
 }) {
   const currentBell = bellState;
+  // After a measurement (or a reset) the buttons swap: focus moves to the new one.
+  const actionsRef = useRef(null);
+  const measuredOnce = useRef(false);
+  // (A layout effect: it runs before the stage's focus rescue would.)
+  useLayoutEffect(() => {
+    if (!measuredOnce.current) { measuredOnce.current = !!measuredState; if (!measuredState) return; }
+    const box = actionsRef.current;
+    const active = document.activeElement;
+    if (box && (!active || active === document.body || box.contains(active))) box.querySelector('button')?.focus({ preventScroll: true });
+  }, [measuredState]);
 
   return (
     <>
+      <Announcer message={measuredState ? `Measured: Alice ${measuredState[0]}, Bob ${measuredState[1]}.` : ''} />
       <style>{`
         @keyframes tooltipFadeIn {
           from { opacity: 0; transform: translate(-50%, 8px); }
@@ -657,6 +669,7 @@ function EntanglementOverlay({
           <button
             key={s.num}
             onClick={() => onSelectStage(s.num)}
+            aria-current={stage === s.num ? 'step' : undefined}
             className={`entangle-stage-pill ${stage === s.num ? 'active' : ''}`}
           >
             {s.label}
@@ -689,6 +702,7 @@ function EntanglementOverlay({
             <button
               className="quantum-pill-btn"
               onClick={() => { setSubStage(0); if (audio?.playReset) audio.playReset(); }}
+              aria-pressed={subStage === 0}
               style={{ padding: '7px 13px', fontSize: '11.5px', '--btn-color': subStage === 0 ? '#00f2fe' : '#94a3b8' }}
             >
               <span>State&nbsp;</span>
@@ -697,6 +711,7 @@ function EntanglementOverlay({
             <button
               className="quantum-pill-btn"
               onClick={() => { setSubStage(1); if (audio?.playReset) audio.playReset(); }}
+              aria-pressed={subStage === 1}
               style={{ padding: '7px 13px', fontSize: '11.5px', '--btn-color': subStage === 1 ? '#00f2fe' : '#94a3b8' }}
             >
               <span>Flip Alice&nbsp;(</span>
@@ -706,6 +721,7 @@ function EntanglementOverlay({
             <button
               className="quantum-pill-btn"
               onClick={() => { setSubStage(2); if (audio?.playReset) audio.playReset(); }}
+              aria-pressed={subStage === 2}
               style={{ padding: '7px 13px', fontSize: '11.5px', '--btn-color': subStage === 2 ? '#00f2fe' : '#94a3b8' }}
             >
               <span>Flip Bob&nbsp;(</span>
@@ -715,6 +731,7 @@ function EntanglementOverlay({
             <button
               className="quantum-pill-btn"
               onClick={() => { setSubStage(3); if (audio?.playReset) audio.playReset(); }}
+              aria-pressed={subStage === 3}
               style={{ padding: '7px 13px', fontSize: '11.5px', '--btn-color': subStage === 3 ? '#00f2fe' : '#94a3b8' }}
             >
               <span>Flip Both&nbsp;(</span>
@@ -799,6 +816,7 @@ function EntanglementOverlay({
                 <button
                   key={b.id}
                   onClick={() => onSelectBellState(b)}
+                  aria-pressed={bellState.id === b.id}
                   className="quantum-pill-btn"
                   style={{
                     padding: '6px 14px',
@@ -884,7 +902,7 @@ function EntanglementOverlay({
 
               return (
                 <div key={pair} style={{ marginBottom: '4px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', marginBottom: '2px', color: isCorrelated ? '#38bdf8' : '#64748b' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', marginBottom: '2px', color: isCorrelated ? '#38bdf8' : '#8a9ab0' }}>
                     <span><InlineMath math={String.raw`|${pair}\rangle`} /></span>
                     <span>{pct}% ({count})</span>
                   </div>
@@ -916,7 +934,7 @@ function EntanglementOverlay({
             '--card-glow': `${currentBell.color}30`
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
-              <span style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '1px', color: '#94a3b8', fontWeight: '700' }}>
+              <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px', color: '#94a3b8', fontWeight: '700' }}>
                 Spatial Separation
               </span>
               <span style={{ fontSize: '10.5px', color: '#38bdf8', fontWeight: '700' }}>
@@ -952,7 +970,7 @@ function EntanglementOverlay({
             gap: '12px',
             zIndex: 300,
             pointerEvents: 'auto'
-          }}>
+          }} ref={actionsRef}>
             {!measuredState ? (
               <>
                 <button

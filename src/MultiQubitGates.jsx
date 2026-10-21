@@ -708,7 +708,7 @@ export function MultiGatesOverlay({ step, setStep, applied, setApplied, isMuted,
              return (
                <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', width: `${100 / probabilities.length}%`, height: '100%' }}>
                  <div style={{ 
-                   color: isEmpty ? '#64748b' : '#fff', fontSize: '11px', marginBottom: '6px',
+                   color: isEmpty ? '#8a9ab0' : '#fff', fontSize: '11px', marginBottom: '6px',
                    opacity: isEmpty ? 0 : 1, transition: 'opacity 0.3s', fontWeight: '700'
                  }}>
                    {Math.round(p.prob * 100)}%
@@ -735,7 +735,7 @@ export function MultiGatesOverlay({ step, setStep, applied, setApplied, isMuted,
                  </div>
 
                   <div style={{
-                    color: isEmpty ? '#64748b' : 'var(--text-primary)',
+                    color: isEmpty ? '#8a9ab0' : 'var(--text-primary)',
                     fontSize: '14px', marginTop: '8px',
                     transition: 'all 0.3s',
                     opacity: isEmpty ? 0.45 : 1,

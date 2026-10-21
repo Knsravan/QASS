@@ -6,6 +6,7 @@ import { SCENE_GL } from './sceneGl';
 import gsap from 'gsap';
 import * as THREE from 'three';
 import { glassHold } from './glassGL';
+import { motionReduced } from './quality';
 
 /*
  * One 3D canvas for all the modules.
@@ -177,7 +178,7 @@ function Intro() {
         t0 = p0.clone().addScaledVector(dir, p0.distanceTo(new THREE.Vector3(target[0], target[1], target[2])));
       }
       gsap.to(t, {
-        k: 1, duration: ms / 1000, ease: ease || 'power2.inOut',
+        k: 1, duration: motionReduced() ? 0 : ms / 1000, ease: ease || 'power2.inOut', // reduced motion: a cut
         onUpdate: () => {
           cam.position.set(p0.x + (pos[0] - p0.x) * t.k, p0.y + (pos[1] - p0.y) * t.k, p0.z + (pos[2] - p0.z) * t.k);
           const lx = t0.x + (target[0] - t0.x) * t.k;
