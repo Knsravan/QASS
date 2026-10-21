@@ -110,11 +110,15 @@ export function SuperpositionOverlay({ isGlobalMuted }) {
   const audioRef = useRef(audio);
   audioRef.current = audio;
 
-  // the story's state: on every change, and ten times a second for the live numbers
+  // the story's state: on every change (and hover), and ten times a second for the live
+  // numbers, though only when they have moved (the scene at rest re-renders nothing)
   useEffect(() => {
-    const read = () => { if (bus.story) setS(bus.story.state()); setTick((n) => n + 1); };
+    let lastKey = '';
+    const take = () => { const next = bus.story ? bus.story.state() : null; lastKey = JSON.stringify(next); setS(next); };
+    const read = () => { take(); setTick((n) => n + 1); };
+    const poll = () => { if (bus.story && JSON.stringify(bus.story.state()) !== lastKey) take(); };
     bus.listeners.add(read);
-    const iv = setInterval(read, 100);
+    const iv = setInterval(poll, 100);
     read();
     return () => { bus.listeners.delete(read); clearInterval(iv); };
   }, []);

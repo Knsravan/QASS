@@ -22,58 +22,66 @@ export const useIdleAudio = (isMuted) => {
       masterGain.current = audioCtx.current.createGain();
       masterGain.current.gain.value = 0; // Start silent
       masterGain.current.connect(audioCtx.current.destination);
-
-      // Low-pass filter for the pad sound
-      filter.current = audioCtx.current.createBiquadFilter();
-      filter.current.type = 'lowpass';
-      filter.current.frequency.value = 200;
-      filter.current.Q.value = 1;
-      filter.current.connect(masterGain.current);
-
-      // LFO for filter sweep
-      lfo.current = audioCtx.current.createOscillator();
-      lfo.current.type = 'sine';
-      lfo.current.frequency.value = 0.05; // Very slow sweep (20 seconds)
-
-      lfoGain.current = audioCtx.current.createGain();
-      lfoGain.current.gain.value = 300; // Sweep range
-
-      lfo.current.connect(lfoGain.current);
-      lfoGain.current.connect(filter.current.frequency);
-      lfo.current.start();
-
-      // Osc 1 (Root)
-      osc1.current = audioCtx.current.createOscillator();
-      osc1.current.type = 'sine';
-      osc1.current.frequency.value = 110; // A2
-      osc1.current.connect(filter.current);
-      osc1.current.start();
-
-      // Osc 2 (Detuned 5th)
-      osc2.current = audioCtx.current.createOscillator();
-      osc2.current.type = 'triangle';
-      osc2.current.frequency.value = 165.2; // slightly detuned E3
-
-      // Lower volume for the triangle wave
-      const osc2Gain = audioCtx.current.createGain();
-      osc2Gain.gain.value = 0.4;
-      osc2.current.connect(osc2Gain);
-      osc2Gain.connect(filter.current);
-      osc2.current.start();
-
     } catch (e) {
       if (import.meta.env.DEV) console.warn("AudioContext not supported", e);
     }
   }, []);
 
+  // The pad's voices run only while it plays: they are built when it starts and
+  // stopped once it has faded out (they used to run for the rest of the visit,
+  // muted, inside modules and in hidden tabs).
+  const startVoices = useCallback(() => {
+    const ctx = audioCtx.current;
+    if (!ctx || osc1.current) return;
+    // Low-pass filter for the pad sound
+    filter.current = ctx.createBiquadFilter();
+    filter.current.type = 'lowpass';
+    filter.current.frequency.value = 200;
+    filter.current.Q.value = 1;
+    filter.current.connect(masterGain.current);
+
+    // LFO for filter sweep
+    lfo.current = ctx.createOscillator();
+    lfo.current.type = 'sine';
+    lfo.current.frequency.value = 0.05; // Very slow sweep (20 seconds)
+    lfoGain.current = ctx.createGain();
+    lfoGain.current.gain.value = 300; // Sweep range
+    lfo.current.connect(lfoGain.current);
+    lfoGain.current.connect(filter.current.frequency);
+    lfo.current.start();
+
+    // Osc 1 (Root)
+    osc1.current = ctx.createOscillator();
+    osc1.current.type = 'sine';
+    osc1.current.frequency.value = 110; // A2
+    osc1.current.connect(filter.current);
+    osc1.current.start();
+
+    // Osc 2 (Detuned 5th), quieter (a triangle wave)
+    osc2.current = ctx.createOscillator();
+    osc2.current.type = 'triangle';
+    osc2.current.frequency.value = 165.2; // slightly detuned E3
+    const osc2Gain = ctx.createGain();
+    osc2Gain.gain.value = 0.4;
+    osc2.current.connect(osc2Gain);
+    osc2Gain.connect(filter.current);
+    osc2.current.start();
+  }, []);
+  const stopVoices = useCallback(() => {
+    [osc1, osc2, lfo].forEach((r) => { try { r.current?.stop(); } catch { /* already stopped */ } r.current?.disconnect(); r.current = null; });
+    lfoGain.current?.disconnect(); lfoGain.current = null;
+    filter.current?.disconnect(); filter.current = null;
+  }, []);
+
   useEffect(() => {
     return () => {
       clearInterval(fadeInterval.current);
+      stopVoices();
       if (audioCtx.current && audioCtx.current.state !== 'closed') {
         releaseAudioOutput(masterGain.current);
       }
     };
-  }, []);
+  }, [stopVoices]);
 
   const playAmbient = useCallback(() => {
     wantsAmbient.current = true;
@@ -86,6 +94,7 @@ export const useIdleAudio = (isMuted) => {
 
     clearInterval(fadeInterval.current);
     isPlaying.current = true;
+    startVoices();
     
     // Smooth fade in over 2 seconds to max ambient volume (very quiet)
     const targetGain = 0.04;
@@ -100,7 +109,7 @@ export const useIdleAudio = (isMuted) => {
         clearInterval(fadeInterval.current);
       }
     }, stepTime);
-  }, [isMuted, initAudio]);
+  }, [isMuted, initAudio, startVoices]);
 
   const stopAmbient = useCallback(() => {
     wantsAmbient.current = false;
@@ -121,9 +130,10 @@ export const useIdleAudio = (isMuted) => {
       } else {
         masterGain.current.gain.value = 0;
         clearInterval(fadeInterval.current);
+        if (!isPlaying.current) stopVoices();
       }
     }, stepTime);
-  }, []);
+  }, [stopVoices]);
 
   useEffect(() => {
     if (isMuted && isPlaying.current) {

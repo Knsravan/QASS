@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html, Line } from '@react-three/drei';
 import * as THREE from 'three';
@@ -118,7 +118,7 @@ const rimFragment = /* glsl */ `
     gl_FragColor = vec4(c, f * uStrength);
   }`;
 export function useRimMaterial(strength = 0.85) {
-  return useMemo(() => new THREE.ShaderMaterial({
+  const material = useMemo(() => new THREE.ShaderMaterial({
     vertexShader: rimVertex,
     fragmentShader: rimFragment,
     uniforms: {
@@ -132,6 +132,8 @@ export function useRimMaterial(strength = 0.85) {
     depthWrite: false,
     blending: THREE.AdditiveBlending,
   }), [strength]);
+  useEffect(() => () => material.dispose(), [material]); // R3F frees only what it made from JSX
+  return material;
 }
 
 // A name plate pinned to a model: a pill of the app's own liquid glass (the

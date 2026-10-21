@@ -49,6 +49,26 @@ function Ticker({ fps }) {
   return null;
 }
 
+// The drawing-buffer rectangle [x, y, width, height] (y from the bottom) around the glass
+// pieces, `reach` CSS px beyond their boxes. The glass changes pixels up to 30 px out (its
+// shadow) and reads the frame a little further (the rim's bend): it draws inside
+// GLASS_DRAWS and copies GLASS_READS.
+const GLASS_DRAWS = 40;
+const GLASS_READS = 96;
+function glassRegion(pieces, rect, w, h, reach) {
+  const s = w / rect.width;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const { r } of pieces) {
+    x0 = Math.min(x0, r.left); y0 = Math.min(y0, r.top); x1 = Math.max(x1, r.right); y1 = Math.max(y1, r.bottom);
+  }
+  const left = Math.max(0, Math.floor((x0 - rect.left - reach) * s));
+  const right = Math.min(w, Math.ceil((x1 - rect.left + reach) * s));
+  const bottom = Math.max(0, Math.floor(h - (y1 - rect.top + reach) * s));
+  const top = Math.min(h, Math.ceil(h - (y0 - rect.top - reach) * s));
+  if (right <= left || top <= bottom) return null;
+  return [left, bottom, right - left, top - bottom];
+}
+
 // Draws the glass over this canvas's finished frame. Runs after the scene
 // (and the glow composer, which renders at priority 1). A priority above 0
 // stops the canvas drawing itself, so when nothing else renders, this does.
@@ -94,21 +114,44 @@ function GlassLayer() {
     if (!pieces?.length) return;
     const w = gl.domElement.width;
     const h = gl.domElement.height;
+    let fresh = false;
     if (!parts.texture || parts.texture.image.width !== w || parts.texture.image.height !== h) {
       parts.texture?.dispose();
       parts.texture = new THREE.FramebufferTexture(w, h);
       parts.texture.minFilter = THREE.LinearFilter;
       parts.texture.magFilter = THREE.LinearFilter;
+      fresh = true;
     }
     const u = parts.uniforms;
-    fillGlassUniforms(u, pieces, gl.domElement.getBoundingClientRect(), w, h, frame.lens);
+    const rect = gl.domElement.getBoundingClientRect();
+    fillGlassUniforms(u, pieces, rect, w, h, frame.lens);
     u.uLight.value.set(frame.light[0], -frame.light[1]); // the shader's y runs up
     gl.setRenderTarget(null);
-    gl.copyFramebufferToTexture(parts.texture);
+    // The glass only reads the frame under and just around itself: copy that region
+    // instead of the whole frame (about 19 MB a frame at 2880 x 1620), and draw only
+    // inside a smaller one, so no pixel outside the copy is written from the texture.
+    // The texture stays full size, so the shader's coordinates are the frame's. (The
+    // first copy into a new texture is a full one.)
+    const region = !fresh && glassRegion(pieces, rect, w, h, GLASS_READS);
+    const draws = region && glassRegion(pieces, rect, w, h, GLASS_DRAWS);
+    if (region) {
+      const ctx = gl.getContext();
+      gl.state.bindTexture(ctx.TEXTURE_2D, gl.properties.get(parts.texture).__webglTexture);
+      ctx.copyTexSubImage2D(ctx.TEXTURE_2D, 0, region[0], region[1], region[0], region[1], region[2], region[3]);
+      gl.state.unbindTexture();
+    } else {
+      gl.copyFramebufferToTexture(parts.texture);
+    }
     u.uFrame.value = parts.texture;
     const autoClear = gl.autoClear;
     gl.autoClear = false;
+    if (draws) {
+      const pr = gl.getPixelRatio();
+      gl.setScissor(draws[0] / pr, draws[1] / pr, draws[2] / pr, draws[3] / pr);
+      gl.setScissorTest(true);
+    }
     gl.render(parts.scene, parts.camera);
+    if (draws) gl.setScissorTest(false);
     gl.autoClear = autoClear;
   }, 2);
   return null;

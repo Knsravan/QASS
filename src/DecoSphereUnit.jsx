@@ -56,6 +56,7 @@ function DecayRibbon3D({ isVisible, noiseLevel }) {
     const geom = new THREE.BufferGeometry().setFromPoints(points);
     return geom;
   }, [points]);
+  useEffect(() => () => geometry.dispose(), [geometry]); // R3F frees only what it made from JSX
 
   useFrame(({ clock }) => {
     if (!lineRef.current) return;

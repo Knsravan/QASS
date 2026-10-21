@@ -123,7 +123,8 @@ function startEdges() {
   document.body.appendChild(canvas);
   let renderer;
   try {
-    renderer = new THREE.WebGLRenderer({ canvas, alpha: true, premultipliedAlpha: true, antialias: false, powerPreference: 'low-power' });
+    // No depth or stencil: the layer only draws flat quads (that buffer was half its memory).
+    renderer = new THREE.WebGLRenderer({ canvas, alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false, powerPreference: 'low-power' });
   } catch {
     canvas.remove();
     return;
@@ -158,7 +159,7 @@ function startEdges() {
     state.blank = false;
     const w = window.innerWidth;
     const h = window.innerHeight;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5); // the scenes' own cap (quality.js)
     if (w !== state.w || h !== state.h || dpr !== state.dpr) {
       state.w = w; state.h = h; state.dpr = dpr;
       renderer.setPixelRatio(dpr);
@@ -320,7 +321,13 @@ function scanContent() {
     }
   }
 }
+// Read once per frame: every glass piece asks, and each read measured every
+// piece of content again (about 650 rect reads a frame in Exponential).
+let contentFrame = -1;
+let contentLive = [];
 function contentBehind(now) {
+  if (now === contentFrame) return contentLive;
+  contentFrame = now;
   if ((contentDirty && now - contentScanAt > 80) || now - contentScanAt > 1500) {
     contentDirty = false;
     contentScanAt = now;
@@ -335,6 +342,7 @@ function contentBehind(now) {
     live.push(c);
   }
   content = live;
+  contentLive = live;
   return live;
 }
 const zCache = new WeakMap(); // el -> { z, at }

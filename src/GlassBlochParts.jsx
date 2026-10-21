@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 
 // The new look's pieces, shared by every Bloch sphere still drawn the old way (BlochSphere.jsx's
@@ -20,6 +20,7 @@ function Circle({ r, y = 0, rotation, color, opacity }) {
     g.setAttribute('position', new THREE.BufferAttribute(circlePoints(r), 3));
     return g;
   }, [r]);
+  useEffect(() => () => geo.dispose(), [geo]); // R3F frees only what it made from JSX
   return (
     <line geometry={geo} position={[0, y, 0]} rotation={rotation} raycast={() => null}>
       <lineBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} />
@@ -52,11 +53,11 @@ export function LightLine({ length, color = '#bfe9ff', opacity = 0.35, rotation,
 }
 
 /** A soft additive halo: a sphere of light around a pearl or a pole. */
-export function Halo({ radius, color, opacity = 0.2, position }) {
+export function Halo({ radius, color, opacity = 0.2, position, materialRef }) {
   return (
     <mesh position={position} raycast={() => null}>
       <sphereGeometry args={[radius, 24, 16]} />
-      <meshBasicMaterial color={color} transparent opacity={opacity} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
+      <meshBasicMaterial ref={materialRef} color={color} transparent opacity={opacity} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
     </mesh>
   );
 }

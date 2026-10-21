@@ -396,14 +396,16 @@ function DecayCurveChart({ noiseLevel }) {
       const mxn = nl * 0.85, mx = PL + mxn*cW, my = (H-PB) - cH*Math.exp(-(mxn*xMax)/T2);
       ctx.fillStyle = CT; ctx.shadowColor = CT; ctx.shadowBlur = 12;
       ctx.beginPath(); ctx.arc(mx, my, 4.5, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
-      ctx.font = '9px Inter, sans-serif';
-      ctx.fillStyle = '#475569'; ctx.fillText('|ρ₀₁|', 2, H/2+4);
+      ctx.font = '10px Inter, sans-serif';
+      ctx.fillStyle = '#8a9ab0'; ctx.fillText('|ρ₀₁|', 2, H/2+4);
       ctx.fillText('t', W-PR-6, H-PB+10);
       ctx.fillStyle = CA; ctx.fillText('T₂', t2x-5, H-PB+10);
-      ctx.fillStyle = '#64748b'; ctx.fillText('1/e', 2, t2y+4);
+      ctx.fillStyle = '#8a9ab0'; ctx.fillText('1/e', 2, t2y+4);
     };
     draw();
-    const id = setInterval(draw, 80);
+    // Redrawn only when the noise has moved (it was redrawn, with its blur, every 80 ms).
+    let drawn = nlRef.current;
+    const id = setInterval(() => { if (nlRef.current !== drawn) { drawn = nlRef.current; draw(); } }, 80);
     return () => clearInterval(id);
   }, []);
   return <canvas ref={canvasRef} style={{ width: '100%', height: '95px', borderRadius: '10px', marginTop: '8px', display: 'block' }} />;
@@ -449,6 +451,17 @@ const Badge = ({ icon: Icon, text, color: bc }) => {
 // ============================================================
 // MAIN MODULE
 // ============================================================
+// A tween's value, handed to React state at most about 15 times a second and once at
+// its end: every update re-renders the whole module (and its scene), and the scene's
+// models ease toward the value anyway.
+const toState = (ref, set) => {
+  let last = 0;
+  return {
+    onUpdate: () => { const t = performance.now(); if (t - last > 66) { last = t; set(ref.current.value); } },
+    onComplete: () => set(ref.current.value),
+  };
+};
+
 export default function DecoherenceModule({ isSidebarOpen, isGlobalMuted, onNavigateToModule, fromHub = false }) {
   const audio = useDecoherenceAudio(isGlobalMuted);
   const [step, setStep]                           = useState('intro');
@@ -538,7 +551,7 @@ export default function DecoherenceModule({ isSidebarOpen, isGlobalMuted, onNavi
   useEffect(() => {
     const target = STEP_NOISE[step] != null ? STEP_NOISE[step] : 0;
     gsap.killTweensOf(noiseTween.current);
-    gsap.to(noiseTween.current, { value: target, duration: 1.5, ease: 'power2.inOut', onUpdate: () => setNoiseLevel(noiseTween.current.value) });
+    gsap.to(noiseTween.current, { value: target, duration: 1.5, ease: 'power2.inOut', ...toState(noiseTween, setNoiseLevel) });
   }, [step]);
 
   useEffect(() => () => {
@@ -613,8 +626,8 @@ export default function DecoherenceModule({ isSidebarOpen, isGlobalMuted, onNavi
 
   const handleDropTemp = useCallback(() => {
     audio.playTemperatureDrop(); setShowTempMeter(true);
-    gsap.to(tempTween.current,  { value: 0.015, duration: 2.5, ease: 'power3.out', onUpdate: () => setTempK(tempTween.current.value) });
-    gsap.to(noiseTween.current, { value: 0.10,  duration: 2.5, ease: 'power3.out', onUpdate: () => setNoiseLevel(noiseTween.current.value) });
+    gsap.to(tempTween.current,  { value: 0.015, duration: 2.5, ease: 'power3.out', ...toState(tempTween, setTempK) });
+    gsap.to(noiseTween.current, { value: 0.10,  duration: 2.5, ease: 'power3.out', ...toState(noiseTween, setNoiseLevel) });
   }, [audio]);
 
   // Viewport bounds styling for perfect responsive alignment
