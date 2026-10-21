@@ -80,38 +80,6 @@
   box-shadow: none;
 }
 
-/* ── Sidebar contents: rows on the glass, not glass rows ────────────────── */
-.sidebar-panel .curriculum-item {
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-  color: var(--lg-content-secondary);
-  border-radius: 999px;
-  transform: none;
-  transition: background-color 200ms ease, color 150ms ease;
-}
-
-.sidebar-panel .curriculum-item:hover {
-  background: var(--lg-row-hover);
-  border-color: transparent;
-  box-shadow: none;
-  color: var(--lg-content);
-  transform: none;
-}
-
-.sidebar-panel .curriculum-item.active {
-  background: var(--lg-indicator);
-  border-color: transparent;
-  box-shadow: none;
-  color: var(--lg-content);
-  transform: none;
-}
-
-.sidebar-panel .curriculum-item:active {
-  transform: none;
-  box-shadow: none;
-}
-
 .sidebar-panel .data-card {
   background: var(--lg-inset-fill);
   border: 0.5px solid var(--lg-edge);
@@ -690,7 +658,6 @@ div:has(> canvas) {
 .lg-nav-neck-rim {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.12));
 }
-
 
 /* Bright beams (glassLight.js): when one passes behind glass inside the app,
    the glass darkens what shows through it (--lg-see, in the lens layer

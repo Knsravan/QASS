@@ -84,7 +84,6 @@
   z-index: 500;
 }
 
-
 /* Opening the first module from the hub: the hub's text fades up and away
    while the two bits stay and grow; the module's own pieces fade in after. */
 .idle-hud { transition: opacity 0.5s ease, transform 0.55s cubic-bezier(0.4, 0, 0.2, 1); }
