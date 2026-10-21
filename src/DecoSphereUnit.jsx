@@ -8,6 +8,7 @@ import { handoff, REST, QUBIT_R } from './handoff';
 import { Metal, useRimMaterial } from './PremiumBitQubit';
 import { SphereLines, LightLine, Halo } from './GlassBlochParts';
 import { MathChip } from './MathChip';
+import { blochLength } from './quantumMath';
 
 export const CT = '#14b8a6'; // Teal - Pure
 export const CA = '#f59e0b'; // Amber - Noisy / Thermal
@@ -163,7 +164,8 @@ export function BlochSphereUnit({ posArr, color, label, isPure, noiseLevel, acti
       if (noiseTimerRef.current > 3.2) activeNoiseRef.current = null;
     }
 
-    const targetLen = SPHERE_R * (1.0 - nl * 0.48);
+    // The arrow is the Bloch vector: as long as the density matrix says (a dot when fully mixed).
+    const targetLen = SPHERE_R * Math.max(0.04, blochLength(nl));
     lenRef.current += (targetLen - lenRef.current) * 0.08;
 
     if (vectorGrpRef.current) {

@@ -252,6 +252,9 @@ export function densityMatrix(noiseLevel) {
   return { r01, trSq, purity };
 }
 
+/** The noisy qubit's Bloch vector length, |r| = 2|ρ01|: 1 when pure, 0 fully mixed. */
+export const blochLength = (noiseLevel) => 2 * densityMatrix(noiseLevel).r01;
+
 // ─── Quantum Error Correction ────────────────────────────────────────────────
 
 // The 3-qubit bit-flip code: s1 = Q1 ⊕ Q2, s2 = Q2 ⊕ Q3 for a flip on each qubit.

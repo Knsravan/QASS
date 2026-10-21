@@ -1059,7 +1059,7 @@ export default function ExponentialModule({ isSidebarOpen = true, isGlobalMuted 
             Linear Hardware (<InlineMath math={String.raw`N`} />) vs Exponential Space (<InlineMath math={String.raw`2^N`} />)
           </div>
           <p style={{ margin: '0 0 8px 0', fontSize: '11.5px', color: '#cbd5e1', lineHeight: '1.4' }}>
-            Adding a classical bit gives you +1 state. Adding <strong>1 physical qubit doubles</strong> the number of basis states the state vector spans, and so the amplitudes needed to describe it!
+            N classical bits hold one of <InlineMath math={String.raw`2^N`} /> configurations at a time. N qubits need all <InlineMath math={String.raw`2^N`} /> amplitudes to describe them: adding <strong>1 physical qubit doubles</strong> the list a classical computer must keep!
           </p>
 
           {/* Interactive Qubit Hardware Slider (Compact Width) */}
@@ -1132,7 +1132,7 @@ export default function ExponentialModule({ isSidebarOpen = true, isGlobalMuted 
             Parallel Superposition Explosion (<InlineMath math={String.raw`H^{\otimes N}`} />)
           </div>
           <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#cbd5e1', lineHeight: '1.45' }}>
-            Applying a Hadamard gate to every qubit simultaneously fuses them into an equal superposition of all <InlineMath math={String.raw`2^{${qubitCount}} = ${numStates}`} /> computational states!
+            A Hadamard gate on every qubit puts each one in <InlineMath math={String.raw`|+\rangle`} />. Together they form an equal superposition of all <InlineMath math={String.raw`2^{${qubitCount}} = ${numStates}`} /> basis states, each with amplitude <InlineMath math={String.raw`1/\sqrt{${numStates}}`} />. (Each qubit is still on its own: no entanglement yet.)
           </p>
 
           {/* Mathematical Visualizer Box */}
@@ -1271,7 +1271,7 @@ export default function ExponentialModule({ isSidebarOpen = true, isGlobalMuted 
             🚫 The Big Myth: Brute-Force Parallelism?
           </div>
           <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#cbd5e1', lineHeight: '1.45' }}>
-            Quantum computers do <strong>NOT</strong> check all <InlineMath math={String.raw`2^N`} /> states simultaneously to pick an answer. Instead, quantum algorithms use <strong>interference</strong> to amplify the correct answer while canceling wrong ones!
+            Quantum computers do <strong>NOT</strong> check all <InlineMath math={String.raw`2^N`} /> states simultaneously to pick an answer. Instead, quantum algorithms use <strong>interference</strong> to amplify the correct answer while canceling wrong ones. Grover's search, for example, needs an oracle and about <InlineMath math={String.raw`\tfrac{\pi}{4}\sqrt{2^N}`} /> rounds of it, and even then the answer comes out with high (not certain) probability. The pulse below shows the end result.
           </p>
 
           <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
@@ -1284,7 +1284,7 @@ export default function ExponentialModule({ isSidebarOpen = true, isGlobalMuted 
                 '--btn-color': isInterferenceActive ? '#22c55e' : '#f43f5e'
               }}
             >
-              {isInterferenceActive ? `✓ Target State Amplified (${targetStateLabel} = 100%)` : '⚡ Run Quantum Interference Pulse'}
+              {isInterferenceActive ? `✓ Target State Amplified (${targetStateLabel} ≈ 100%)` : '⚡ Run Quantum Interference Pulse'}
             </button>
           </div>
         </div>

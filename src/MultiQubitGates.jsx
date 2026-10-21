@@ -81,7 +81,7 @@ export const MULTI_GATES_STEPS = [
   {
     id: 'bell', title: 'H + CNOT (Bell State)', color: '#10b981', gate: 'BELL', name: 'Bell State', numQubits: 2,
     definition: 'A circuit combination that produces maximum entanglement between two qubits.',
-    understanding: 'This is not a single gate, but the most famous 2-qubit circuit. First, a Hadamard (H) gate puts the control qubit into a 50/50 superposition. Then, the CNOT gate entangles the target qubit with the control. The result is a Bell State, where measuring one qubit instantaneously determines the state of the other.',
+    understanding: 'This is not a single gate, but the most famous 2-qubit circuit. First, a Hadamard (H) gate puts the control qubit into a 50/50 superposition. Then, the CNOT gate entangles the target qubit with the control. The result is a Bell State: each qubit alone gives a random 0 or 1, but the two results always agree. Nothing travels between them; the correlation was built in by the CNOT.',
     stateMapping: [
       { in: '|00\\rangle', out: '\\frac{|00\\rangle + |11\\rangle}{\\sqrt{2}}', note: 'Creates the Φ⁺ Bell state' },
       { in: '|01\\rangle', out: '\\frac{|01\\rangle + |10\\rangle}{\\sqrt{2}}', note: 'Creates the Ψ⁺ Bell state' },

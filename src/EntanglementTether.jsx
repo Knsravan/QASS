@@ -94,13 +94,12 @@ export function EntanglementTether({
       });
     }
 
-    // 4. Instantaneous Measurement Collapse Shockwave
+    // 4. The measurement's flash, at the qubit that was measured. It stays there: nothing
+    // travels to the other qubit (the outcomes are correlated, no signal passes).
     const waveProgress = shockwaveRef ? shockwaveRef.current.progress : shockwaveProgress;
     const waveSource = shockwaveRef ? shockwaveRef.current.source : shockwaveSource;
     if (shockwaveMeshRef.current && waveProgress >= 0) {
-      const fromX = waveSource === 'A' ? vA.x : vB.x;
-      const toX = waveSource === 'A' ? vB.x : vA.x;
-      const waveX = THREE.MathUtils.lerp(fromX, toX, waveProgress);
+      const waveX = waveSource === 'A' ? vA.x : vB.x;
 
       shockwaveMeshRef.current.position.set(waveX, midpoint.y, midpoint.z);
       const waveScale = 1.0 + Math.sin(waveProgress * Math.PI) * 1.5;
@@ -250,7 +249,7 @@ export function EntanglementTether({
               <span style={{ fontSize: '10px' }}>⚡</span> Entanglement Tether
             </div>
             <p style={{ margin: 0, fontSize: '10px', color: '#cbd5e1', lineHeight: '1.35' }}>
-              Quantum correlation channel linking Alice & Bob's wavefunctions instantaneously.
+              The pair shares one quantum state: its results are correlated. No signal runs along this link.
             </p>
           </div>
         </Html>

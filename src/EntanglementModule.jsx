@@ -112,7 +112,7 @@ function EntanglementScene({
     if (stage === 2) {
       if (subStage === 0) return quat0;
       if (subStage === 1) return quatSuperposition;
-      return quatSuperposition; // entangled superposition
+      return quatSuperposition; // (entangled: the arrow shrinks away, see vectorLength)
     }
     if (measuredState) {
       const charA = measuredState[0];
@@ -131,7 +131,7 @@ function EntanglementScene({
     }
     if (stage === 2) {
       if (subStage < 2) return quat0;
-      return quatSuperposition; // entangled
+      return quatSuperposition; // (entangled: the arrow shrinks away, see vectorLength)
     }
     if (measuredState) {
       const charB = measuredState[1];
@@ -166,6 +166,7 @@ function EntanglementScene({
           scale={REST.entanglement.scale}
           activeModule="entanglement"
           customVectorQuat={quatAlice}
+          vectorLength={isEntangled && !measuredState ? 0 : 1}
           emissiveColor={measuredState ? (measuredState[0] === '0' ? '#00f2fe' : '#f093fb') : bellState.color}
         />
 
@@ -241,6 +242,7 @@ function EntanglementScene({
           scale={REST.entanglement.scale}
           activeModule="entanglement"
           customVectorQuat={quatBob}
+          vectorLength={isEntangled && !measuredState ? 0 : 1}
           emissiveColor={measuredState ? (measuredState[1] === '0' ? '#00f2fe' : '#f093fb') : bellState.color}
         />
 
@@ -314,19 +316,18 @@ function BellMeasurementTooltip({ bellState, measuredState }) {
   let explanation = null;
   let mathFormula = '';
 
+  // Each result alone is a fair coin toss; what entanglement fixes is how the two agree.
+  // Nothing passes from one qubit to the other (Bob's own odds stay 50/50 either way).
+  const noSignal = <> Each result on its own is 50/50, so Bob, looking only at his qubit, can't tell that Alice measured at all.</>;
   if (bellState.id === 'phi_plus') {
     mathFormula = String.raw`\frac{|00\rangle + |11\rangle}{\sqrt{2}} \xrightarrow{\text{Measure}} |${measuredState}\rangle \quad (P = 50\%)`;
-    explanation = charA === '0'
-      ? <>Alice measured <InlineMath math={String.raw`|0\rangle`} />, which instantaneously collapsed the joint superposition. Because <InlineMath math={String.raw`|\Phi^+\rangle`} /> contains only <InlineMath math={String.raw`|00\rangle`} /> and <InlineMath math={String.raw`|11\rangle`} />, Bob is guaranteed with 100% certainty to collapse into <InlineMath math={String.raw`|0\rangle`} /> simultaneously!</>
-      : <>Alice measured <InlineMath math={String.raw`|1\rangle`} />, forcing Bob's qubit across space to instantaneously collapse into <InlineMath math={String.raw`|1\rangle`} /> simultaneously with 100% correlation.</>;
+    explanation = <>Both qubits read <InlineMath math={String.raw`|${charA}\rangle`} />. <InlineMath math={String.raw`|\Phi^+\rangle`} /> contains only <InlineMath math={String.raw`|00\rangle`} /> and <InlineMath math={String.raw`|11\rangle`} />, so the two results always agree.{noSignal}</>;
   } else if (bellState.id === 'phi_minus') {
     mathFormula = String.raw`\frac{|00\rangle - |11\rangle}{\sqrt{2}} \xrightarrow{\text{Measure}} |${measuredState}\rangle \quad (P = 50\%)`;
     explanation = <>Even with a relative <InlineMath math={String.raw`\pi`} /> (180°) quantum phase shift (<InlineMath math={String.raw`-1`} />), measurement in the standard basis produces 100% identical outcomes. The negative phase disappears upon collapse into a classical reality.</>;
   } else if (bellState.id === 'psi_plus') {
     mathFormula = String.raw`\frac{|01\rangle + |10\rangle}{\sqrt{2}} \xrightarrow{\text{Measure}} |${measuredState}\rangle \quad (P = 50\%)`;
-    explanation = charA === '0'
-      ? <>Alice measured <InlineMath math={String.raw`|0\rangle`} />, which instantaneously forces Bob into the opposite state <InlineMath math={String.raw`|1\rangle`} />. In <InlineMath math={String.raw`|\Psi^+\rangle`} />, both qubits are 100% anti-correlated.</>
-      : <>Alice measured <InlineMath math={String.raw`|1\rangle`} />, which instantaneously forces Bob into <InlineMath math={String.raw`|0\rangle`} />. Perfect opposite correlation is preserved.</>;
+    explanation = <>Alice reads <InlineMath math={String.raw`|${charA}\rangle`} /> and Bob the opposite, <InlineMath math={String.raw`|${measuredState[1]}\rangle`} />: in <InlineMath math={String.raw`|\Psi^+\rangle`} /> the two results always differ.{noSignal}</>;
   } else if (bellState.id === 'psi_minus') {
     mathFormula = String.raw`\frac{|01\rangle - |10\rangle}{\sqrt{2}} \xrightarrow{\text{Measure}} |${measuredState}\rangle \quad (P = 50\%)`;
     explanation = <>The Singlet State (total spin <InlineMath math={String.raw`S=0`} />). Besides 100% opposite outcomes (<InlineMath math={String.raw`|01\rangle`} /> / <InlineMath math={String.raw`|10\rangle`} />), this state is uniquely rotationally invariant — measuring along any identical axis (X, Y, or Z) always yields opposite results!</>;
@@ -1001,7 +1002,7 @@ function EntanglementOverlay({
             🚫 The Big Myth: Faster-Than-Light Signals?
           </div>
           <p style={{ margin: '0 0 12px 0', fontSize: '12.5px', color: '#cbd5e1', lineHeight: '1.5' }}>
-            Measuring Alice instantly determines Bob, but <strong>cannot transmit information</strong>. Alice's measurements are random 50/50 noise until compared via classical lightspeed channels.
+            Alice's and Bob's results always match, but that <strong>cannot transmit information</strong>: each side alone sees random 50/50 results, and the match only shows when they compare notes over an ordinary (light-speed) channel.
           </p>
           <div style={{ display: 'flex', justifyContent: 'center' }}>
             <button
@@ -1115,7 +1116,19 @@ export default function EntanglementModule({ isSidebarOpen, isGlobalMuted }) {
     shockwaveRef.current.source = source;
     setShockwaveActive(true);
 
-    // Smooth GSAP animation for the traveling wave across tether
+    // Both outcomes are there at once: nothing travels from one qubit to the other.
+    setMeasuredState(picked);
+    setIsEntangled(false);
+    setHistoryStats(prev => ({
+      ...prev,
+      total: prev.total + 1,
+      [picked]: (prev[picked] || 0) + 1
+    }));
+    if (audio?.playMeasurementCollapse) {
+      audio.playMeasurementCollapse(picked);
+    }
+
+    // The flash at the measured qubit.
     measureTweenRef.current = gsap.to(shockwaveRef.current, {
       progress: 1.0,
       duration: 0.4,
@@ -1125,19 +1138,6 @@ export default function EntanglementModule({ isSidebarOpen, isGlobalMuted }) {
         measuringRef.current = false;
         shockwaveRef.current.progress = -1;
         setShockwaveActive(false);
-        setMeasuredState(picked);
-        setIsEntangled(false);
-
-        // Update tally
-        setHistoryStats(prev => ({
-          ...prev,
-          total: prev.total + 1,
-          [picked]: (prev[picked] || 0) + 1
-        }));
-
-        if (audio?.playMeasurementCollapse) {
-          audio.playMeasurementCollapse(picked);
-        }
       }
     });
   }, [stage, isEntangled, measuredState, bellState, audio]);

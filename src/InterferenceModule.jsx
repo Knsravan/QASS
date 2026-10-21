@@ -1044,9 +1044,9 @@ function InterferenceOverlay({ stage, setStage, subStage, setSubStage, interfere
               <p style={{ margin: '0 0 6px 0', fontSize: '11.5px', lineHeight: '1.5', color: '#cbd5e1' }}>
                 The second <strong>H-Gate</strong> recombined the two interfering probability paths.
               </p>
-              <MathEquation prefix="H|-⟩ =" top="|0⟩ - |1⟩" bottom="√2" suffix="= |1⟩" />
+              <MathEquation prefix="H|-⟩ = H" top="|0⟩ - |1⟩" bottom="√2" suffix="= |1⟩" />
               <p style={{ margin: 0, fontSize: '11.5px', lineHeight: '1.5', color: '#cbd5e1' }}>
-                Amplitudes on the |0⟩ path canceled out (1 - 1 = 0), while amplitudes on the |1⟩ path added constructively (1 + 1 = 2), steering the qubit deterministically into <strong>Detector |1⟩</strong>!
+                The two paths into |0⟩ carry amplitudes ½ and −½ and cancel (½ − ½ = 0), while the two into |1⟩ add up (½ + ½ = 1), steering the qubit deterministically into <strong>Detector |1⟩</strong>!
               </p>
             </div>
           )}

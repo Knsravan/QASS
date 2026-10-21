@@ -27,7 +27,7 @@ const tooltipData = {
     title: '🌊 Superposition & Measurement Collapse',
     steps: [
       { text: <>Input <InlineMath math={String.raw`|0\rangle`} /> enters the Hadamard (H) gate.</> },
-      { text: <>H splits amplitudes equally: 50% <InlineMath math={String.raw`|0\rangle`} />, 50% <InlineMath math={String.raw`|1\rangle`} />.</> },
+      { text: <>H gives <InlineMath math={String.raw`|0\rangle`} /> and <InlineMath math={String.raw`|1\rangle`} /> equal amplitudes, <InlineMath math={String.raw`1/\sqrt{2}`} /> each: a 50% chance of each.</> },
       { text: 'Measurement [M] forces irreversible collapse into classical 0 or 1.' },
     ],
   },
@@ -132,7 +132,7 @@ const tooltipData = {
     steps: [
       { text: 'H gate superimposes Qubit 0.' },
       { text: 'CNOT links both qubits into a shared non-separable state.' },
-      { text: 'Measuring one qubit instantly determines the other.' },
+      { text: 'Measured, each qubit gives a random bit, and the two bits always agree.' },
     ],
   },
   exponential: {
@@ -162,9 +162,9 @@ const tooltipData = {
   'error-correction': {
     title: '🛡️ Parity Check Recovery Flow',
     steps: [
-      { text: 'Data qubit is entangled with Ancilla via CNOT.' },
-      { text: 'Ancilla measured — reveals error syndrome without collapsing data.' },
-      { text: 'Syndrome triggers corrective X-flip to restore data.' },
+      { text: <>CNOTs copy the parities <InlineMath math={String.raw`D_1 \oplus D_2`} /> and <InlineMath math={String.raw`D_2 \oplus D_3`} /> onto two ancillas, never a data qubit&apos;s own value.</> },
+      { text: <>Measuring the ancillas reads the syndrome; α and β in <InlineMath math={String.raw`\alpha|000\rangle + \beta|111\rangle`} /> stay untouched.</> },
+      { text: 'The syndrome names the flipped qubit, and an X on it restores the code.' },
     ],
   },
 };
@@ -508,9 +508,7 @@ const EntanglementLiquidCircuit = ({ tooltipData }) => {
           <div className="liquid-multi-gate-col" style={{ left: '68%' }}>
             <div className="liquid-control-dot" />
           </div>
-          <div className="circuit-state-label" style={{ right: 0, color: '#f43f5e' }}>
-            {measuredPair ? `|${measuredPair[0]}⟩` : <InlineMath math={String.raw`|\Phi^+\rangle`} />}
-          </div>
+          {measuredPair && <div className="circuit-state-label" style={{ right: 0, color: '#f43f5e' }}>{`|${measuredPair[0]}⟩`}</div>}
         </div>
 
         <div className="liquid-multi-row">
@@ -519,12 +517,12 @@ const EntanglementLiquidCircuit = ({ tooltipData }) => {
           <div className="liquid-multi-gate-col" style={{ left: '68%' }}>
             <div className="liquid-target-xor" />
           </div>
-          <div className="circuit-state-label" style={{ right: 0, color: '#f43f5e' }}>
-            {measuredPair ? `|${measuredPair[1]}⟩` : <InlineMath math={String.raw`|\Phi^+\rangle`} />}
-          </div>
+          {measuredPair && <div className="circuit-state-label" style={{ right: 0, color: '#f43f5e' }}>{`|${measuredPair[1]}⟩`}</div>}
         </div>
 
         <div className="liquid-v-line bell-line" style={{ top: '30px', height: '60px', left: '68%' }} />
+        {/* |Φ+⟩ is the pair's state: one label across both wires, not one per qubit. */}
+        {!measuredPair && <div className="circuit-state-label" style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', color: '#f43f5e' }}><InlineMath math={String.raw`|\Phi^+\rangle`} /></div>}
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '14px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
@@ -694,7 +692,7 @@ const DecoherenceLiquidCircuit = ({ tooltipData }) => {
 
       <div className="liquid-coherence-bar-container">
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#94a3b8', marginBottom: '4px' }}>
-          <span>Phase Coherence T₂</span>
+          <span>Phase coherence (decays over T₂)</span>
           <span style={{ color: noiseActive ? '#ef4444' : '#14b8a6', fontWeight: 700 }}>{noiseActive ? '18% (Decohered)' : '98% (Coherent)'}</span>
         </div>
         <div className="liquid-coherence-track">
@@ -724,81 +722,80 @@ const DecoherenceLiquidCircuit = ({ tooltipData }) => {
 // 9. QUANTUM ERROR CORRECTION CIRCUIT
 // ==========================================
 const ErrorCorrectionLiquidCircuit = ({ tooltipData }) => {
-  const [hasError, setHasError] = useState(true);
+  // The three-qubit bit-flip code, as the module plays it: |ψ⟩ is spread over three data
+  // qubits (α|000⟩ + β|111⟩); two ancillas pick up the parities D1⊕D2 and D2⊕D3, never a
+  // data qubit's own value, so measuring them leaves α and β alone.
+  const [errorOn, setErrorOn] = useState(0); // 0: no error, 1-3: the data qubit that flips
   const tip = tooltipData['error-correction'];
+  const s1 = errorOn === 1 || errorOn === 2 ? 1 : 0;
+  const s2 = errorOn === 2 || errorOn === 3 ? 1 : 0;
+  const ROW = 34, GAP = 6, PITCH = ROW + GAP;
+  const center = (r) => ROW / 2 + r * PITCH;
+  // Each check: two CNOTs, from a data qubit (row) onto an ancilla (row 3 or 4).
+  const cnots = [[0, 3, 35], [1, 3, 46], [1, 4, 57], [2, 4, 68]];
+  const rows = ['D_1', 'D_2', 'D_3', String.raw`|0\rangle_{A_1}`, String.raw`|0\rangle_{A_2}`];
+  const next = () => setErrorOn((e) => (e + 1) % 4);
+  const gate = { width: '26px', height: '26px', fontSize: '10px', zIndex: 12 };
 
   return (
-    <div className="glass-card" style={{ padding: '24px 14px', position: 'relative' }}>
-      <div className="liquid-multi-circuit">
-        <div className="liquid-multi-row">
-          <div className="circuit-state-label" style={{ left: 0, color: '#6366f1' }}>
-            <InlineMath math={String.raw`|\psi\rangle_D`} />
-          </div>
-          <div className="qubit-wire-timeline"><div className="wire-flow-indicator" /></div>
-          
-          <div className="liquid-multi-gate-col" style={{ left: '32%' }}>
-            <div 
-              className={`liquid-gate-box ${hasError ? 'liquid-gate-x' : ''}`}
-              {...pressable(() => setHasError(!hasError), hasError ? 'Error channel: remove the bit-flip error' : 'Error channel: inject a bit-flip error')}
-              style={{ width: '34px', height: '34px', fontSize: '11px', zIndex: 12, cursor: 'pointer' }}
-              title="Error channel (Click to toggle)"
-            >
-              {hasError ? 'X_err' : 'I'}
+    <div className="glass-card" style={{ padding: '20px 14px', position: 'relative' }}>
+      <div className="liquid-multi-circuit" style={{ gap: `${GAP}px` }}>
+        {rows.map((label, r) => (
+          <div key={r} className="liquid-multi-row" style={{ height: `${ROW}px` }}>
+            <div className="circuit-state-label" style={{ left: 0, fontSize: '11px', color: r < 3 ? '#6366f1' : '#94a3b8' }}>
+              <InlineMath math={label} />
             </div>
+            <div className="qubit-wire-timeline"><div className="wire-flow-indicator" style={{ animationDelay: `${r * 0.2}s` }} /></div>
+            {r < 3 && (
+              <div className="liquid-multi-gate-col" style={{ left: '24%' }}>
+                <div
+                  className={`liquid-gate-box ${errorOn === r + 1 ? 'liquid-gate-x' : ''}`}
+                  {...pressable(next, errorOn === r + 1 ? `Error channel on D${r + 1}: flipped. Press to move the error on` : `Error channel on D${r + 1}: no error. Press to move the error on`)}
+                  style={{ ...gate, cursor: 'pointer', opacity: errorOn === r + 1 ? 1 : 0.45 }}
+                  title="Error channel (click to move the bit-flip)"
+                >
+                  {errorOn === r + 1 ? 'X' : 'I'}
+                </div>
+              </div>
+            )}
+            {cnots.map(([c, t, left]) => (r === c || r === t) && (
+              <div key={left} className="liquid-multi-gate-col" style={{ left: `${left}%` }}>
+                {r === c ? <div className="liquid-control-dot" style={{ width: '12px', height: '12px' }} /> : <div className="liquid-target-xor" style={{ width: '18px', height: '18px' }} />}
+              </div>
+            ))}
+            {r >= 3 && (
+              <div className="liquid-multi-gate-col" style={{ left: '78%' }}>
+                <div className="measurement-dial-btn active" style={{ width: '24px', height: '24px' }}>
+                  <div className="measurement-dial-icon" style={{ width: '12px', height: '12px' }} />
+                </div>
+              </div>
+            )}
+            {r < 3 && errorOn === r + 1 && (
+              <div className="liquid-multi-gate-col" style={{ left: '78%' }}>
+                <div className="liquid-gate-box liquid-gate-x" style={gate} title="Correction, chosen by the syndrome">X</div>
+              </div>
+            )}
+            {r >= 3 && (
+              <div className="circuit-state-label" style={{ right: 0, fontSize: '11px', color: (r === 3 ? s1 : s2) ? '#f59e0b' : '#64748b' }}>
+                {r === 3 ? `s₁=${s1}` : `s₂=${s2}`}
+              </div>
+            )}
           </div>
-
-          <div className="liquid-multi-gate-col" style={{ left: '55%' }}>
-            <div className="liquid-control-dot" />
-          </div>
-
-          <div className="liquid-multi-gate-col" style={{ left: '78%' }}>
-            <div 
-              className="liquid-gate-box liquid-gate-x" 
-              style={{ width: '34px', height: '34px', fontSize: '11px', zIndex: 12, opacity: hasError ? 1 : 0.4 }}
-              title="Syndrome recovery correction"
-            >
-              {hasError ? 'X_corr' : 'I'}
-            </div>
-          </div>
-
-          <div className="circuit-state-label" style={{ right: 0, color: '#10b981' }}>
-            <InlineMath math={String.raw`|\psi\rangle`} />
-          </div>
-        </div>
-
-        <div className="liquid-multi-row">
-          <div className="circuit-state-label" style={{ left: 0, color: '#94a3b8' }}>
-            <InlineMath math={String.raw`|0\rangle_A`} />
-          </div>
-          <div className="qubit-wire-timeline"><div className="wire-flow-indicator" style={{ animationDelay: '0.4s' }} /></div>
-          
-          <div className="liquid-multi-gate-col" style={{ left: '55%' }}>
-            <div className="liquid-target-xor" />
-          </div>
-
-          <div className="liquid-multi-gate-col" style={{ left: '78%' }}>
-            <div className="measurement-dial-btn active" style={{ width: '30px', height: '30px' }}>
-              <div className="measurement-dial-icon" style={{ width: '15px', height: '15px' }} />
-            </div>
-          </div>
-
-          <div className="circuit-state-label" style={{ right: 0, color: hasError ? '#f59e0b' : '#64748b', fontSize: '12px' }}>
-            {hasError ? 's=1' : 's=0'}
-          </div>
-        </div>
-
-        <div className="liquid-v-line" style={{ top: '30px', height: '60px', left: '55%' }} />
+        ))}
+        {cnots.map(([c, t, left]) => (
+          <div key={left} className="liquid-v-line" style={{ top: `${center(c)}px`, height: `${center(t) - center(c) - 9}px`, left: `${left}%` }} />
+        ))}
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '14px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        <span style={{ fontSize: '11.5px', color: '#94a3b8' }}>
-          {hasError ? "⚡ Error (s=1) → Corrected" : "✓ No Error (s=0) → Intact"}
+      <div style={{ marginTop: '12px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: '11.5px', color: '#94a3b8' }}>
+        <InlineMath math={String.raw`s_1 = D_1 \oplus D_2,\; s_2 = D_2 \oplus D_3`} />
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', gap: '8px' }}>
+        <span style={{ fontSize: '11.5px', color: '#94a3b8' }} aria-live="polite">
+          {errorOn ? `⚡ Syndrome ${s1}${s2} → flip D${errorOn} back` : '✓ Syndrome 00 → no error, nothing to do'}
         </span>
-        <button 
-          className="liquid-mini-btn"
-          onClick={() => setHasError(!hasError)}
-        >
-          {hasError ? "Clear Error" : "⚡ Inject Error"}
+        <button className="liquid-mini-btn" onClick={next}>
+          {errorOn === 3 ? 'Clear Error' : `⚡ Error on D${errorOn + 1}`}
         </button>
       </div>
 
@@ -820,7 +817,7 @@ const GlassCircuit = ({ gateId, progress }) => {
     'pauli-z': { name: 'Z', symbol: 'Z', class: 'liquid-gate-z', init: <InlineMath math={String.raw`|+\rangle`} />, out: <InlineMath math={String.raw`|\text{-}\rangle`} />, axis: 'Z', angle: '180°' },
     'hadamard': { name: 'H', symbol: 'H', class: 'liquid-gate-h', init: <InlineMath math={String.raw`|0\rangle`} />, out: <InlineMath math={String.raw`|+\rangle`} />, axis: 'X+Z', angle: '180°' },
     's-gate': { name: 'S', symbol: 'S', class: 'liquid-gate-s', init: <InlineMath math={String.raw`|+\rangle`} />, out: <InlineMath math={String.raw`|i\rangle`} />, axis: 'Z', angle: '90°' },
-    't-gate': { name: 'T', symbol: 'T', class: 'liquid-gate-t', init: <InlineMath math={String.raw`|+\rangle`} />, out: <InlineMath math={String.raw`|e^{i\pi/4}\rangle`} />, axis: 'Z', angle: '45°' },
+    't-gate': { name: 'T', symbol: 'T', class: 'liquid-gate-t', init: <InlineMath math={String.raw`|+\rangle`} />, out: <InlineMath math={String.raw`\tfrac{|0\rangle + e^{i\pi/4}|1\rangle}{\sqrt{2}}`} />, axis: 'Z', angle: '45°' },
   }[gateId] || { name: '?', symbol: '?', class: '', init: <InlineMath math={String.raw`|0\rangle`} />, out: <InlineMath math={String.raw`|?\rangle`} />, axis: '?', angle: '?°' };
 
   const showOutput = progress > 0.95;
@@ -953,7 +950,7 @@ const GlassMultiCircuit = ({ gateId, tooltipData }) => {
               <div className="liquid-multi-gate-col">
                 <div className="liquid-control-dot" />
               </div>
-              <div className="circuit-state-label" style={{ right: 0 }}><InlineMath math={String.raw`|T\rangle \cdot Z`} /></div>
+              <div className="circuit-state-label" style={{ right: 0 }}><InlineMath math={String.raw`Z^{C}|T\rangle`} /></div>
             </div>
             <div className="liquid-v-line cz-line" style={{ top: '30px', height: '60px' }} />
           </>
@@ -970,7 +967,6 @@ const GlassMultiCircuit = ({ gateId, tooltipData }) => {
               <div className="liquid-multi-gate-col" style={{ left: '65%' }}>
                 <div className="liquid-control-dot" />
               </div>
-              <div className="circuit-state-label" style={{ right: 0 }}><InlineMath math={String.raw`|\Phi^+\rangle`} /></div>
             </div>
             <div className="liquid-multi-row">
               <div className="circuit-state-label" style={{ left: 0 }}><InlineMath math={String.raw`|0\rangle`} /></div>
@@ -978,9 +974,10 @@ const GlassMultiCircuit = ({ gateId, tooltipData }) => {
               <div className="liquid-multi-gate-col" style={{ left: '65%' }}>
                 <div className="liquid-target-xor" />
               </div>
-              <div className="circuit-state-label" style={{ right: 0 }}><InlineMath math={String.raw`|\Phi^+\rangle`} /></div>
             </div>
             <div className="liquid-v-line bell-line" style={{ top: '30px', height: '60px', left: '65%' }} />
+            {/* The pair's joint state, labelled once across both wires. */}
+            <div className="circuit-state-label" style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)' }}><InlineMath math={String.raw`|\Phi^+\rangle`} /></div>
           </>
         )}
 
