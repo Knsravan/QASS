@@ -91,9 +91,9 @@ function watchBeams() {
     raf = 0;
     if (!document.querySelector(DIM_TARGETS)) return;
     // The scenes (not the slow star field behind them, which may not have
-    // drawn this frame).
+    // drawn this frame, nor the glass's own edge-light layer over everything).
     const scenes = [...document.querySelectorAll('canvas')]
-      .filter((c) => !c.closest('.scene-bg') && !('snap' in c.dataset))
+      .filter((c) => !c.closest('.scene-bg') && !('snap' in c.dataset) && !c.classList.contains('gl-edges'))
       .map((c) => ({ c, box: c.getBoundingClientRect() }))
       .filter(({ c, box }) => c.width && box.width > 200 && box.height > 200);
     if (!scenes.length) return;

@@ -8,6 +8,11 @@ import * as THREE from 'three';
 import { glassHold } from './glassGL';
 import { motionReduced } from './quality';
 
+// Animations must stay truthful to wall-clock time: after a background-tab
+// stall, jump state to where it should be rather than replaying it slowly.
+// (Set here, with the simulator's code: the landing page doesn't load GSAP.)
+gsap.ticker.lagSmoothing(0);
+
 /*
  * One 3D canvas for all the modules.
  *
@@ -148,7 +153,8 @@ function dissolveSnap() {
     [{ opacity: 1, transform: 'scale(1)', filter: 'blur(0px)' }, { opacity: 0, transform: 'scale(1.12)', filter: 'blur(14px)' }],
     { duration: 750, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' },
   );
-  a.onfinish = () => { c.style.display = 'none'; a.cancel(); };
+  // Hidden, the picture gives its memory back (a full-size canvas: about 19 MB at 2880 x 1620).
+  a.onfinish = () => { c.style.display = 'none'; a.cancel(); c.width = 0; c.height = 0; };
 }
 // Registers the picture-taker, and runs the reveal for a scene that just mounted.
 function Intro() {
@@ -250,6 +256,8 @@ function hideSnapNow() {
   if (!c) return;
   c.getAnimations().forEach((a) => a.cancel());
   c.style.display = 'none';
+  c.width = 0;
+  c.height = 0;
 }
 
 /**

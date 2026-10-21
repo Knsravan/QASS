@@ -1,15 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { gsap } from 'gsap';
 import { WebGLRenderer } from 'three';
 import './fonts';
 import './index.css';
 import App from './App';
 import { startQuality } from './quality';
-
-// Animations must stay truthful to wall-clock time: after a background-tab
-// stall, jump state to where it should be rather than replaying it slowly.
-gsap.ticker.lagSmoothing(0);
 
 // With checkShaderErrors on, three.js reads compile logs on a program's first
 // use, which blocks until the GPU finishes compiling it (hundreds of ms when a

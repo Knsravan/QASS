@@ -386,6 +386,7 @@ function StateSpaceConstellation({
     }
     return new THREE.TubeGeometry(new Circle(), 128, 0.028, 16, true);
   }, []);
+  useEffect(() => () => ringGeo.dispose(), [ringGeo]); // R3F frees only what it made from JSX
   const reveal = useRef({ p: fromHub ? 0 : 1, wait: fromHub ? 0.1 : 0, done: !fromHub });
   useEffect(() => {
     if (closing) { reveal.current.wait = 0.35; reveal.current.done = false; }

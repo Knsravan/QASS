@@ -287,17 +287,22 @@ export const QubitCore = ({ position, scale = 1, activeModule, onDomainHover, on
   };
 
   const vectorTarget = emissiveColor || "#14b8a6";
-  // The arrow's colour glides to a new one (the hub's qubit turning into a module's).
+  // The arrow's colour glides to a new one (the hub's qubit turning into a module's),
+  // straight on the pearl's and the halo's materials: no React render per frame.
+  const [vectorColor] = useState(vectorTarget); // the colour the materials start with
   const vecCol = useRef(null);
-  const [vectorColor, setVectorColor] = useState(vectorTarget);
+  const pearlMat = useRef(null);
+  const haloMat = useRef(null);
   useFrame((_, dt) => {
     if (!vecCol.current) vecCol.current = new THREE.Color(vectorColor);
     const goal = _tmpGoal.set(vectorTarget);
     const c = vecCol.current;
     const diff = Math.abs(c.r - goal.r) + Math.abs(c.g - goal.g) + Math.abs(c.b - goal.b);
-    if (diff < 0.004) { if (diff > 0) { c.copy(goal); setVectorColor(vectorTarget); } return; }
-    c.lerp(goal, 1 - Math.exp(-5 * Math.min(dt, 0.1)));
-    setVectorColor('#' + c.getHexString());
+    if (diff === 0) return;
+    if (diff < 0.004) c.copy(goal);
+    else c.lerp(goal, 1 - Math.exp(-5 * Math.min(dt, 0.1)));
+    if (pearlMat.current) { pearlMat.current.color.copy(c); pearlMat.current.emissive.copy(c); }
+    if (haloMat.current) haloMat.current.color.copy(c);
   });
 
   return (
@@ -406,6 +411,7 @@ export const QubitCore = ({ position, scale = 1, activeModule, onDomainHover, on
               <mesh position={[0, 1.86, 0]} raycast={() => null}>
                 <sphereGeometry args={[0.17, 32, 20]} />
                 <meshPhysicalMaterial
+                  ref={pearlMat}
                   color={vectorColor}
                   emissive={vectorColor}
                   emissiveIntensity={0.7}
@@ -414,7 +420,7 @@ export const QubitCore = ({ position, scale = 1, activeModule, onDomainHover, on
                   clearcoatRoughness={0.1}
                 />
               </mesh>
-              <Halo radius={0.32} color={vectorColor} opacity={0.18} position={[0, 1.86, 0]} />
+              <Halo radius={0.32} color={vectorColor} opacity={0.18} position={[0, 1.86, 0]} materialRef={haloMat} />
             </group>
           </group>
         </group>
