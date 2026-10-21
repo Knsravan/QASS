@@ -550,8 +550,10 @@ export default function Simulator({ isMobile }) {
           </button>
         </div>
 
-        {/* ── Right Content & 3D Canvas (flex-grow: 1, naturally centered) ── */}
-        <div className="canvas-container" data-jelly-state={jellyState || undefined}>
+        {/* ── Right Content & 3D Canvas (flex-grow: 1, naturally centered) ──
+            data-stage: the module on stage (or the hub); with data-jelly-state,
+            what the smoke tests wait on (e2e/smoke.spec.js). */}
+        <div className="canvas-container" data-stage={stageId || 'hub'} data-jelly-state={jellyState || undefined}>
 
           {/* Floating chrome sits above every module's overlay layer (those use
               uiBoundsStyle's z-index 10 too, and render later in the DOM). */}

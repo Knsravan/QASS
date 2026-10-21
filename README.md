@@ -66,7 +66,7 @@ The app opens at <http://localhost:3000>. Other scripts:
 | `npm run build` | Optimized production build in `build/` |
 | `npm run preview` | Serves the production build locally |
 | `npm test` | Runs the unit tests (Vitest) |
-| `npm run test:e2e` | Builds the app and opens every module in headless Chromium (Playwright), once more at High quality to run the WebGL glass; run `npx playwright install chromium` once first |
+| `npm run test:e2e` | Builds the app and opens every module in headless Chromium (Playwright), once more at High quality to run the WebGL glass, and checks the sidebar; run `npx playwright install chromium` once first |
 | `npm run lint` | Lints the source (ESLint, fails on any warning) |
 | `npm run screenshots` | Builds the app and recaptures this README's screenshots (`docs/screenshots`) at High quality in headless Chromium |
 
