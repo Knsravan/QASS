@@ -4,7 +4,7 @@ import {
   getInitialState, GATES_MATRICES, applyMatrix, calculateProbabilities,
   gateNumQubits, getFinalState, isResultEntangled, calculateGateLogic, formatStateKet,
   GATE_ROTATIONS, BELL_OUTCOMES, interferenceProbabilities, stateVectorRAM,
-  densityMatrix, SYNDROME_TABLE, bornProbabilities,
+  densityMatrix, blochLength, SYNDROME_TABLE, bornProbabilities,
 } from './quantumMath';
 
 // The module math, checked against the textbook: gate matrices, partial traces
@@ -56,12 +56,11 @@ describe('the Born rule', () => {
     }
   });
 
-  test('the module\'s four steps: |0>, |1>, |+> and the bra example', () => {
+  test('the Dirac module\'s states: |0>, |1>, and |+> (the 0.71 / 50% each it shows)', () => {
     expect(bornProbabilities(0)).toEqual({ p0: 1, p1: 0 });
     expect(bornProbabilities(Math.PI).p1).toBeCloseTo(1, 12);
     expect(bornProbabilities(Math.PI / 2).p0).toBeCloseTo(0.5, 12);
-    // 54° from |0> leans toward 0: about 79% / 21%, not the 30% / 70% it once listed.
-    expect(bornProbabilities(Math.PI * 0.3).p0).toBeCloseTo(0.794, 3);
+    expect(Math.sqrt(bornProbabilities(Math.PI / 2).p0).toFixed(2)).toBe('0.71');
   });
 });
 
@@ -312,6 +311,10 @@ describe('the noisy qubit\'s density matrix', () => {
 
   test('with no noise it is the pure state |+><+|', () => {
     expect(densityMatrix(0)).toEqual({ r01: 0.5, trSq: 1, purity: 100 });
+    // The arrow Decoherence draws is the Bloch vector, |r| = 2|ρ01|: full when pure, gone when mixed.
+    expect(blochLength(0)).toBe(1);
+    expect(blochLength(0.5)).toBeCloseTo(Math.exp(-2.4), 12);
+    expect(blochLength(1)).toBeLessThan(0.01);
   });
 
   test('stays a valid density matrix: trace 1, eigenvalues 1/2 ± r01 both non-negative', () => {

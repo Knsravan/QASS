@@ -729,7 +729,7 @@ export default function DecoherenceModule({ isSidebarOpen, isGlobalMuted, onNavi
               { color: CA, label: 'Thermal Phonons', desc: 'Lattice heat vibrations (T₁ decay)' },
               { color: '#06b6d4', label: 'Stray EM Photons', desc: 'Stray microwave radiation' },
               { color: CR, label: 'Bit-Flip Noise', desc: 'Random |0⟩ ↔ |1⟩ flips (X)' },
-              { color: CP, label: 'Phase / Flux Noise', desc: 'Randomizes phase α → −α (Z)' },
+              { color: CP, label: 'Phase / Flux Noise', desc: 'Random phase flips β → −β (Z)' },
             ].map(({ color: pc, label, desc }) => (
               <div key={label} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                 <div style={{
@@ -838,7 +838,7 @@ export default function DecoherenceModule({ isSidebarOpen, isGlobalMuted, onNavi
             <div style={{ display: 'flex', gap: '7px', marginBottom: '12px' }}>
               {[
                 { id: 'bitflip',   icon: Zap, label: 'Bit Flip (X)', color: CR, desc: '|0⟩ ↔ |1⟩ flips' },
-                { id: 'phaseflip', icon: Flame, label: 'Phase Flip (Z)', color: CP, desc: 'Phase α → −α' },
+                { id: 'phaseflip', icon: Flame, label: 'Phase Flip (Z)', color: CP, desc: 'Phase β → −β' },
                 { id: 'damping',   icon: ArrowDown, label: 'Amp. Damp. (T₁)', color: CA, desc: '|1⟩ decays → |0⟩' },
               ].map(({ id, icon: IconComponent, label, color: bc, desc }) => (
                 <button
@@ -910,7 +910,7 @@ export default function DecoherenceModule({ isSidebarOpen, isGlobalMuted, onNavi
               <div style={{ fontSize: '10px', fontWeight: '700', color: '#cbd5e1', marginBottom: '3px', fontFamily: "'Inter', sans-serif" }}>👁️ The Fragility Scale:</div>
               <div style={{ fontSize: '10.5px', color: '#94a3b8', lineHeight: 1.45, fontFamily: "'Inter', sans-serif" }}>
                 Superconducting qubits: <strong style={{ color: CA }}>T₁ ≈ 100–500 μs</strong>, <strong style={{ color: CT }}>T₂ ≈ 50–300 μs</strong>.<br />
-                A human eyeblink is <strong style={{ color: CW }}>150,000 μs</strong> — over <span style={{ color: CR, fontWeight: '700' }}>500× longer</span> than a qubit's entire lifetime!
+                A human eyeblink is <strong style={{ color: CW }}>150,000 μs</strong>: at least <span style={{ color: CR, fontWeight: '700' }}>300× longer</span> than T₁, the time in which an excited qubit's chance of still being excited falls to 1/e (about 37%).
               </div>
             </div>
 

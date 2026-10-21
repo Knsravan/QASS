@@ -156,7 +156,7 @@ const _HUB_CAM = new THREE.Vector3(...HUB_CAMERA.cam);
 // =========================================
 // 2. QUANTUM QUBIT COMPONENT (Right Side)
 // =========================================
-export const QubitCore = ({ position, scale = 1, activeModule, onDomainHover, onDomainUnhover, customVectorQuat, showCustomVector, emissiveColor, customGridColor, customRingColor, sphereRotation, visible, interferenceStep = 0, interferencePhase = 0, fadeExtras = false, vectorOut, startDir }) => {
+export const QubitCore = ({ position, scale = 1, activeModule, onDomainHover, onDomainUnhover, customVectorQuat, showCustomVector, emissiveColor, customGridColor, customRingColor, sphereRotation, visible, interferenceStep = 0, interferencePhase = 0, fadeExtras = false, vectorOut, startDir, vectorLength }) => {
   const coreGroupRef = useRef();
   const sphereRef = useRef(); const vectorRef = useRef(); const northPoleRef = useRef(); const southPoleRef = useRef(); const glassCoreRef = useRef();
 
@@ -255,6 +255,12 @@ export const QubitCore = ({ position, scale = 1, activeModule, onDomainHover, on
           ? THREE.MathUtils.lerp(vectorRef.current.rotation.y, targetY, 0.08)
           : THREE.MathUtils.lerp(vectorRef.current.rotation.y, 0, 0.1);
         vectorRef.current.scale.y = 1 + Math.sin(time * 4) * 0.03;
+      }
+      // `vectorLength`: the Bloch vector's length (an entangled qubit alone has none: 0).
+      if (vectorLength != null) {
+        const v = vectorRef.current;
+        const target = Math.max(0.001, vectorLength);
+        v.scale.setScalar(v.scale.x + (target - v.scale.x) * (1 - Math.exp(-6 * Math.min(delta, 0.1))));
       }
     } // end if (vectorRef.current)
   }); // end useFrame

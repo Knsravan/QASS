@@ -2,6 +2,11 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { createDiracStory } from './diracStory';
 import { motionReduced } from './quality';
+import { bornProbabilities } from './quantumMath';
+
+// Step 3's superposition: the arrow on the equator, |+⟩ (θ = 90°).
+const EQUAL_ODDS = bornProbabilities(Math.PI / 2);
+const EQUAL_AMP = Math.sqrt(EQUAL_ODDS.p0);
 
 // ─── The four steps' captions ────────────────────────────────────────────────
 // The 3D story (diracStory.js) does the explaining; one glass caption under it
@@ -30,7 +35,7 @@ export const DIRAC_STEPS = [
     title: 'Superposition',
     accent: '#f7971e',
     text: 'A qubit can be a blend of both. α and β are amplitudes, and the light in each slot is the chance of reading that result: |α|² and |β|². The column is just α of |0⟩ plus β of |1⟩.',
-    formula: <><P>|ψ⟩</P> = <Z>α</Z>|0⟩ + <O>β</O>|1⟩ = <Col top={<Z>α</Z>} bottom={<O>β</O>} /> <Note>α = β ≈ 0.71 → 50% each</Note></>,
+    formula: <><P>|ψ⟩</P> = <Z>α</Z>|0⟩ + <O>β</O>|1⟩ = <Col top={<Z>α</Z>} bottom={<O>β</O>} /> <Note>α = β ≈ {EQUAL_AMP.toFixed(2)} → {Math.round(EQUAL_ODDS.p0 * 100)}% each</Note></>,
   },
   {
     title: 'The bra ⟨ψ|',
