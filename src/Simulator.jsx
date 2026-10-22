@@ -140,6 +140,8 @@ export default function Simulator({ isMobile, onContinueAnyway }) {
   const [learningMode, setLearningMode] = useState(() => readStorage('quantumUI_learningMode') === 'advanced' ? 'advanced' : 'beginner');
   const [activeModuleId, setActiveModuleId] = useState(moduleFromHash); // the hub unless the URL names a module
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [focusTip, setFocusTip] = useState(null); // the collapsed sidebar's label for the focused icon
+  useEffect(() => { if (isSidebarOpen) setFocusTip(null); }, [isSidebarOpen]);
   const [multiGatesStep, setMultiGatesStep] = useState(0);
   const {
     stageId, stagePhase, jellyState, InterferenceLoaded, EntanglementLoaded, NoCloningLoaded, ncFromHub, DecoherenceLoaded,
@@ -450,7 +452,19 @@ export default function Simulator({ isMobile, onContinueAnyway }) {
       <main className="main-content">
         {/* ── Sidebar Column ── */}
         <div className="sidebar-wrapper">
-          <div className={`sidebar-panel lg-pane ${isSidebarOpen ? '' : 'collapsed'}`}>
+          <div
+            className={`sidebar-panel lg-pane ${isSidebarOpen ? '' : 'collapsed'}`}
+            // Collapsed, the sidebar is icons only: a control reached from the keyboard
+            // shows its name beside it (the mouse gets the button's title).
+            onFocus={(e) => {
+              const el = e.target;
+              const label = el.getAttribute?.('aria-label');
+              if (isSidebarOpen || !label || !el.matches(':focus-visible')) return;
+              const r = el.getBoundingClientRect();
+              setFocusTip({ label, top: r.top + r.height / 2, left: r.right + 14 });
+            }}
+            onBlur={() => setFocusTip(null)}
+          >
             <div className="sidebar-branding">
               <button
                 type="button"
@@ -579,6 +593,12 @@ export default function Simulator({ isMobile, onContinueAnyway }) {
             <MorphSidebarTabIcon isCollapsed={!isSidebarOpen} size={16} color="#ffffff" />
           </button>
         </div>
+
+        {focusTip && (
+          <div className="sidebar-focus-tip" aria-hidden="true" style={{ top: focusTip.top, left: focusTip.left }}>
+            {focusTip.label}
+          </div>
+        )}
 
         {/* ── Right Content & 3D Canvas (flex-grow: 1, naturally centered) ──
             data-stage: the module on stage (or the hub); with data-jelly-state,

@@ -749,7 +749,7 @@ function ExponentialScene({
       />
 
       {/* Post-Processing Neon Bloom (Optimized for 60 FPS on any laptop) */}
-      <QualityComposer disableNormalPass multisampling={0}>
+      <QualityComposer disableNormalPass>
         <Bloom
           luminanceThreshold={0.25}
           mipmapBlur

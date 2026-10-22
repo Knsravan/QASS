@@ -513,7 +513,7 @@ function QECScene({ step, errorQubit, onErrorQubitChange, isSidebarOpen, isExpan
         maxDistance={45}
       />
 
-      <QualityComposer disableNormalPass multisampling={0}>
+      <QualityComposer disableNormalPass>
         <Bloom luminanceThreshold={0.22} mipmapBlur intensity={0.65} />
       </QualityComposer>
 

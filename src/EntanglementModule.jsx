@@ -1227,7 +1227,7 @@ export default function EntanglementModule({ isSidebarOpen, isGlobalMuted }) {
         >
           <CameraShifter isSidebarOpen={isSidebarOpen} />
           <OrbitControls makeDefault enablePan={false} enableZoom={true} enableRotate={true} minDistance={6} maxDistance={30} />
-          <QualityComposer disableNormalPass multisampling={0}>
+          <QualityComposer disableNormalPass>
             <Bloom luminanceThreshold={0.3} mipmapBlur intensity={0.45} />
           </QualityComposer>
           <Suspense fallback={null}>
