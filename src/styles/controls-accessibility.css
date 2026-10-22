@@ -276,3 +276,21 @@
 
 /* The stage takes focus only when a control focus was on goes away (Simulator.jsx). */
 .canvas-container:focus { outline: none; }
+
+/* The collapsed sidebar's icons, reached from the keyboard, show their name
+   beside them (Simulator.jsx; the name is the button's aria-label). */
+.sidebar-focus-tip {
+  position: fixed;
+  transform: translateY(-50%);
+  z-index: 1000;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: rgba(10, 14, 22, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}

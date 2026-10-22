@@ -722,7 +722,7 @@ export default function NoCloningModule({ isSidebarOpen, isGlobalMuted, fromHub 
             minDistance={8}
             maxDistance={38}
           />
-          <QualityComposer disableNormalPass multisampling={0}>
+          <QualityComposer disableNormalPass>
             <Bloom luminanceThreshold={0.25} mipmapBlur intensity={0.55} />
           </QualityComposer>
 

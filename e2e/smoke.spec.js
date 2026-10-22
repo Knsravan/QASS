@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 
 // Every module in the curriculum (src/curriculum.jsx), in order, with the
 // title the tab shows while it is open.
@@ -370,4 +371,45 @@ test('a phone gets the larger-screen message and can go on; a zoomed-in desktop 
   await expect(zoomed.getByText('Initialize Simulator')).toBeVisible();
   await expect(zoomed.getByText('requires a larger screen')).toHaveCount(0);
   await desktop.close();
+});
+
+// The Content-Security-Policy that vercel.json sends: the app works under it
+// (vite preview doesn't send it, so the test adds it to the page itself).
+test('the app runs under its Content-Security-Policy, with no violations', async ({ page }) => {
+  const vercel = JSON.parse(readFileSync('vercel.json', 'utf8')); // tests run from the repository root
+  const csp = vercel.headers.flatMap((h) => h.headers).find((h) => h.key === 'Content-Security-Policy').value
+    .replace('; upgrade-insecure-requests', ''); // the test server is plain http
+  await page.route('**/*', async (route) => {
+    if (route.request().resourceType() !== 'document') return route.continue();
+    const response = await route.fetch();
+    await route.fulfill({ response, headers: { ...response.headers(), 'content-security-policy': csp } });
+  });
+  await page.addInitScript(() => {
+    window.__cspViolations = [];
+    document.addEventListener('securitypolicyviolation', (e) => window.__cspViolations.push(`${e.violatedDirective} ${e.blockedURI}`));
+  });
+  const errors = collectErrors(page);
+  await page.goto('/');
+  await page.getByText('Initialize Simulator').click();
+  await expect(page.locator('[data-module]')).toHaveCount(MODULE_COUNT, { timeout: 120_000 });
+  for (const id of ['superposition', 'entanglement', 'error-correction']) {
+    await goTo(page, id);
+    await expectModuleRendered(page, id);
+  }
+  expect(await page.evaluate(() => window.__cspViolations)).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
+test('the collapsed sidebar names the icon the keyboard is on', async ({ page }) => {
+  await returningVisitor(page, 'low');
+  await page.goto('/');
+  await waitForStage(page, 'hub');
+  const chip = page.locator('[data-module="entanglement"]');
+  await chip.focus(); // a programmatic focus counts as keyboard focus (:focus-visible)
+  await expect(page.locator('.sidebar-focus-tip')).toHaveText(MODULES.entanglement);
+  const tip = await page.locator('.sidebar-focus-tip').boundingBox();
+  const icon = await chip.boundingBox();
+  expect(tip.x).toBeGreaterThan(icon.x + icon.width); // beside the icon, not clipped by the sidebar
+  await page.keyboard.press('Tab');
+  await expect(page.locator('.sidebar-focus-tip')).not.toHaveText(MODULES.entanglement);
 });
