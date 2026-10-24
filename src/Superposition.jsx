@@ -22,6 +22,17 @@ const bus = {
 };
 
 const NEXT = ['Apply Hadamard Gate', 'Enter Superposition', 'Observe State', '🎯 Measure State'];
+// The cards' top and bottom insets (superposition.css .sp-tl, .sp-bl) and the least
+// gap kept between a side's two cards.
+const CARD_INSETS = 80 + 50;
+const CARD_GAP = 16;
+// 0: the card in full, 1: folded to its title and live values, 2: stepped aside.
+// (An attribute React doesn't own: re-renders, which rewrite className, keep it.)
+function setFit(card, level) {
+  card.fit = level;
+  if (level) card.dataset.fit = level === 1 ? 'fold' : 'tucked';
+  else delete card.dataset.fit;
+}
 const deg = (r) => Math.round((((r * 180) / Math.PI) % 360 + 360) % 360);
 const f2 = (x) => x.toFixed(2);
 const pct = (p) => `${Math.round(p * 100)}%`;
@@ -173,10 +184,28 @@ export function SuperpositionOverlay({ isGlobalMuted }) {
           e.style.transform = `translate(${c.x - box.left}px, ${c.y - box.top}px) translate(-50%, -50%) scale(${0.7 + 0.3 * c.s})`;
         });
       }
+      // A short window: a side's two cards would overlap. The earlier step's card
+      // gives way, first folding to its title and live values, then stepping aside.
+      [[0, 1], [2, 3]].forEach(([t, b]) => {
+        const top = cardRefs[t].current, bottom = cardRefs[b].current;
+        if (!top || !bottom) return;
+        const prior = top.hidden || bottom.hidden || narrow ? null
+          : top.classList.contains('sp-prior') ? top : bottom.classList.contains('sp-prior') ? bottom : null;
+        [top, bottom].forEach((c) => { if (c !== prior && c.fit) setFit(c, 0); });
+        if (!prior) return;
+        const room = box.height - CARD_INSETS - CARD_GAP;
+        const other = prior === top ? bottom : top;
+        const level = prior.fit || 0;
+        const height = prior.offsetHeight;
+        if (level === 0) prior.fullH = height;
+        if (level === 1) prior.foldH = height;
+        if (level < 2 && height + other.offsetHeight > room) setFit(prior, level + 1);
+        else if (level > 0 && (level === 1 ? prior.fullH : prior.foldH) + other.offsetHeight <= room - 12) setFit(prior, level - 1);
+      });
       cardRefs.forEach((ref, i) => {
         const line = lineRefs[i].current, dot = dotRefs[i].current, card = ref.current;
         if (!line || !dot) return;
-        const show = card && !card.hidden && !narrow && sphere && sphere.visible;
+        const show = card && !card.hidden && card.fit !== 2 && !narrow && sphere && sphere.visible;
         line.style.display = dot.style.display = show ? '' : 'none';
         if (!show) return;
         const b = card.getBoundingClientRect();
@@ -245,10 +274,12 @@ export function SuperpositionOverlay({ isGlobalMuted }) {
               ? <span className="sp-r"><InlineMath math={String.raw`|\psi\rangle`} /> pulled away… it springs back to <InlineMath math={String.raw`|0\rangle`} /></span>
               : <>
                   <span><InlineMath math={String.raw`P(0) = |1|^2 = 100\%`} /></span>
-                  <span className="sp-m">{s.ground[0] ? `measured ${s.ground[0]}× → 0 every time` : 'tap the sphere to measure'}</span>
+                  {/* Measuring here is step 1's; on a later step the sphere holds another
+                      state, and its measure belongs to the Collapse card. */}
+                  {(step === 0 || s.ground[0] > 0) && <span className="sp-m">{s.ground[0] ? `measured ${s.ground[0]}× → 0 every time` : 'tap the sphere to measure'}</span>}
                 </>}
           </div>
-          <button type="button" className="sp-again" onClick={() => bus.story?.measure()}>Measure it</button>
+          {step === 0 && <button type="button" className="sp-again" onClick={() => bus.story?.measure()}>Measure it</button>}
         </>
       ))}
 

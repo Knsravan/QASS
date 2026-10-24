@@ -210,6 +210,8 @@ test('Superposition: the cards build up, the sphere measures, and the state can 
   await expect(page.locator('.sp-card.sp-tr')).toContainText('Infinite Possibilities');
   await next.click();
   await expect(page.locator('.sp-card.sp-br')).toContainText('Collapse: Your Turn');
+  // The sphere now holds a superposition: measuring it is the Collapse card's, not the Ground State's.
+  await expect(page.locator('.sp-card.sp-tl').getByRole('button', { name: 'Measure it' })).toHaveCount(0);
   // Measure State: the state collapses to |0> or |1>. The collapse is an animation
   // in the scene's own time, which runs slowly at a software renderer's frame rate.
   await next.click();
@@ -412,4 +414,21 @@ test('the collapsed sidebar names the icon the keyboard is on', async ({ page })
   expect(tip.x).toBeGreaterThan(icon.x + icon.width); // beside the icon, not clipped by the sidebar
   await page.keyboard.press('Tab');
   await expect(page.locator('.sidebar-focus-tip')).not.toHaveText(MODULES.entanglement);
+});
+
+test('Superposition: in a short window, the cards on a side never overlap', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 620 });
+  await returningVisitor(page, 'low');
+  await page.goto('/#superposition');
+  await waitForStage(page, 'superposition');
+  const next = page.locator('.quantum-nav-btn.next-btn');
+  for (let i = 0; i < 3; i++) await next.click();
+  await expect(page.locator('.sp-card.sp-br')).toContainText('Collapse: Your Turn');
+  // The earlier card (Infinite Possibilities) folds to make room.
+  await expect(page.locator('.sp-card.sp-tr')).toHaveAttribute('data-fit', 'fold');
+  for (const [top, bottom] of [['tl', 'bl'], ['tr', 'br']]) {
+    const a = await page.locator(`.sp-card.sp-${top}`).boundingBox();
+    const b = await page.locator(`.sp-card.sp-${bottom}`).boundingBox();
+    expect(a.y + a.height).toBeLessThanOrEqual(b.y);
+  }
 });
