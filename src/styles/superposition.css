@@ -24,6 +24,15 @@
 .sp-card.sp-tr { top: 80px; right: 50px; }
 .sp-card.sp-bl { bottom: 50px; left: 50px; }
 .sp-card.sp-br { bottom: 50px; right: 50px; }
+/* A short window (Superposition.jsx setFit): the earlier step's card folds, then steps aside. */
+.sp-card[data-fit="fold"] .glass-tooltip > p,
+.sp-card[data-fit="fold"] .sp-eq { display: none; }
+.sp-card[data-fit="tucked"] {
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.95) translateY(20px);
+  transition: opacity 0.25s, transform 0.25s, visibility 0s 0.25s;
+}
 .sp-card .glass-tooltip { width: 100%; box-sizing: border-box; display: grid; gap: 9px; }
 .sp-card .glass-tooltip h4 { margin: 0; }
 .sp-eq {
