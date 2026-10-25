@@ -514,3 +514,11 @@
     transform: translateX(0);
   }
 }
+
+/* A window too narrow for the stage beside the open sidebar: the sidebar opens
+   over the stage (sidebarLayout.js sidebarOverlays), on a backing solid enough
+   that the scene and its labels don't read through its text. */
+.sidebar-panel.lg-pane.over-stage,
+.sidebar-panel.lg-pane.over-stage[data-gl] {
+  background: rgba(12, 15, 23, 0.98) !important;
+}

@@ -432,3 +432,24 @@ test('Superposition: in a short window, the cards on a side never overlap', asyn
     expect(a.y + a.height).toBeLessThanOrEqual(b.y);
   }
 });
+
+test('Classical Bit vs Qubit: in a narrow window, the readout stays clear of the sidebar', async ({ page }) => {
+  await page.setViewportSize({ width: 657, height: 732 });
+  await returningVisitor(page, 'low');
+  await page.goto('/#bit-vs-qubit');
+  await waitForStage(page, 'bit-vs-qubit');
+  const bit = page.locator('.bvq-card-bit');
+  const qubit = page.locator('.bvq-card-qubit');
+  // Collapsed: both cards in view, beside the sidebar's icons rather than under them.
+  const rail = await page.locator('.sidebar-panel').boundingBox();
+  const b = await bit.boundingBox();
+  const q = await qubit.boundingBox();
+  expect(b.x).toBeGreaterThanOrEqual(rail.x + rail.width);
+  expect(q.x + q.width).toBeLessThanOrEqual(657);
+  // Open: too narrow for the stage beside it, the sidebar opens over the stage, which
+  // keeps its cards as they were (not squeezed into the strip beside the sidebar).
+  await page.locator('.sidebar-toggle-btn').click();
+  await expect(page.locator('.sidebar-panel')).toHaveClass(/over-stage/);
+  await expect.poll(async () => (await bit.boundingBox()).width).toBe(b.width);
+  expect((await qubit.boundingBox()).x).toBe(q.x);
+});

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, useSyncExternalStore, lazy, Suspense } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Stars, OrbitControls } from '@react-three/drei';
 import BlochSphere from './BlochSphere';
@@ -8,7 +8,7 @@ import { GatesScene, GatesOverlay, GATES_STEPS } from './QuantumGates';
 import { MultiGatesScene, MultiGatesOverlay, MULTI_GATES_STEPS } from './MultiQubitGates';
 import { isResultEntangled } from './quantumMath';
 import CameraShifter from './CameraShifter';
-import { sidebarFootprint } from './sidebarLayout';
+import { sidebarFootprint, sidebarOverlays } from './sidebarLayout';
 import { HUB_CAMERA } from './handoff';
 import { SharedCanvas } from './SharedCanvas';
 import { useExitPresence } from './useExitPresence';
@@ -102,6 +102,10 @@ const BackgroundStars = () => {
 // ==========================================
 // Owns the per-frame gate animation progress so gsap ticks only
 // re-render this small subtree instead of the whole App.
+// The window's width, for sidebarOverlays (re-rendering when it changes).
+const subscribeResize = (cb) => { window.addEventListener('resize', cb); return () => window.removeEventListener('resize', cb); };
+const readWindowWidth = () => window.innerWidth;
+
 const GatesModuleView = ({ step, applied, isSidebarOpen, uiBoundsStyle, onToggleApply, onNext, onPrev }) => {
   const [progress, setProgress] = useState(0);
 
@@ -140,13 +144,18 @@ export default function Simulator({ isMobile, onContinueAnyway }) {
   const [learningMode, setLearningMode] = useState(() => readStorage('quantumUI_learningMode') === 'advanced' ? 'advanced' : 'beginner');
   const [activeModuleId, setActiveModuleId] = useState(moduleFromHash); // the hub unless the URL names a module
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  // What the stage makes room for: the open sidebar, unless the window is too
+  // narrow and it opens over the stage instead (sidebarLayout.js).
+  const windowWidth = useSyncExternalStore(subscribeResize, readWindowWidth);
+  const sidebarOverStage = isSidebarOpen && sidebarOverlays(windowWidth);
+  const stageSidebarOpen = isSidebarOpen && !sidebarOverStage;
   const [focusTip, setFocusTip] = useState(null); // the collapsed sidebar's label for the focused icon
   useEffect(() => { if (isSidebarOpen) setFocusTip(null); }, [isSidebarOpen]);
   const [multiGatesStep, setMultiGatesStep] = useState(0);
   const {
     stageId, stagePhase, jellyState, InterferenceLoaded, EntanglementLoaded, NoCloningLoaded, ncFromHub, DecoherenceLoaded,
     decFromHub, ExponentialLoaded, expFromHub, interferenceFromHub, moduleTarget, hubTarget, pairModule,
-  } = useStageChoreography({ activeModuleId, isSidebarOpen, multiGatesStep });
+  } = useStageChoreography({ activeModuleId, isSidebarOpen: stageSidebarOpen, multiGatesStep });
   // The hub's text stays mounted while it fades out after a module opens.
   const hubShown = useExitPresence(!stageId, 650);
   const [listFor, setListFor] = useState(null); // the module the sidebar went "back" from
@@ -421,7 +430,7 @@ export default function Simulator({ isMobile, onContinueAnyway }) {
   const pageModule = isSidebarOpen ? activeModule : null;
   const modulePage = pageModule && listFor !== pageModule.id ? pageModule : null;
 
-  const currentSidebarWidth = sidebarFootprint(isSidebarOpen);
+  const currentSidebarWidth = sidebarFootprint(stageSidebarOpen);
   const uiBoundsStyle = {
     position: 'absolute',
     top: 0,
@@ -441,7 +450,7 @@ export default function Simulator({ isMobile, onContinueAnyway }) {
           background
           gl={{ ...SCENE_GL, antialias: false }}
         >
-          <CameraShifter isSidebarOpen={isSidebarOpen} />
+          <CameraShifter isSidebarOpen={stageSidebarOpen} />
           <ambientLight intensity={0.4} />
           <pointLight position={[-15, 10, 10]} color="#38bdf8" intensity={2.5} distance={45} />
           <pointLight position={[15, -10, 10]} color="#c084fc" intensity={2.5} distance={45} />
@@ -453,7 +462,7 @@ export default function Simulator({ isMobile, onContinueAnyway }) {
         {/* ── Sidebar Column ── */}
         <div className="sidebar-wrapper">
           <div
-            className={`sidebar-panel lg-pane ${isSidebarOpen ? '' : 'collapsed'}`}
+            className={`sidebar-panel lg-pane ${isSidebarOpen ? '' : 'collapsed'}${sidebarOverStage ? ' over-stage' : ''}`}
             // Collapsed, the sidebar is icons only: a control reached from the keyboard
             // shows its name beside it (the mouse gets the button's title).
             onFocus={(e) => {
@@ -664,7 +673,7 @@ export default function Simulator({ isMobile, onContinueAnyway }) {
             <GatesModuleView
               step={gatesStep}
               applied={gateApplied}
-              isSidebarOpen={isSidebarOpen}
+              isSidebarOpen={stageSidebarOpen}
               uiBoundsStyle={uiBoundsStyle}
               onToggleApply={() => {
                 if (!gateApplied) {
@@ -692,7 +701,7 @@ export default function Simulator({ isMobile, onContinueAnyway }) {
                 gl={SCENE_GL}
                 style={{ position: 'absolute', inset: 0, zIndex: 1, willChange: 'transform', transform: 'translateZ(0)' }}
               >
-                <CameraShifter isSidebarOpen={isSidebarOpen} />
+                <CameraShifter isSidebarOpen={stageSidebarOpen} />
                 <OrbitControls makeDefault enableZoom={true} enablePan={true} target={moduleTarget} />
                 <MultiGatesScene
                   step={multiGatesStep}
@@ -765,7 +774,7 @@ export default function Simulator({ isMobile, onContinueAnyway }) {
                 gl={SCENE_GL}
                 style={{ position: 'absolute', inset: 0, zIndex: 1, willChange: 'transform', transform: 'translateZ(0)' }}
               >
-                <CameraShifter isSidebarOpen={isSidebarOpen} />
+                <CameraShifter isSidebarOpen={stageSidebarOpen} />
                 <SuperpositionScene />
               </SharedCanvas>
               <div style={uiBoundsStyle}>
@@ -779,7 +788,7 @@ export default function Simulator({ isMobile, onContinueAnyway }) {
                 gl={SCENE_GL}
                 style={{ position: 'absolute', inset: 0, zIndex: 1, willChange: 'transform', transform: 'translateZ(0)' }}
               >
-                <CameraShifter isSidebarOpen={isSidebarOpen} />
+                <CameraShifter isSidebarOpen={stageSidebarOpen} />
                 <DiracScene step={diracStep} />
               </SharedCanvas>
               <div style={uiBoundsStyle}>
@@ -792,26 +801,26 @@ export default function Simulator({ isMobile, onContinueAnyway }) {
             </>
           ) : stageId === 'interference' ? (
             (InterferenceLoaded
-              ? <InterferenceLoaded isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={interferenceFromHub} />
-              : <InterferenceModule isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={interferenceFromHub} />)
+              ? <InterferenceLoaded isSidebarOpen={stageSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={interferenceFromHub} />
+              : <InterferenceModule isSidebarOpen={stageSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={interferenceFromHub} />)
           ) : stageId === 'entanglement' ? (
             (EntanglementLoaded
-              ? <EntanglementLoaded isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} />
-              : <EntanglementModule isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} />)
+              ? <EntanglementLoaded isSidebarOpen={stageSidebarOpen} isGlobalMuted={isGlobalMuted} />
+              : <EntanglementModule isSidebarOpen={stageSidebarOpen} isGlobalMuted={isGlobalMuted} />)
           ) : stageId === 'exponential' ? (
             (ExponentialLoaded
-              ? <ExponentialLoaded isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={expFromHub} closing={stagePhase === 'closing'} onRegisterChange={setExpRegister} />
-              : <ExponentialModule isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={expFromHub} closing={stagePhase === 'closing'} onRegisterChange={setExpRegister} />)
+              ? <ExponentialLoaded isSidebarOpen={stageSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={expFromHub} closing={stagePhase === 'closing'} onRegisterChange={setExpRegister} />
+              : <ExponentialModule isSidebarOpen={stageSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={expFromHub} closing={stagePhase === 'closing'} onRegisterChange={setExpRegister} />)
           ) : stageId === 'nocloning' ? (
             (NoCloningLoaded
-              ? <NoCloningLoaded isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={ncFromHub} closing={stagePhase === 'closing'} />
-              : <NoCloningModule isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={ncFromHub} closing={stagePhase === 'closing'} />)
+              ? <NoCloningLoaded isSidebarOpen={stageSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={ncFromHub} closing={stagePhase === 'closing'} />
+              : <NoCloningModule isSidebarOpen={stageSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={ncFromHub} closing={stagePhase === 'closing'} />)
           ) : stageId === 'decoherence' ? (
             (DecoherenceLoaded
-              ? <DecoherenceLoaded isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={decFromHub} onNavigateToModule={(moduleId) => setActiveModuleId(moduleId)} />
-              : <DecoherenceModule isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={decFromHub} onNavigateToModule={(moduleId) => setActiveModuleId(moduleId)} />)
+              ? <DecoherenceLoaded isSidebarOpen={stageSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={decFromHub} onNavigateToModule={(moduleId) => setActiveModuleId(moduleId)} />
+              : <DecoherenceModule isSidebarOpen={stageSidebarOpen} isGlobalMuted={isGlobalMuted} fromHub={decFromHub} onNavigateToModule={(moduleId) => setActiveModuleId(moduleId)} />)
           ) : stageId === 'error-correction' ? (
-            <QuantumErrorCorrectionModule isSidebarOpen={isSidebarOpen} isGlobalMuted={isGlobalMuted} />
+            <QuantumErrorCorrectionModule isSidebarOpen={stageSidebarOpen} isGlobalMuted={isGlobalMuted} />
           ) : (
             <SharedCanvas
               sceneId="bit-scene"
@@ -819,7 +828,7 @@ export default function Simulator({ isMobile, onContinueAnyway }) {
               gl={SCENE_GL}
               style={{ position: 'absolute', inset: 0, zIndex: 1, willChange: 'transform', transform: 'translateZ(0)' }}
             >
-              <CameraShifter isSidebarOpen={isSidebarOpen} />
+              <CameraShifter isSidebarOpen={stageSidebarOpen} />
               <BlochSphere
                 {...hubScenePose(stagePhase, stageId, pairModule)}
                 handoverTarget={hubTarget}
