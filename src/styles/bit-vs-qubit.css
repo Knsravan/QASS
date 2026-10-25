@@ -21,8 +21,10 @@
   width: min(300px, calc(50% - 40px));
   transform: translateX(-50%);
 }
-.bvq-card.bvq-card-bit { left: calc(50% - 33.5vh); }
-.bvq-card.bvq-card-qubit { left: calc(50% + 33.5vh); }
+/* ...but never past the stage's edges: in a window narrower than the pair, a
+   card under a model off the stage (or under the sidebar) stays in view. */
+.bvq-card.bvq-card-bit { left: max(calc(50% - 33.5vh), calc(min(300px, 50% - 40px) / 2 + 12px)); }
+.bvq-card.bvq-card-qubit { left: min(calc(50% + 33.5vh), calc(100% - min(300px, 50% - 40px) / 2 - 12px)); }
 
 .bvq-card.glass-card {
   padding: 12px 16px 10px;
