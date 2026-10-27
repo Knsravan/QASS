@@ -453,3 +453,21 @@ test('Classical Bit vs Qubit: in a narrow window, the readout stays clear of the
   await expect.poll(async () => (await bit.boundingBox()).width).toBe(b.width);
   expect((await qubit.boundingBox()).x).toBe(q.x);
 });
+
+test('Classical Gates vs Quantum Gates: Apply X turns |0⟩ into |1⟩, live, and Reset turns it back', async ({ page }) => {
+  const errors = collectErrors(page);
+  await returningVisitor(page, 'low');
+  await page.goto('/#gates');
+  await waitForStage(page, 'gates');
+  const ket = page.locator('.gl-ket');
+  await expect(ket).toHaveText('|0⟩');
+  await page.getByRole('button', { name: 'Apply X Gate' }).click();
+  // The readout follows the arrow through the turn and lands on |1⟩, P(1) = 100%; then the
+  // card says what happened. The turn runs in the scene's own time: slow on a software renderer.
+  await expect(ket).toHaveText('|1⟩', { timeout: 120_000 });
+  await expect(page.locator('.gl-v').nth(1)).toHaveText('100%');
+  await expect(page.locator('.gl-result')).toHaveCSS('opacity', '1', { timeout: 30_000 });
+  await page.getByRole('button', { name: '↺ Reset State' }).click();
+  await expect(ket).toHaveText('|0⟩', { timeout: 120_000 });
+  expect(errors).toEqual([]);
+});

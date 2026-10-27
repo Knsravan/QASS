@@ -1,0 +1,75 @@
+/* =============================================================================
+    CLASSICAL GATES VS QUANTUM GATES: what Apply Gate shows (QuantumGates.jsx)
+    - on the sphere: the gate's badge on its axis, the state it lands on
+    - in the overlay: the live state, the result card, the step strip
+   ============================================================================= */
+.gate-axis-badge {
+  width: 28px; height: 28px; border-radius: 9px;
+  display: grid; place-items: center;
+  font: 700 15px/1 'Fira Code', ui-monospace, monospace;
+  color: #04060b; background: var(--g);
+  box-shadow: 0 0 18px var(--g);
+  pointer-events: none;
+}
+.gate-end-chip {
+  padding: 5px 10px; border-radius: 10px; white-space: nowrap;
+  font-size: 14px; color: #f4f7fc;
+  background: color-mix(in srgb, var(--g) 26%, rgba(10, 14, 22, 0.86));
+  border: 1px solid var(--g);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--g) 40%, transparent);
+  pointer-events: none;
+  translate: 0 -34px;
+}
+
+.gates-live {
+  position: absolute; top: 128px; right: 40px; width: 270px;
+  display: grid; gap: 12px; z-index: 300; pointer-events: none;
+}
+.gl-card.glass-card { padding: 13px 15px; border-radius: 18px; display: grid; gap: 8px; pointer-events: auto; }
+.gl-label { font: 600 10.5px/1 'Inter', sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: #8b97ad; }
+.gl-ket { font: 500 14px/1.4 'Fira Code', ui-monospace, monospace; color: #eef3fb; min-height: 20px; }
+.gl-ket b { font-weight: 600; }
+.gl-c0 { color: #00f2fe; }
+.gl-c1 { color: #f093fb; }
+.gl-bar { display: grid; grid-template-columns: 38px minmax(0, 1fr) 40px; gap: 8px; align-items: center; font: 500 12px/1 'Fira Code', ui-monospace, monospace; }
+.gl-track { height: 7px; border-radius: 4px; background: rgba(255, 255, 255, 0.07); overflow: hidden; }
+.gl-fill { display: block; height: 100%; border-radius: 4px; }
+.gl-f0 { background: #00f2fe; box-shadow: 0 0 8px #00f2fe; }
+.gl-f1 { background: #f093fb; box-shadow: 0 0 8px #f093fb; }
+.gl-v { text-align: right; font-variant-numeric: tabular-nums; color: #b6c0d2; }
+.gl-dialrow { display: flex; gap: 12px; align-items: center; }
+.gl-dialrow svg { flex: none; overflow: visible; }
+.gl-needle { stroke: var(--g); stroke-width: 2.5; stroke-linecap: round; transform-origin: 0 0; transform-box: view-box; }
+.gl-dialtext { display: grid; gap: 4px; font: 500 12px/1.35 'Fira Code', ui-monospace, monospace; color: #a7b3c8; min-width: 0; }
+.gl-dialtext b { color: #eef3fb; font-weight: 600; }
+.gl-result { border-color: color-mix(in srgb, var(--g) 45%, transparent) !important; transition: opacity 0.5s, transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.gl-result p { margin: 0; font-size: 13px; line-height: 1.55; color: #c4cddb; }
+.gl-op { padding: 6px 8px; border-radius: 12px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); overflow-x: auto; color: #f1f5ff; }
+.gl-op .katex-display { margin: 2px 0; }
+
+.gl-phases {
+  position: absolute; bottom: 104px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 6px; padding: 6px; border-radius: 999px; z-index: 300; pointer-events: none;
+  background: rgba(14, 19, 30, 0.66); border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: opacity 0.4s;
+}
+.gl-phase {
+  display: inline-flex; align-items: center; gap: 7px; padding: 5px 10px; border-radius: 999px;
+  font: 600 11.5px/1 'Inter', sans-serif; letter-spacing: 0.04em; color: #6c7890;
+  transition: color 0.3s, background 0.3s;
+}
+.gl-phase i { font: 600 10px/1 'Fira Code', ui-monospace, monospace; font-style: normal; width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center; border: 1px solid currentColor; }
+.gl-phase.on { color: #eef3fb; background: color-mix(in srgb, var(--g) 24%, transparent); }
+.gl-phase.done { color: color-mix(in srgb, var(--g) 80%, white); }
+
+/* A narrow stage: the live state only, without the dial and the card */
+@media (max-width: 1100px) {
+  .gates-live { width: 230px; right: 20px; }
+  .gl-dialrow, .gl-result { display: none; }
+}
+@media (max-width: 760px) {
+  .gates-live, .gl-phases { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gl-result, .gl-phase, .gl-phases { transition: none; }
+}

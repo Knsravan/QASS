@@ -15,7 +15,7 @@ import { MathChip } from './MathChip';
 // =========================================
 // 1. CLASSICAL BIT COMPONENT (Left Side)
 // =========================================
-export const ClassicalBit = ({ position, scale = 1, activeModule, flipMode, isBlank, attemptCopy, onDomainHover, onDomainUnhover }) => {
+export const ClassicalBit = ({ position, scale = 1, activeModule, flipMode, isBlank, attemptCopy, onDomainHover, onDomainUnhover, follow }) => {
   const groupRef = useRef();
   const orbRef = useRef();
   const lightRef = useRef();
@@ -30,14 +30,20 @@ export const ClassicalBit = ({ position, scale = 1, activeModule, flipMode, isBl
     if (born.current === null) born.current = t;
     const ft = t - born.current; // flips count from when this bit appeared (so it starts at 0)
     if (groupRef.current) groupRef.current.rotation.y = Math.sin(t * 0.5) * 0.1;
-    if (flipMode === 'slow') setValue(Math.floor(ft * 0.8) % 2);
+    // `follow` ({ active, value: 0..1 }): while active, the bead sits where `value` puts
+    // it, 0 at the top seat and 1 at the bottom (the Gates module moves it with the gate).
+    const following = follow?.active;
+    if (following) setValue(follow.value < 0.5 ? 0 : 1);
+    else if (flipMode === 'slow') setValue(Math.floor(ft * 0.8) % 2);
     else if (flipMode === 'fast') setValue(Math.floor(ft * 2) % 2);
     else if (flipMode === 'async') setValue(Math.floor(ft * 1.8) % 2);
     else if (flipMode === 'static') setValue(0);
 
     const targetY = value === 0 ? 1.1 : -1.1;
     if (orbRef.current && !isBlank) {
-      if (!activeModule && !flipMode) {
+      if (following) {
+        orbRef.current.position.y = THREE.MathUtils.lerp(1.1, -1.1, follow.value);
+      } else if (!activeModule && !flipMode) {
         // Ambient idle state - very slow faint drifting only if no flipMode is set
         const idleVal = (Math.sin(t * 0.4) + 1) / 2; // 0 to 1
         orbRef.current.position.y = THREE.MathUtils.lerp(-1.1, 1.1, 1 - idleVal);
@@ -156,7 +162,7 @@ const _HUB_CAM = new THREE.Vector3(...HUB_CAMERA.cam);
 // =========================================
 // 2. QUANTUM QUBIT COMPONENT (Right Side)
 // =========================================
-export const QubitCore = ({ position, scale = 1, activeModule, onDomainHover, onDomainUnhover, customVectorQuat, showCustomVector, emissiveColor, customGridColor, customRingColor, sphereRotation, visible, interferenceStep = 0, interferencePhase = 0, fadeExtras = false, vectorOut, startDir, vectorLength }) => {
+export const QubitCore = ({ position, scale = 1, activeModule, onDomainHover, onDomainUnhover, customVectorQuat, exactVector, showCustomVector, emissiveColor, customGridColor, customRingColor, sphereRotation, visible, interferenceStep = 0, interferencePhase = 0, fadeExtras = false, vectorOut, startDir, vectorLength }) => {
   const coreGroupRef = useRef();
   const sphereRef = useRef(); const vectorRef = useRef(); const northPoleRef = useRef(); const southPoleRef = useRef(); const glassCoreRef = useRef();
 
@@ -247,7 +253,10 @@ export const QubitCore = ({ position, scale = 1, activeModule, onDomainHover, on
         }
       }
 
-      if (customVectorQuat) {
+      if (customVectorQuat && exactVector) {
+        // The caller animates the state itself (the Gates module): show it exactly, no lag.
+        vectorRef.current.quaternion.copy(customVectorQuat);
+      } else if (customVectorQuat) {
         vectorRef.current.quaternion.slerp(customVectorQuat, Math.min(1.0, delta * 9));
       } else {
         vectorRef.current.rotation.x = THREE.MathUtils.lerp(vectorRef.current.rotation.x, targetX, 0.08);
