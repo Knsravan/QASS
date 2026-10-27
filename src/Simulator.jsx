@@ -4,7 +4,7 @@ import { Stars, OrbitControls } from '@react-three/drei';
 import BlochSphere from './BlochSphere';
 import { DiracScene, DiracOverlay } from './DiracNotation';
 import { SuperpositionScene, SuperpositionOverlay } from './Superposition';
-import { GatesScene, GatesOverlay, GATES_STEPS } from './QuantumGates';
+import { GatesScene, GatesOverlay, GATES_STEPS, gateArrival } from './QuantumGates';
 import { MultiGatesScene, MultiGatesOverlay, MULTI_GATES_STEPS } from './MultiQubitGates';
 import { isResultEntangled } from './quantumMath';
 import CameraShifter from './CameraShifter';
@@ -100,15 +100,11 @@ const BackgroundStars = () => {
 // ==========================================
 // GATES MODULE VIEW
 // ==========================================
-// Owns the per-frame gate animation progress so gsap ticks only
-// re-render this small subtree instead of the whole App.
 // The window's width, for sidebarOverlays (re-rendering when it changes).
 const subscribeResize = (cb) => { window.addEventListener('resize', cb); return () => window.removeEventListener('resize', cb); };
 const readWindowWidth = () => window.innerWidth;
 
 const GatesModuleView = ({ step, applied, isSidebarOpen, uiBoundsStyle, onToggleApply, onNext, onPrev }) => {
-  const [progress, setProgress] = useState(0);
-
   return (
     <>
       <SharedCanvas
@@ -119,7 +115,7 @@ const GatesModuleView = ({ step, applied, isSidebarOpen, uiBoundsStyle, onToggle
       >
         <CameraShifter isSidebarOpen={isSidebarOpen} />
         <OrbitControls makeDefault enableZoom={true} enablePan={true} />
-        <GatesScene step={step} applied={applied} setProgress={setProgress} />
+        <GatesScene step={step} applied={applied} />
       </SharedCanvas>
       <div style={uiBoundsStyle}>
         <GatesOverlay
@@ -128,7 +124,6 @@ const GatesModuleView = ({ step, applied, isSidebarOpen, uiBoundsStyle, onToggle
           onToggleApply={onToggleApply}
           onNext={onNext}
           onPrev={onPrev}
-          progress={progress}
         />
       </div>
     </>
@@ -678,7 +673,7 @@ export default function Simulator({ isMobile, onContinueAnyway }) {
               onToggleApply={() => {
                 if (!gateApplied) {
                   setGateApplied(true);
-                  gatesAudio.playGateSequence(GATES_STEPS[gatesStep].id, 2.0);
+                  gatesAudio.playGateSequence(GATES_STEPS[gatesStep].id, Math.max(0, gateArrival(gatesStep) - 1.2)); // its lock sound lands with the arrow
                 } else {
                   setGateApplied(false);
                   gatesAudio.playGateSequence('reset');
